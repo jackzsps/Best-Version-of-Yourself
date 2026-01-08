@@ -1,10 +1,20 @@
-import React, { useState } from 'react';
+import React, { useState, lazy, Suspense } from 'react';
 import { HashRouter as Router, Routes, Route, NavLink } from 'react-router-dom';
 import { AppProvider, useApp } from './store/AppContext';
-import Dashboard from './pages/Dashboard';
-import AddEntry from './pages/AddEntry';
-import Settings from './pages/Settings';
 import { HomeIcon, PlusCircleIcon, SettingsIcon } from './components/Icons';
+
+// Lazy load pages to improve initial load performance
+const Dashboard = lazy(() => import('./pages/Dashboard'));
+const AddEntry = lazy(() => import('./pages/AddEntry'));
+const Settings = lazy(() => import('./pages/Settings'));
+
+// Loading component shown while pages are being fetched
+const LoadingFallback = () => (
+  <div className="flex-1 flex flex-col items-center justify-center h-full min-h-[50vh] animate-fade-in">
+    <div className="w-10 h-10 border-4 border-gray-200 border-t-brand-600 rounded-full animate-spin mb-4"></div>
+    <span className="text-gray-400 text-sm font-medium tracking-wide">Loading...</span>
+  </div>
+);
 
 const Layout = ({ children }: React.PropsWithChildren<{}>) => {
   const { t, theme } = useApp();
@@ -15,6 +25,7 @@ const Layout = ({ children }: React.PropsWithChildren<{}>) => {
     <div className={`h-full flex flex-col relative transition-colors duration-300 ${
       isVintageTheme ? 'theme-vintage' : 'bg-pastel-bg'
     }`}>
+      {/* Content Area */}
       {children}
       
       {/* Sticky Bottom Navigation */}
@@ -71,11 +82,14 @@ const App = () => {
     <AppProvider>
       <Router>
         <Layout>
-          <Routes>
-            <Route path="/" element={<Dashboard />} />
-            <Route path="/add" element={<AddEntry />} />
-            <Route path="/settings" element={<Settings />} />
-          </Routes>
+          {/* Suspense is placed inside Layout so the bottom nav remains visible during page loads */}
+          <Suspense fallback={<LoadingFallback />}>
+            <Routes>
+              <Route path="/" element={<Dashboard />} />
+              <Route path="/add" element={<AddEntry />} />
+              <Route path="/settings" element={<Settings />} />
+            </Routes>
+          </Suspense>
         </Layout>
       </Router>
     </AppProvider>
