@@ -4,104 +4,90 @@ import { GoogleGenerativeAI, SchemaType } from "@google/generative-ai";
 
 setGlobalOptions({ region: "us-central1" });
 
-// 定義嚴格的 Schema (從您之前的版本移過來)
-const schema: any = {
-  description: "Combined Finance and Fitness Analysis",
-  type: SchemaType.OBJECT,
-  properties: {
-    isFood: { type: SchemaType.BOOLEAN },
-    isExpense: { type: SchemaType.BOOLEAN },
-    recordType: { type: SchemaType.STRING, enum: ["combined", "expense", "diet"] },
-    itemName: { type: SchemaType.STRING },
-    category: { type: SchemaType.STRING, enum: ["food", "transport", "shopping", "entertainment", "bills", "other"] },
-    usage: { type: SchemaType.STRING, enum: ["must", "need", "want"] },
-    cost: { type: SchemaType.NUMBER, nullable: true },
-    calories: {
-      type: SchemaType.OBJECT,
-      properties: {
-        min: { type: SchemaType.NUMBER },
-        max: { type: SchemaType.NUMBER }
-      },
-      required: ["min", "max"]
-    },
-    // 如果您還需要 macros，請保留此段，否則可拿掉
-    macros: {
-      type: SchemaType.OBJECT,
-      properties: {
-        protein: { type: SchemaType.OBJECT, properties: { min: { type: SchemaType.NUMBER }, max: { type: SchemaType.NUMBER } }, required: ["min", "max"] },
-        carbs: { type: SchemaType.OBJECT, properties: { min: { type: SchemaType.NUMBER }, max: { type: SchemaType.NUMBER } }, required: ["min", "max"] },
-        fat: { type: SchemaType.OBJECT, properties: { min: { type: SchemaType.NUMBER }, max: { type: SchemaType.NUMBER } }, required: ["min", "max"] }
-      },
-      required: ["protein", "carbs", "fat"],
-      nullable: true
-    },
-    reasoning: { type: SchemaType.STRING }
-  },
-  required: ["isFood", "isExpense", "recordType", "itemName", "category", "usage", "calories", "reasoning"]
-};
-
 export const analyzeImage = onCall({ secrets: ["GEMINI_API_KEY"] }, async (request) => {
   if (!request.auth) throw new HttpsError('unauthenticated', 'Login required.');
 
   const apiKey = (process.env.GEMINI_API_KEY || "").trim();
-  if (!apiKey) throw new HttpsError('internal', 'Server Error: API Key missing.');
+  if (!apiKey) throw new HttpsError('internal', 'GEMINI_API_KEY missing.');
 
   const { base64Image, language } = request.data;
   if (!base64Image) throw new HttpsError('invalid-argument', 'Image missing.');
 
-  // 1. 定義嘗試順序：優先嘗試 2.0 (如果帳號有權限)，接著是穩定的 1.5-flash-001
-  const modelsToTry = [
-    "gemini-2.0-flash-exp",   // 速度最快，但可能不穩定
-    "gemini-1.5-flash-001",   // 最推薦的穩定版本
-    "gemini-1.5-flash",       // 別名
-    "gemini-1.5-pro"          // 較貴但強大，作為最後手段
-  ];
+  const schema: any = {
+    type: SchemaType.OBJECT,
+    properties: {
+      isFood: { type: SchemaType.BOOLEAN },
+      isExpense: { type: SchemaType.BOOLEAN },
+      recordType: { type: SchemaType.STRING, enum: ["combined", "expense", "diet"] },
+      itemName: { type: SchemaType.STRING },
+      category: { type: SchemaType.STRING, enum: ["food", "transport", "shopping", "entertainment", "bills", "other"] },
+      usage: { type: SchemaType.STRING, enum: ["must", "need", "want"] },
+      cost: { type: SchemaType.NUMBER, nullable: true },
+      calories: {
+        type: SchemaType.OBJECT,
+        properties: { min: { type: SchemaType.NUMBER }, max: { type: SchemaType.NUMBER } },
+        required: ["min", "max"]
+      },
+      macros: {
+        type: SchemaType.OBJECT,
+        properties: {
+          protein: { type: SchemaType.OBJECT, properties: { min: { type: SchemaType.NUMBER }, max: { type: SchemaType.NUMBER } }, required: ["min", "max"] },
+          carbs: { type: SchemaType.OBJECT, properties: { min: { type: SchemaType.NUMBER }, max: { type: SchemaType.NUMBER } }, required: ["min", "max"] },
+          fat: { type: SchemaType.OBJECT, properties: { min: { type: SchemaType.NUMBER }, max: { type: SchemaType.NUMBER } }, required: ["min", "max"] }
+        },
+        required: ["protein", "carbs", "fat"]
+      },
+      reasoning: { type: SchemaType.STRING }
+    },
+    required: ["isFood", "isExpense", "recordType", "itemName", "category", "usage", "calories", "reasoning"]
+  };
 
-  const base64Data = base64Image.split(',')[1] || base64Image;
-  const lang = language === 'zh-TW' ? "Traditional Chinese (繁體中文)" : "English";
-  const genAI = new GoogleGenerativeAI(apiKey);
-  
-  let lastError: any = null;
+  try {
+    const genAI = new GoogleGenerativeAI(apiKey);
+    const model = genAI.getGenerativeModel({ 
+      model: "gemini-1.5-flash-001", 
+      generationConfig: { 
+        responseMimeType: "application/json",
+        responseSchema: schema
+      }
+    });
 
-  for (const modelName of modelsToTry) {
-    try {
-      console.log(`Trying model: ${modelName}`);
-      
-      const model = genAI.getGenerativeModel({ 
-        model: modelName,
-        generationConfig: { 
-          responseMimeType: "application/json",
-          responseSchema: schema // 關鍵：加回這裡以確保輸出格式穩定
-        }
-      });
-      
-      const prompt = `Analyze this image. Language: ${lang}. 
-      Identify if it is food or a receipt. 
-      Estimate costs and calories accurately.`;
+    const base64Data = base64Image.split(',')[1] || base64Image;
+    const lang = language === 'zh-TW' ? "Traditional Chinese (繁體中文)" : "English";
 
-      const result = await model.generateContent([
-        { text: prompt },
-        { inlineData: { data: base64Data, mimeType: "image/jpeg" } }
-      ]);
+    // 強化提示詞：強調非食物的處理
+    const prompt = `Analyze this image for a tracker app.
+    CRITICAL RULES:
+    1. If the item is NOT food/drink (e.g. receipt for gas, clothing, tools), set "isFood" to false AND "recordType" to "expense".
+    2. For "expense" type, set all calorie and macro values (min and max) to 0.
+    3. Categorize non-food items into transport, shopping, entertainment, bills, or other.
+    4. Language for text: ${lang}.`;
 
-      const text = result.response.text();
-      if (!text) throw new Error("Empty response");
+    const result = await model.generateContent([
+      { text: prompt },
+      { inlineData: { data: base64Data, mimeType: "image/jpeg" } }
+    ]);
 
-      // 有了 Schema，通常不需要 regex 清理，但保留作為保險
-      const jsonStr = text.replace(/```json/g, "").replace(/```/g, "").trim();
-      
-      // 成功解析就直接回傳
-      return JSON.parse(jsonStr);
+    const text = result.response.text();
+    if (!text) throw new Error("Empty AI response");
 
-    } catch (err: any) {
-      console.warn(`Model ${modelName} failed:`, err.message);
-      lastError = err;
-      
-      // 如果是 API Key 無效，換模型也沒用，直接中斷
-      if (err.message?.includes("API key not valid")) break;
-      // 如果是 404 Not Found (您的原始問題)，loop 會繼續嘗試下一個模型
+    const data = JSON.parse(text);
+    
+    // 二次保險：如果 AI 判斷不是食物，強制在後端清理數值
+    if (!data.isFood) {
+      data.recordType = "expense";
+      data.calories = { min: 0, max: 0 };
+      data.macros = {
+        protein: { min: 0, max: 0 },
+        carbs: { min: 0, max: 0 },
+        fat: { min: 0, max: 0 }
+      };
     }
-  }
 
-  throw new HttpsError('internal', `Analysis failed after trying all models. Last error: ${lastError?.message}`);
+    return data;
+
+  } catch (error: any) {
+    console.error("Gemini Error:", error);
+    throw new HttpsError('internal', `Analysis failed: ${error.message}`);
+  }
 });

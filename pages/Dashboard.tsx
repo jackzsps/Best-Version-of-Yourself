@@ -11,7 +11,7 @@ import EntryList from '../components/dashboard/EntryList';
 import EditEntryModal from '../components/dashboard/EditEntryModal';
 
 const Dashboard = () => {
-  const { entries, updateEntry, deleteEntry, t, theme } = useApp();
+  const { entries, updateEntry, deleteEntry, t, theme, language } = useApp();
   const [editingEntry, setEditingEntry] = useState<Entry | null>(null);
   const [selectedDay, setSelectedDay] = useState<{name: string, cost: number, kcal: number} | null>(null);
   
@@ -36,23 +36,26 @@ const Dashboard = () => {
      return entries.filter(e => e.timestamp >= past.getTime());
   }, [entries, timeRange]);
 
-  // 3. 圖表數據
+  // 3. 圖表數據 - 根據語系調整日期格式
   const chartData = useMemo(() => {
     const data = [];
     const days = timeRange === 'week' ? 7 : 30;
+    const dateLocale = language === 'zh-TW' ? 'zh-TW' : 'en-US';
+    
     for (let i = days - 1; i >= 0; i--) {
       const d = new Date();
       d.setDate(d.getDate() - i);
       d.setHours(0, 0, 0, 0);
       const dayEntries = entries.filter(e => e.timestamp >= d.getTime() && e.timestamp < d.getTime() + 86400000);
       data.push({
-        name: d.toLocaleDateString('en-US', { weekday: 'short' }),
+        // 修正：動態切換日期語系
+        name: d.toLocaleDateString(dateLocale, { weekday: 'short' }),
         cost: dayEntries.reduce((acc, e) => acc + (e.cost || 0), 0),
         kcal: dayEntries.reduce((acc, e) => acc + (e.calories || 0), 0)
       });
     }
     return data;
-  }, [entries, timeRange]);
+  }, [entries, timeRange, language]);
 
   const spendingData = useMemo(() => {
     const map = new Map<string, number>();
@@ -80,7 +83,7 @@ const Dashboard = () => {
            </div>
            {selectedDay && (
               <button onClick={() => setSelectedDay(null)} className="px-3 py-1 bg-gray-900 text-white text-xs rounded-full flex items-center gap-1">
-                 <XIcon className="w-3 h-3" /> Reset
+                 <XIcon className="w-3 h-3" /> {language === 'zh-TW' ? '重設' : 'Reset'}
               </button>
            )}
         </div>
