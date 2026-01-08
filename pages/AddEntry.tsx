@@ -78,8 +78,6 @@ const AddEntry = () => {
     try {
       if (!user) throw new Error("Please sign in.");
       const result = await analyzeImage(base64, language);
-      console.log("Analysis Received in UI:", result);
-
       if (result) {
         setAnalysis(result);
         setFinalName(result.itemName || '');
@@ -87,8 +85,6 @@ const AddEntry = () => {
         setCategory(result.category as any || 'food');
         setUsage(result.usage as any || 'need');
         setRecordType(result.recordType || 'combined');
-        
-        // 立即計算數值
         const useMax = mode === RecordMode.STRICT;
         if (result.calories) setFinalCalories(useMax ? (result.calories.max?.toString() || '0') : (result.calories.min?.toString() || '0'));
         if (result.macros) {

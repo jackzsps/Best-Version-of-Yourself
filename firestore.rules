@@ -1,0 +1,15 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // 使用者資料夾規則
+    match /users/{userId} {
+      // 只有登入的使用者且 UID 相符時，才能讀寫自己的資料
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+      
+      // 嵌套的 entries 集合
+      match /entries/{entryId} {
+        allow read, write: if request.auth != null && request.auth.uid == userId;
+      }
+    }
+  }
+}
