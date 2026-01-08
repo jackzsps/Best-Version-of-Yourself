@@ -7,11 +7,12 @@ const Settings = () => {
 
   const isVintageTheme = theme === 'vintage';
   
-  const containerClass = isVintageTheme ? 'bg-vintage-bg text-vintage-ink' 
-    : 'bg-gray-50 pb-24';
+  // Update: Added 'overflow-y-auto' and 'h-full' to enable scrolling
+  const containerClass = isVintageTheme ? 'bg-vintage-bg text-vintage-ink overflow-y-auto h-full' 
+    : 'bg-gray-50 overflow-y-auto h-full';
   
-  const headerClass = isVintageTheme ? 'bg-vintage-bg/90 p-6 border-b-2 border-vintage-line pt-8'
-    : 'bg-white p-6 shadow-sm';
+  const headerClass = isVintageTheme ? 'bg-vintage-bg/90 p-6 border-b-2 border-vintage-line pt-8 sticky top-0 z-10'
+    : 'bg-white p-6 shadow-sm sticky top-0 z-10';
     
   const titleClass = isVintageTheme ? 'text-vintage-ink font-typewriter text-2xl font-bold'
     : 'text-2xl font-bold text-gray-900';
@@ -26,7 +27,7 @@ const Settings = () => {
     : 'text-gray-500 text-sm mb-6';
 
   return (
-    <div className={`flex-1 ${containerClass} pb-24`}>
+    <div className={`flex-1 ${containerClass} pb-24 no-scrollbar`}>
       <header className={headerClass}>
         <h1 className={titleClass}>{t.settings.title}</h1>
       </header>
