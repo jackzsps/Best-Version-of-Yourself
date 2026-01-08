@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <title>Best Version of Yourself</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Special+Elite&family=Caveat:wght@400;700&display=swap" rel="stylesheet">
+    <script>
+      tailwind.config = {
+        darkMode: 'class',
+        theme: {
+          extend: {
+            colors: {
+              brand: {
+                50: '#f0f9ff',
+                100: '#e0f2fe',
+                500: '#0ea5e9',
+                600: '#0284c7',
+                900: '#0c4a6e',
+              },
+              accent: {
+                500: '#f59e0b', // Amber for calories
+              },
+              // Pastel / Bento Theme Colors
+              pastel: {
+                bg: '#F5F6F8', // Very light gray background
+                card: '#FFFFFF',
+                blue: '#E3F2FD', // Soft Blue
+                blueDark: '#1E88E5',
+                green: '#E8F5E9', // Soft Green
+                greenDark: '#43A047',
+                yellow: '#FFFDE7', // Soft Yellow
+                yellowDark: '#FDD835',
+                purple: '#F3E5F5',
+                purpleDark: '#8E24AA',
+                text: '#1F2937'
+              },
+              // Vintage Theme Colors
+              vintage: {
+                bg: '#f0e6d2', // Aged Paper
+                card: '#f9f5eb', // Lighter Paper
+                ink: '#2c241b', // Dark Sepia Ink
+                leather: '#8b4513', // Saddle Brown
+                stamp: '#cd5c5c', // Faded Red
+                line: '#d4c5b0', // Ruling line
+              }
+            },
+            fontFamily: {
+              sans: ['Inter', 'sans-serif'],
+              typewriter: ['Special Elite', 'serif'],
+              handwriting: ['Caveat', 'cursive'],
+            },
+            boxShadow: {
+              'polaroid': '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06), 0 0 0 10px #fff',
+              'soft': '0 10px 40px -10px rgba(0,0,0,0.08)',
+              'bento': '0 4px 6px -1px rgba(0, 0, 0, 0.02), 0 2px 4px -1px rgba(0, 0, 0, 0.02)'
+            },
+            borderRadius: {
+              'bento': '1.5rem', // 24px
+            }
+          },
+        },
+      }
+    </script>
+    <style>
+      /* Hide scrollbar */
+      .no-scrollbar::-webkit-scrollbar { display: none; }
+      .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+      
+      /* Vintage Theme Utilities */
+      .theme-vintage {
+        background-color: #f0e6d2;
+        color: #2c241b;
+        font-family: 'Special Elite', serif;
+        /* Subtle noise texture for paper effect */
+        background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='0.1'/%3E%3C/svg%3E");
+      }
+
+      .vintage-card {
+        background-color: #f9f5eb;
+        border: 1px solid #d4c5b0;
+        box-shadow: 3px 3px 0px rgba(44, 36, 27, 0.1);
+      }
+
+      .polaroid-frame {
+        background-color: #fff;
+        padding: 10px 10px 40px 10px;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.15);
+        transform: rotate(-2deg);
+        transition: transform 0.3s ease;
+      }
+      
+      .polaroid-frame:hover {
+        transform: rotate(0deg) scale(1.02);
+      }
+
+      .handwritten {
+        font-family: 'Caveat', cursive;
+      }
+    </style>
+  <script type="importmap">
+{
+  "imports": {
+    "@google/genai": "https://esm.sh/@google/genai@^1.34.0",
+    "react/": "https://esm.sh/react@^19.2.3/",
+    "react": "https://esm.sh/react@^19.2.3",
+    "react-dom/": "https://esm.sh/react-dom@^19.2.3/",
+    "react-router-dom": "https://esm.sh/react-router-dom@^7.12.0",
+    "recharts": "https://esm.sh/recharts@^3.6.0"
+  }
+}
+</script>
+</head>
+  <body class="bg-pastel-bg text-gray-900 antialiased h-screen overflow-hidden selection:bg-brand-100 transition-colors duration-300">
+    <div id="root" class="h-full flex flex-col max-w-md mx-auto bg-white shadow-2xl relative transition-colors duration-300"></div>
+  </body>
+</html>

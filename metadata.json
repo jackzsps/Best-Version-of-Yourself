@@ -1,0 +1,7 @@
+{
+  "name": "Best Version of Yourself",
+  "description": "A mobile-first application to track expenses and nutritional intake simultaneously using AI image recognition.",
+  "requestFramePermissions": [
+    "camera"
+  ]
+}
