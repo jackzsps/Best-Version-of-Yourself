@@ -1,14 +1,20 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useApp } from '../store/AppContext';
-import { RecordMode, AnalysisResult, ExpenseCategory, PaymentMethod, UsageCategory, EntryType } from '../types';
+import { RecordMode, AnalysisResult, ExpenseCategory, PaymentMethod, UsageCategory, EntryType, Theme } from '../types';
 import { analyzeImage } from '../services/geminiService';
 import Button from '../components/Button';
 import { CameraIcon } from '../components/Icons';
+import { compressImage } from '../utils/imageCompressor';
 import { 
-  VintageInput, VintageSelect, 
-  BentoInput, BentoSelect, 
+  VintageInput, VintageSelect, VintageTextArea, 
+  BentoInput, BentoSelect, BentoTextArea, 
   ThemeDateInput, getUsagePillStyle 
 } from '../components/ThemeUI';
+
+// Retry Icon
+const RetryIcon = () => (
+  <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M23 4v6h-6"/><path d="M1 20v-6h6"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+);
 
 const getLocalDateString = (date = new Date()) => {
   const year = date.getFullYear();
@@ -63,58 +69,72 @@ const MacroInput = ({
 
 const AddEntry = () => {
   const { mode, addEntry, t, language, theme } = useApp();
-  const [step, setStep] = useState<'upload' | 'analyzing' | 'review'>('upload');
+  
+  // Expanded State Machine: 'error' state added
+  const [step, setStep] = useState<'upload' | 'analyzing' | 'review' | 'error'>('upload');
+  
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [analysis, setAnalysis] = useState<AnalysisResult | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const isVintageTheme = theme === 'vintage';
 
-  // Form State for Review
+  // Form State
   const [recordType, setRecordType] = useState<EntryType>('combined');
   const [finalName, setFinalName] = useState('');
   const [finalCost, setFinalCost] = useState('');
   const [finalCalories, setFinalCalories] = useState('');
-  
-  // Macros State
   const [finalProtein, setFinalProtein] = useState('');
   const [finalCarbs, setFinalCarbs] = useState('');
   const [finalFat, setFinalFat] = useState('');
-
+  
   const [entryDate, setEntryDate] = useState(getLocalDateString());
   const [category, setCategory] = useState<ExpenseCategory>('food');
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('cash');
   const [usage, setUsage] = useState<UsageCategory>('need');
   const [activeMode, setActiveMode] = useState<RecordMode>(mode);
+  const [note, setNote] = useState('');
 
   const categories: ExpenseCategory[] = ['food', 'transport', 'shopping', 'entertainment', 'bills', 'other'];
   const paymentMethods: PaymentMethod[] = ['cash', 'card', 'mobile'];
   const usageCategories: UsageCategory[] = ['must', 'need', 'want'];
   const entryTypes: EntryType[] = ['expense', 'diet', 'combined'];
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setImagePreview(reader.result as string);
+      try {
+        const compressed = await compressImage(file);
+        setImagePreview(compressed);
         setStep('analyzing');
-        performAnalysis(reader.result as string);
-      };
-      reader.readAsDataURL(file);
+        performAnalysis(compressed);
+      } catch (e) {
+        console.error("Compression error, falling back to original", e);
+        const reader = new FileReader();
+        reader.onloadend = () => {
+           const raw = reader.result as string;
+           setImagePreview(raw);
+           setStep('analyzing');
+           performAnalysis(raw);
+        };
+        reader.readAsDataURL(file);
+      }
     }
   };
 
   const performAnalysis = async (base64: string) => {
     try {
+      setErrorMsg(null);
       const result = await analyzeImage(base64, language);
+      
       setAnalysis(result);
       setFinalName(result.itemName);
       setFinalCost(result.cost?.toString() || '');
       setCategory(result.category || 'food');
       setUsage(result.usage || 'need');
       setRecordType(result.recordType || 'combined');
+      setNote(result.reasoning || '');
       
       const calRange = result.calories;
       if (calRange) {
@@ -136,8 +156,9 @@ const AddEntry = () => {
 
       setStep('review');
     } catch (err) {
-      setError(t.addEntry.analysisFailed);
-      setStep('review');
+      console.error(err);
+      setErrorMsg(t.addEntry.analysisFailed);
+      setStep('error');
     }
   };
 
@@ -152,7 +173,23 @@ const AddEntry = () => {
     }
   }, [activeMode, analysis]);
 
-  const handleSave = () => {
+  const handleRetry = () => {
+    if (imagePreview) {
+      setStep('analyzing');
+      performAnalysis(imagePreview);
+    }
+  };
+
+  const handleManualEntry = () => {
+    setAnalysis(null);
+    setFinalName('');
+    setFinalCost('');
+    setFinalCalories('');
+    // Ensure we keep the imagePreview if available
+    setStep('review');
+  };
+
+  const handleSave = async () => {
     const now = new Date();
     const [year, month, day] = entryDate.split('-').map(Number);
     const timestamp = new Date(year, month - 1, day, now.getHours(), now.getMinutes(), now.getSeconds()).getTime();
@@ -163,7 +200,7 @@ const AddEntry = () => {
     const carbsToSave = recordType === 'expense' ? 0 : (parseFloat(finalCarbs) || 0);
     const fatToSave = recordType === 'expense' ? 0 : (parseFloat(finalFat) || 0);
 
-    addEntry({
+    await addEntry({
       id: Date.now().toString(),
       timestamp: timestamp,
       imageUrl: imagePreview || undefined,
@@ -178,7 +215,7 @@ const AddEntry = () => {
       carbs: carbsToSave,
       fat: fatToSave,
       modeUsed: activeMode,
-      note: analysis?.reasoning
+      note: note
     });
     setStep('upload');
     setImagePreview(null);
@@ -187,8 +224,10 @@ const AddEntry = () => {
     setFinalProtein('');
     setFinalCarbs('');
     setFinalFat('');
+    setNote('');
   };
 
+  // --- RENDER: Analyzing ---
   if (step === 'analyzing') {
     return (
       <div className={`flex-1 flex flex-col items-center justify-center p-8 text-center ${isVintageTheme ? 'bg-vintage-bg text-vintage-ink' : 'animate-fade-in'}`}>
@@ -212,6 +251,65 @@ const AddEntry = () => {
     );
   }
 
+  // --- RENDER: Error View (NEW) ---
+  if (step === 'error') {
+    return (
+      <div className={`flex-1 flex flex-col p-6 ${isVintageTheme ? 'bg-vintage-bg' : 'bg-pastel-bg'}`}>
+         {/* Preview Image in Error State */}
+         <div className="flex-1 flex flex-col items-center justify-center">
+            <div className={`relative max-w-[300px] w-full mb-8 ${isVintageTheme ? 'polaroid-frame bg-white' : 'rounded-2xl shadow-lg overflow-hidden'}`}>
+               {imagePreview && (
+                  <img src={imagePreview} alt="Error" className={`w-full h-64 object-cover ${isVintageTheme ? 'filter sepia-[.3] contrast-125' : 'grayscale'}`} />
+               )}
+               
+               {/* Error Overlay */}
+               <div className="absolute inset-0 flex items-center justify-center bg-black/20 backdrop-blur-[2px]">
+                  {isVintageTheme ? (
+                    <div className="border-4 border-vintage-stamp text-vintage-stamp font-typewriter text-2xl font-bold px-4 py-2 -rotate-12 bg-vintage-bg/90 tracking-widest uppercase shadow-lg">
+                       AI FAILURE
+                    </div>
+                  ) : (
+                    <div className="bg-white/90 px-6 py-3 rounded-xl shadow-lg flex flex-col items-center">
+                       <span className="text-3xl mb-1">⚠️</span>
+                       <span className="font-bold text-gray-800">Analysis Failed</span>
+                    </div>
+                  )}
+               </div>
+            </div>
+
+            <p className={`text-center mb-8 max-w-xs ${isVintageTheme ? 'font-handwriting text-xl text-vintage-ink' : 'text-gray-500 font-medium'}`}>
+               {errorMsg || "Something went wrong with the AI analysis."}
+            </p>
+
+            <div className="flex gap-4 w-full max-w-sm">
+               <Button 
+                  onClick={handleManualEntry} 
+                  variant="ghost" 
+                  fullWidth
+                  className={isVintageTheme ? 'font-typewriter text-vintage-leather border-2 border-vintage-line hover:bg-vintage-line/20' : ''}
+               >
+                  {t.addEntry.manual}
+               </Button>
+               <Button 
+                  onClick={handleRetry} 
+                  variant="primary" 
+                  fullWidth
+                  className={`flex items-center justify-center gap-2 ${
+                     isVintageTheme 
+                     ? 'bg-vintage-ink text-vintage-bg font-typewriter shadow-[4px_4px_0px_#8b4513] border-none hover:translate-y-[2px] hover:shadow-[2px_2px_0px_#8b4513]' 
+                     : 'shadow-lg shadow-brand-200'
+                  }`}
+               >
+                  <RetryIcon />
+                  {t.common.retry || "Retry"}
+               </Button>
+            </div>
+         </div>
+      </div>
+    );
+  }
+
+  // --- RENDER: Review ---
   if (step === 'review') {
     return (
       <div className={`flex-1 overflow-y-auto pb-24 no-scrollbar ${isVintageTheme ? 'bg-vintage-bg' : 'bg-pastel-bg'}`}>
@@ -321,22 +419,16 @@ const AddEntry = () => {
                <div className="mb-4 pb-2 border-b border-vintage-line border-dashed">
                   {/* Mode Toggle for Vintage Theme */}
                   <div className="flex gap-4 mb-3">
-                     <div onClick={() => setActiveMode(RecordMode.STRICT)} className="cursor-pointer flex items-center gap-2">
-                        <div className={`w-4 h-4 border border-vintage-ink flex items-center justify-center ${activeMode === RecordMode.STRICT ? 'bg-vintage-ink' : ''}`}>
-                           {activeMode === RecordMode.STRICT && <span className="text-vintage-bg text-xs">✓</span>}
-                        </div>
-                        <span className={`font-typewriter text-xs ${activeMode === RecordMode.STRICT ? 'font-bold text-vintage-ink' : 'text-vintage-leather'}`}>
-                           {t.addEntry.modeStrict}
-                        </span>
-                     </div>
-                     <div onClick={() => setActiveMode(RecordMode.CONSERVATIVE)} className="cursor-pointer flex items-center gap-2">
-                        <div className={`w-4 h-4 border border-vintage-ink flex items-center justify-center ${activeMode === RecordMode.CONSERVATIVE ? 'bg-vintage-ink' : ''}`}>
-                           {activeMode === RecordMode.CONSERVATIVE && <span className="text-vintage-bg text-xs">✓</span>}
-                        </div>
-                        <span className={`font-typewriter text-xs ${activeMode === RecordMode.CONSERVATIVE ? 'font-bold text-vintage-ink' : 'text-vintage-leather'}`}>
-                           {t.addEntry.modeConservative}
-                        </span>
-                     </div>
+                     {[RecordMode.STRICT, RecordMode.CONSERVATIVE].map(m => (
+                       <div key={m} onClick={() => setActiveMode(m)} className="cursor-pointer flex items-center gap-2">
+                          <div className={`w-4 h-4 border border-vintage-ink flex items-center justify-center ${activeMode === m ? 'bg-vintage-ink' : ''}`}>
+                             {activeMode === m && <span className="text-vintage-bg text-xs">✓</span>}
+                          </div>
+                          <span className={`font-typewriter text-xs ${activeMode === m ? 'font-bold text-vintage-ink' : 'text-vintage-leather'}`}>
+                             {m === RecordMode.STRICT ? t.addEntry.modeStrict : t.addEntry.modeConservative}
+                          </span>
+                       </div>
+                     ))}
                   </div>
                </div>
             )}
@@ -451,6 +543,14 @@ const AddEntry = () => {
                 </div>
             )}
 
+            <div>
+               <label className={`block text-xs font-bold uppercase mb-2 mt-4 ${isVintageTheme ? 'text-vintage-leather' : 'text-gray-400'}`}>{t.addEntry.note}</label>
+               {isVintageTheme
+                 ? <VintageTextArea value={note} onChange={e => setNote(e.target.value)} rows={3} />
+                 : <BentoTextArea value={note} onChange={e => setNote(e.target.value)} rows={3} />
+               }
+            </div>
+
             {analysis?.reasoning && (
               <div className={`p-4 rounded-xl text-sm ${
                 isVintageTheme ? 'bg-vintage-card text-vintage-ink border border-vintage-line font-typewriter italic'
@@ -490,9 +590,9 @@ const AddEntry = () => {
         </div>
       </div>
     );
-  };
+  }
 
-  // Upload Step
+  // --- RENDER: Upload ---
   return (
     <div className={`flex-1 flex flex-col p-6 pb-24 ${isVintageTheme ? 'bg-vintage-bg' : 'bg-pastel-bg'}`}>
       <header className="mb-8 mt-4">

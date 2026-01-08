@@ -1,3 +1,4 @@
+
 export const TRANSLATIONS = {
   'en': {
     common: {
@@ -7,6 +8,7 @@ export const TRANSLATIONS = {
       processing: "Processing...",
       loading: "Loading...",
       error: "Error",
+      retry: "Retry",
       delete: "Delete",
       update: "Update",
       close: "Close"
@@ -142,6 +144,7 @@ export const TRANSLATIONS = {
       processing: "處理中...",
       loading: "載入中...",
       error: "錯誤",
+      retry: "重試",
       delete: "刪除",
       update: "更新",
       close: "關閉"
