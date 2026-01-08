@@ -137,7 +137,7 @@ const AddEntry = () => {
            {error && <div className="mb-4 p-4 bg-red-50 text-red-600 rounded-2xl text-sm border border-red-100 flex items-center gap-2"><span>⚠️</span> {error}</div>}
            <div className="rounded-bento overflow-hidden shadow-bento h-64 relative bg-white">
               {imagePreview && <img src={imagePreview} alt="Review" className="w-full h-full object-cover" />}
-              <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent flex items-end p-6"><h2 className="text-white text-2xl font-bold">{finalName || 'Untitled'}</h2></div>
+              <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent flex items-end p-6"><h2 className="text-white text-2xl font-bold">{finalName || t.common.untitled}</h2></div>
            </div>
         </div>
         <div className="p-6 space-y-6 -mt-4">

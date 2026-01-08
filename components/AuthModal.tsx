@@ -70,8 +70,8 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
           {!isLogin && (
             <input type="text" placeholder={t.auth.namePlaceholder} value={name} onChange={e => setName(e.target.value)} className={inputClass} required />
           )}
-          <input type="email" placeholder="Email" value={email} onChange={e => setEmail(e.target.value)} className={inputClass} required />
-          <input type="password" placeholder="Password" value={password} onChange={e => setPassword(e.target.value)} className={inputClass} required />
+          <input type="email" placeholder={t.auth.emailPlaceholder} value={email} onChange={e => setEmail(e.target.value)} className={inputClass} required />
+          <input type="password" placeholder={t.auth.passwordPlaceholder} value={password} onChange={e => setPassword(e.target.value)} className={inputClass} required />
 
           <button type="submit" className={btnClass} disabled={loading}>
             {loading ? t.common.processing : (isLogin ? t.auth.loginBtn : t.auth.registerBtn)}

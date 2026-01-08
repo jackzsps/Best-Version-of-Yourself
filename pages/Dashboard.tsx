@@ -48,7 +48,7 @@ const Dashboard = () => {
       d.setHours(0, 0, 0, 0);
       const dayEntries = entries.filter(e => e.timestamp >= d.getTime() && e.timestamp < d.getTime() + 86400000);
       data.push({
-        // 修正：動態切換日期語系
+        // 動態切換日期語系
         name: d.toLocaleDateString(dateLocale, { weekday: 'short' }),
         cost: dayEntries.reduce((acc, e) => acc + (e.cost || 0), 0),
         kcal: dayEntries.reduce((acc, e) => acc + (e.calories || 0), 0)
@@ -60,18 +60,23 @@ const Dashboard = () => {
   const spendingData = useMemo(() => {
     const map = new Map<string, number>();
     filteredEntries.forEach(e => e.cost > 0 && map.set(e.category, (map.get(e.category) || 0) + e.cost));
-    return Array.from(map.entries()).map(([name, value]) => ({ name, value }));
-  }, [filteredEntries]);
+    // 使用 t.categories 翻譯
+    return Array.from(map.entries()).map(([key, value]) => ({ 
+      name: t.categories[key as keyof typeof t.categories] || key, 
+      value 
+    }));
+  }, [filteredEntries, t]);
 
   const macroData = useMemo(() => {
     let p = 0, c = 0, f = 0;
     filteredEntries.forEach(e => { p += e.protein || 0; c += e.carbs || 0; f += e.fat || 0; });
     const res = [];
-    if (p > 0) res.push({ name: 'Protein', value: p, colorKey: 'protein' });
-    if (c > 0) res.push({ name: 'Carbs', value: c, colorKey: 'carbs' });
-    if (f > 0) res.push({ name: 'Fat', value: f, colorKey: 'fat' });
+    // 使用 t.addEntry 中的營養素名稱
+    if (p > 0) res.push({ name: t.addEntry.protein, value: p, colorKey: 'protein' });
+    if (c > 0) res.push({ name: t.addEntry.carbs, value: c, colorKey: 'carbs' });
+    if (f > 0) res.push({ name: t.addEntry.fat, value: f, colorKey: 'fat' });
     return res;
-  }, [filteredEntries]);
+  }, [filteredEntries, t]);
 
   return (
     <div className={`flex-1 pb-24 overflow-y-auto no-scrollbar ${isVintage ? 'bg-vintage-bg' : 'bg-gray-50'}`}>
@@ -83,7 +88,7 @@ const Dashboard = () => {
            </div>
            {selectedDay && (
               <button onClick={() => setSelectedDay(null)} className="px-3 py-1 bg-gray-900 text-white text-xs rounded-full flex items-center gap-1">
-                 <XIcon className="w-3 h-3" /> {language === 'zh-TW' ? '重設' : 'Reset'}
+                 <XIcon className="w-3 h-3" /> {t.common.reset}
               </button>
            )}
         </div>

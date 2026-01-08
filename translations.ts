@@ -9,7 +9,9 @@ export const TRANSLATIONS = {
       error: "Error",
       delete: "Delete",
       update: "Update",
-      close: "Close"
+      close: "Close",
+      reset: "Reset",
+      untitled: "Untitled"
     },
     nav: {
       home: "Home",
@@ -31,6 +33,7 @@ export const TRANSLATIONS = {
       unitCurrency: "$",
       editEntry: "Edit Entry",
       confirmDelete: "Are you sure you want to delete this entry?",
+      deleteWarning: "This action cannot be undone.",
       vintageDelete: {
         title: "VOID ENTRY?",
         message: "Are you sure you want to rip this page out of your journal?",
@@ -141,6 +144,8 @@ export const TRANSLATIONS = {
       loginTitle: "Welcome Back",
       registerTitle: "Create Account",
       namePlaceholder: "Your Name",
+      emailPlaceholder: "Email",
+      passwordPlaceholder: "Password",
       loginBtn: "Sign In",
       registerBtn: "Sign Up",
       toRegister: "Don't have an account? Sign Up",
@@ -162,7 +167,9 @@ export const TRANSLATIONS = {
       error: "錯誤",
       delete: "刪除",
       update: "更新",
-      close: "關閉"
+      close: "關閉",
+      reset: "重設",
+      untitled: "未命名"
     },
     nav: {
       home: "首頁",
@@ -184,6 +191,7 @@ export const TRANSLATIONS = {
       unitCurrency: "$",
       editEntry: "編輯紀錄",
       confirmDelete: "確定要刪除這筆紀錄嗎？",
+      deleteWarning: "此動作無法復原。",
       vintageDelete: {
         title: "作廢此頁？",
         message: "確定要將這頁從手帳中撕下嗎？",
@@ -294,6 +302,8 @@ export const TRANSLATIONS = {
       loginTitle: "登入帳號",
       registerTitle: "註冊新帳號",
       namePlaceholder: "您的暱稱",
+      emailPlaceholder: "電子信箱",
+      passwordPlaceholder: "密碼",
       loginBtn: "登入",
       registerBtn: "註冊",
       toRegister: "還沒有帳號？點此註冊",
