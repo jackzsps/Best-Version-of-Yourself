@@ -118,6 +118,10 @@ export const TRANSLATIONS = {
     },
     settings: {
       title: "Settings",
+      account: "Account Settings",
+      signIn: "Sign In / Register",
+      signOut: "Sign Out",
+      authDesc: "Sign in to sync your records to the cloud, ensuring data safety and cross-device access.",
       language: "Language",
       languageDesc: "Choose your preferred interface language.",
       theme: "Theme",
@@ -132,6 +136,20 @@ export const TRANSLATIONS = {
       conservativeDesc: "Records the minimum detected value.",
       about: "About",
       poweredBy: "Powered by Google Gemini"
+    },
+    auth: {
+      loginTitle: "Welcome Back",
+      registerTitle: "Create Account",
+      namePlaceholder: "Your Name",
+      loginBtn: "Sign In",
+      registerBtn: "Sign Up",
+      toRegister: "Don't have an account? Sign Up",
+      toLogin: "Already have an account? Sign In",
+      errorEmail: "Invalid email format",
+      errorCredential: "Wrong email or password",
+      errorInUse: "Email already in use",
+      errorWeak: "Password too weak (min 6 chars)",
+      errorNetwork: "Network error"
     }
   },
   'zh-TW': {
@@ -253,6 +271,10 @@ export const TRANSLATIONS = {
     },
     settings: {
       title: "設定",
+      account: "帳號設定",
+      signIn: "登入 / 註冊",
+      signOut: "登出",
+      authDesc: "登入以將您的紀錄同步到雲端，確保資料安全且跨裝置存取。",
       language: "語言",
       languageDesc: "選擇您偏好的介面語言。",
       theme: "介面風格",
@@ -267,6 +289,20 @@ export const TRANSLATIONS = {
       conservativeDesc: "紀錄偵測到的最小值。",
       about: "關於",
       poweredBy: "Powered by Google Gemini"
+    },
+    auth: {
+      loginTitle: "登入帳號",
+      registerTitle: "註冊新帳號",
+      namePlaceholder: "您的暱稱",
+      loginBtn: "登入",
+      registerBtn: "註冊",
+      toRegister: "還沒有帳號？點此註冊",
+      toLogin: "已有帳號？點此登入",
+      errorEmail: "Email 格式錯誤",
+      errorCredential: "帳號或密碼錯誤",
+      errorInUse: "此 Email 已被註冊",
+      errorWeak: "密碼強度不足 (至少6字)",
+      errorNetwork: "網路連線失敗"
     }
   }
 };
