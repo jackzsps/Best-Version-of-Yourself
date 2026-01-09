@@ -73,8 +73,9 @@ exports.analyzeImage = (0, https_1.onCall)({ secrets: ["GEMINI_API_KEY"] }, asyn
         // --- 修正處：更新為最新的穩定版模型 ---
         // gemini-1.5-flash 已棄用
         // 使用 gemini-2.5-flash (2025/2026 穩定版)
+        //改用G3
         const model = genAI.getGenerativeModel({
-            model: "gemini-2.5-flash",
+            model: "gemini-3-flash-preview",
             generationConfig: {
                 responseMimeType: "application/json",
                 responseSchema: schema
