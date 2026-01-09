@@ -19,8 +19,7 @@ import {
     uploadImageToCloud, 
     syncEntryToCloud, 
     deleteEntryFromCloud, 
-    listenToEntries, // Import the real-time listener
-    fetchAllFromCloud // Keep for initial anonymous sync
+    listenToEntries
 } from '../src/services/cloudService';
 import { Unsubscribe } from 'firebase/firestore';
 
@@ -30,10 +29,11 @@ interface AppState {
   language: Language;
   theme: Theme;
   user: User | null;
+  isWriting: boolean; 
   t: typeof TRANSLATIONS['en'];
-  addEntry: (entry: Entry) => void;
-  updateEntry: (entry: Entry) => void;
-  deleteEntry: (id: string) => void;
+  addEntry: (entry: Entry) => Promise<void>;
+  updateEntry: (entry: Entry) => Promise<void>;
+  deleteEntry: (id: string) => Promise<void>;
   setMode: (mode: RecordMode) => void;
   setLanguage: (lang: Language) => void;
   setTheme: (theme: Theme) => void;
@@ -51,59 +51,51 @@ export const AppProvider = ({ children }: React.PropsWithChildren<{}>) => {
   const [language, setLanguage] = useState<Language>(DEFAULT_LANGUAGE);
   const [theme, setTheme] = useState<Theme>('default');
   const [user, setUser] = useState<User | null>(null);
+  const [isWriting, setIsWriting] = useState<boolean>(false);
 
-  // Effect for loading ALL settings and initial ENTRIES from localStorage on mount
   useEffect(() => {
     try {
-      console.log("Attempting to load data from localStorage on initial mount.");
-      const savedEntries = localStorage.getItem('bvoy_entries'); // <-- FIX: Load entries on start
       const savedMode = localStorage.getItem('bvoy_mode');
       const savedLang = localStorage.getItem('bvoy_language');
       const savedTheme = localStorage.getItem('bvoy_theme');
-      if (savedEntries) setEntries(JSON.parse(savedEntries));
       if (savedMode) setMode(savedMode as RecordMode);
       if (savedLang) setLanguage(savedLang as Language);
       if (savedTheme) setTheme(savedTheme as Theme);
     } catch (e) {
-      console.error("Initial local data load failed", e);
+      console.error("Initial settings load failed", e);
     }
   }, []);
 
-  // Auth state change and data synchronization effect
   useEffect(() => {
     let unsubscribe: Unsubscribe | null = null;
 
-    const authUnsubscribe = onAuthStateChanged(auth, async (currentUser) => {
+    const authUnsubscribe = onAuthStateChanged(auth, (currentUser) => {
       setUser(currentUser);
       
-      // Stop listening to old user's data if there was one
-      if (unsubscribe) unsubscribe();
+      if (unsubscribe) {
+        unsubscribe();
+        unsubscribe = null;
+      }
 
       if (currentUser) {
-        // --- User is LOGGED IN ---
-        console.log(`User ${currentUser.uid} logged in. Setting up real-time listener.`);
-        
-        // Start real-time listener
+        // **Cloud is King**: When a user logs in, the cloud is the single source of truth.
         unsubscribe = listenToEntries(currentUser.uid, (cloudEntries) => {
-            console.log("Received real-time update from Firestore.");
             const sortedEntries = cloudEntries.sort((a, b) => b.date.seconds - a.date.seconds);
             setEntries(sortedEntries);
             localStorage.setItem('bvoy_entries', JSON.stringify(sortedEntries));
         });
-
       } else {
-        // --- User is LOGGED OUT (or in anonymous state) ---
-        console.log("User is not logged in. Using local data only.");
-        // FIX: No longer clearing cache here. This is handled by the logout function.
-        // We still need to load from local storage in case they just refreshed the page.
-        const localData = localStorage.getItem('bvoy_entries');
-        setEntries(localData ? JSON.parse(localData) : []);
+        // User is logged out, clear all personal data.
+        setEntries([]);
+        localStorage.removeItem('bvoy_entries');
       }
     });
 
     return () => {
-        authUnsubscribe();
-        if (unsubscribe) unsubscribe();
+      authUnsubscribe();
+      if (unsubscribe) {
+        unsubscribe();
+      }
     };
   }, []);
 
@@ -118,57 +110,88 @@ export const AppProvider = ({ children }: React.PropsWithChildren<{}>) => {
   };
 
   const logout = async () => {
-    console.log("Logout initiated. Clearing all local user data.");
-    // FIX: Clear local storage ONLY on explicit logout
-    localStorage.removeItem('bvoy_entries');
-    localStorage.removeItem('bvoy_mode');
-    localStorage.removeItem('bvoy_language');
-    localStorage.removeItem('bvoy_theme');
-    setEntries([]);
+    if (isWriting) {
+      alert(t.logoutWarning);
+      return;
+    }
+    await signOut(auth);
+    // The onAuthStateChanged listener will handle clearing the state.
+    localStorage.clear(); // Also clear settings etc.
     setMode(DEFAULT_MODE);
     setLanguage(DEFAULT_LANGUAGE);
     setTheme('default');
-    await signOut(auth);
   };
 
+  const t = TRANSLATIONS[language];
+
   const addEntry = async (entry: Entry) => {
+    const currentUser = auth.currentUser;
+    if (!currentUser) return; 
+
+    // Optimistic UI update
     const newEntries = [entry, ...entries].sort((a, b) => b.date.seconds - a.date.seconds);
     setEntries(newEntries);
     localStorage.setItem('bvoy_entries', JSON.stringify(newEntries));
-    if (user) {
-      console.log(`Syncing new entry ${entry.id} to the cloud.`);
-      try {
-        let entryToSync = { ...entry };
-        if (entry.imageUrl && entry.imageUrl.startsWith('data:')) {
-          const cloudUrl = await uploadImageToCloud(entry.imageUrl, entry.id, user.uid);
-          entryToSync.imageUrl = cloudUrl; 
-          await syncEntryToCloud(entryToSync, user.uid); // Update the entry with the final URL
-        }
-        await syncEntryToCloud(entryToSync, user.uid);
-      } catch (error) {
-        console.error(`Failed to sync new entry ${entry.id} to cloud. It is saved locally.`, error);
+
+    setIsWriting(true); 
+    try {
+      let entryToSync = { ...entry };
+      if (entry.imageUrl && entry.imageUrl.startsWith('data:')) {
+        const cloudUrl = await uploadImageToCloud(entry.imageUrl, entry.id, currentUser.uid);
+        entryToSync.imageUrl = cloudUrl; 
       }
+      await syncEntryToCloud(entryToSync, currentUser.uid);
+    } catch (error) {
+      console.error(`Sync failed for new entry ${entry.id}. It is saved locally.`, error);
+      // The listener will eventually correct the state if sync fails.
+    } finally {
+      setIsWriting(false); 
     }
   };
 
   const updateEntry = async (updatedEntry: Entry) => {
+    const currentUser = auth.currentUser;
+    if (!currentUser) return;
+
+    // Optimistic UI update
     const newEntries = entries.map(e => e.id === updatedEntry.id ? updatedEntry : e);
     setEntries(newEntries);
     localStorage.setItem('bvoy_entries', JSON.stringify(newEntries));
-    if (user) {
-      console.log(`Syncing updated entry ${updatedEntry.id} to the cloud.`);
-      await syncEntryToCloud(updatedEntry, user.uid);
+
+    setIsWriting(true); 
+    try {
+      await syncEntryToCloud(updatedEntry, currentUser.uid);
+    } finally {
+      setIsWriting(false); 
     }
   };
 
   const deleteEntry = async (id: string) => {
     const target = entries.find(e => e.id === id);
-    const newEntries = entries.filter(e => e.id !== id);
-    setEntries(newEntries);
-    localStorage.setItem('bvoy_entries', JSON.stringify(newEntries));
-    if (user && target) {
-      console.log(`Deleting entry ${id} from the cloud.`);
-      await deleteEntryFromCloud(id, !!target.imageUrl, user.uid);
+    if (!target) return;
+
+    const confirmed = theme === 'vintage'
+      ? window.confirm(`${t.vintageDelete.title}\n\n${t.vintageDelete.message}`)
+      : window.confirm(`${t.confirmDelete}\n\n${t.deleteWarning}`);
+
+    if (confirmed) {
+      const currentUser = auth.currentUser;
+      if (!currentUser) return;
+
+      // Optimistic UI update
+      const newEntries = entries.filter(e => e.id !== id);
+      setEntries(newEntries);
+      localStorage.setItem('bvoy_entries', JSON.stringify(newEntries));
+
+      setIsWriting(true);
+      try {
+        await deleteEntryFromCloud(id, target.imageUrl || null, currentUser.uid);
+      } catch (error) {
+        console.error(`Cloud delete failed for entry ${id}.`, error);
+        // The listener will eventually restore the entry if deletion fails.
+      } finally {
+        setIsWriting(false);
+      }
     }
   };
 
@@ -176,11 +199,9 @@ export const AppProvider = ({ children }: React.PropsWithChildren<{}>) => {
   const updateLang = (l: Language) => { setLanguage(l); localStorage.setItem('bvoy_language', l); };
   const updateTheme = (t: Theme) => { setTheme(t); localStorage.setItem('bvoy_theme', t); };
 
-  const t = TRANSLATIONS[language];
-
   return (
     <AppContext.Provider value={{ 
-      entries, mode, language, theme, user, t, 
+      entries, mode, language, theme, user, isWriting, t, 
       addEntry, updateEntry, deleteEntry, 
       setMode: updateMode, setLanguage: updateLang, setTheme: updateTheme,
       loginGoogle, loginEmail, registerEmail, logout

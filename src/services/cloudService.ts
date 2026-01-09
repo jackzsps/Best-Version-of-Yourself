@@ -7,45 +7,46 @@ import {
 } from 'firebase/storage';
 import { Entry } from '../types';
 
-// 將 Base64 轉換並上傳到 Firebase Storage (Modular API)
+// Uploads a Base64 image to Firebase Storage and returns the download URL.
 export const uploadImageToCloud = async (base64Image: string, entryId: string, userId: string): Promise<string> => {
   const storageRef = ref(storage, `users/${userId}/images/${entryId}.jpg`);
   await uploadString(storageRef, base64Image, 'data_url');
   return await getDownloadURL(storageRef);
 };
 
-// 同步單筆紀錄到 Firestore (Modular API)
+// Syncs a single entry to Firestore.
 export const syncEntryToCloud = async (entry: Entry, userId: string) => {
   const entryRef = doc(db, 'users', userId, 'entries', entry.id);
   await setDoc(entryRef, entry, { merge: true });
 };
 
-// 刪除雲端資料
-export const deleteEntryFromCloud = async (entryId: string, hasImage: boolean, userId: string) => {
-  try {
-    await deleteDoc(doc(db, 'users', userId, 'entries', entryId));
-  } catch (e) {
-    console.warn("Firestore delete failed", e);
-  }
+// Deletes an entry from both Firestore and Firebase Storage (if an image URL exists).
+export const deleteEntryFromCloud = async (entryId: string, imageUrl: string | null, userId: string) => {
+  // 1. Delete the document from Firestore.
+  await deleteDoc(doc(db, 'users', userId, 'entries', entryId));
 
-  if (hasImage) {
-    const storageRef = ref(storage, `users/${userId}/images/${entryId}.jpg`);
+  // 2. If an imageUrl exists, delete the corresponding file from Storage.
+  if (imageUrl) {
     try {
+      // Create a reference directly from the HTTPS download URL.
+      // This is the most robust way to ensure the correct file is deleted.
+      const storageRef = ref(storage, imageUrl);
       await deleteObject(storageRef);
-    } catch (e) {
-      console.warn("Image delete failed", e);
+    } catch (error) {
+      // Log errors, e.g., if the object doesn't exist or rules prevent deletion.
+      console.warn(`Image deletion failed for URL: ${imageUrl}`, error);
     }
   }
 };
 
-// 從雲端拉取所有資料 (一次性)
+// Fetches all entries for a user from the cloud (one-time fetch).
 export const fetchAllFromCloud = async (userId: string): Promise<Entry[]> => {
   const q = query(collection(db, 'users', userId, 'entries'));
   const querySnapshot = await getDocs(q);
   return querySnapshot.docs.map(doc => doc.data() as Entry);
 };
 
-// 監聽雲端資料變化 (即時)
+// Listens for real-time updates to a user's entries.
 export const listenToEntries = (userId: string, callback: (entries: Entry[]) => void): Unsubscribe => {
   const q = query(collection(db, 'users', userId, 'entries'));
   const unsubscribe = onSnapshot(q, (querySnapshot) => {
