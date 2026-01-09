@@ -1,57 +1,90 @@
+
 import { db, storage } from '../utils/firebase';
 import { 
-  collection, doc, setDoc, deleteDoc, getDocs, query, onSnapshot, Unsubscribe
+  collection, 
+  query, 
+  where, 
+  onSnapshot, 
+  doc, 
+  setDoc, 
+  deleteDoc,
+  Timestamp
 } from 'firebase/firestore';
-import { 
-  ref, uploadString, getDownloadURL, deleteObject 
-} from 'firebase/storage';
-import { Entry } from '../types';
+import { ref, uploadString, getDownloadURL, deleteObject } from 'firebase/storage';
+import { Entry } from '../../types';
+import { Unsubscribe } from 'firebase/auth';
 
-// Uploads a Base64 image to Firebase Storage and returns the download URL.
-export const uploadImageToCloud = async (base64Image: string, entryId: string, userId: string): Promise<string> => {
-  const storageRef = ref(storage, `users/${userId}/images/${entryId}.jpg`);
-  await uploadString(storageRef, base64Image, 'data_url');
-  return await getDownloadURL(storageRef);
+// Helper to get the date 45 days ago
+const getFortyFiveDaysAgo = (): Timestamp => {
+  const date = new Date();
+  date.setDate(date.getDate() - 45);
+  return Timestamp.fromDate(date);
 };
 
-// Syncs a single entry to Firestore.
-export const syncEntryToCloud = async (entry: Entry, userId: string) => {
+// --- WRITE OPERATIONS ---
+
+/**
+ * Uploads an image to Firebase Storage and returns the download URL.
+ * Images are stored in a user-specific folder.
+ */
+export const uploadImageToCloud = async (imageDataUrl: string, entryId: string, userId: string): Promise<string> => {
+  const imagePath = `users/${userId}/images/${entryId}.jpg`;
+  const storageRef = ref(storage, imagePath);
+  await uploadString(storageRef, imageDataUrl, 'data_url');
+  const downloadURL = await getDownloadURL(storageRef);
+  return downloadURL;
+};
+
+/**
+ * Creates or updates an entry's data in Firestore.
+ * This is the primary "write" operation for entry data.
+ */
+export const syncEntryToCloud = async (entry: Entry, userId: string): Promise<void> => {
   const entryRef = doc(db, 'users', userId, 'entries', entry.id);
-  await setDoc(entryRef, entry, { merge: true });
+  const sanitizedEntry = { ...entry };
+  await setDoc(entryRef, sanitizedEntry, { merge: true });
 };
 
-// Deletes an entry from both Firestore and Firebase Storage (if an image URL exists).
-export const deleteEntryFromCloud = async (entryId: string, imageUrl: string | null, userId: string) => {
-  // 1. Delete the document from Firestore.
-  await deleteDoc(doc(db, 'users', userId, 'entries', entryId));
+// --- READ OPERATION ---
 
-  // 2. If an imageUrl exists, delete the corresponding file from Storage.
+/**
+ * Listens for real-time updates on recent entries (last 45 days).
+ * This is the primary "read" operation.
+ */
+export const listenToEntries = (userId: string, callback: (entries: Entry[]) => void): Unsubscribe => {
+  const entriesCollectionRef = collection(db, 'users', userId, 'entries');
+  const fortyFiveDaysAgo = getFortyFiveDaysAgo();
+  
+  const q = query(entriesCollectionRef, where("date", ">=", fortyFiveDaysAgo));
+
+  const unsubscribe = onSnapshot(q, (querySnapshot) => {
+    const entries: Entry[] = [];
+    querySnapshot.forEach((doc) => {
+      entries.push(doc.data() as Entry);
+    });
+    callback(entries);
+  }, (error) => {
+    console.error("Error listening to Firestore entries:", error);
+  });
+
+  return unsubscribe;
+};
+
+// --- DELETE OPERATION ---
+
+/**
+ * Deletes an entry document from Firestore and its associated image from Storage.
+ */
+export const deleteEntryFromCloud = async (entryId: string, imageUrl: string | null, userId: string): Promise<void> => {
+  const entryRef = doc(db, 'users', userId, 'entries', entryId);
+  await deleteDoc(entryRef);
+
   if (imageUrl) {
     try {
-      // Create a reference directly from the HTTPS download URL.
-      // This is the most robust way to ensure the correct file is deleted.
-      const storageRef = ref(storage, imageUrl);
-      await deleteObject(storageRef);
-    } catch (error) {
-      // Log errors, e.g., if the object doesn't exist or rules prevent deletion.
-      console.warn(`Image deletion failed for URL: ${imageUrl}`, error);
+      const imageRef = ref(storage, imageUrl);
+      await deleteObject(imageRef);
+    } catch (error: any) {
+        console.warn(`Could not delete image ${imageUrl}. It may have already been deleted.`, error);
     }
   }
-};
-
-// Fetches all entries for a user from the cloud (one-time fetch).
-export const fetchAllFromCloud = async (userId: string): Promise<Entry[]> => {
-  const q = query(collection(db, 'users', userId, 'entries'));
-  const querySnapshot = await getDocs(q);
-  return querySnapshot.docs.map(doc => doc.data() as Entry);
-};
-
-// Listens for real-time updates to a user's entries.
-export const listenToEntries = (userId: string, callback: (entries: Entry[]) => void): Unsubscribe => {
-  const q = query(collection(db, 'users', userId, 'entries'));
-  const unsubscribe = onSnapshot(q, (querySnapshot) => {
-    const entries = querySnapshot.docs.map(doc => doc.data() as Entry);
-    callback(entries);
-  });
-  return unsubscribe;
 };

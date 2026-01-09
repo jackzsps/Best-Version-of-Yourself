@@ -3,22 +3,20 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 import { Entry, RecordMode, Language, Theme } from '../types';
 import { DEFAULT_MODE, DEFAULT_LANGUAGE } from '../constants';
 import { TRANSLATIONS } from '../translations';
-
-// Firebase Imports
-import { 
-  signInWithPopup, 
-  signInWithEmailAndPassword, 
-  createUserWithEmailAndPassword, 
-  signOut, 
+import {
+  signInWithPopup,
+  signInWithEmailAndPassword,
+  createUserWithEmailAndPassword,
+  signOut,
   onAuthStateChanged,
   updateProfile,
   User
 } from 'firebase/auth';
 import { auth, googleProvider } from '../src/utils/firebase';
-import { 
-    uploadImageToCloud, 
-    syncEntryToCloud, 
-    deleteEntryFromCloud, 
+import {
+    uploadImageToCloud,
+    syncEntryToCloud,
+    deleteEntryFromCloud,
     listenToEntries
 } from '../src/services/cloudService';
 import { Unsubscribe } from 'firebase/firestore';
@@ -67,37 +65,37 @@ export const AppProvider = ({ children }: React.PropsWithChildren<{}>) => {
   }, []);
 
   useEffect(() => {
-    let unsubscribe: Unsubscribe | null = null;
+    let unsubscribeFromEntries: Unsubscribe | null = null;
 
-    const authUnsubscribe = onAuthStateChanged(auth, (currentUser) => {
+    const unsubscribeFromAuth = onAuthStateChanged(auth, (currentUser) => {
       setUser(currentUser);
-      
-      if (unsubscribe) {
-        unsubscribe();
-        unsubscribe = null;
+
+      if (unsubscribeFromEntries) {
+        unsubscribeFromEntries();
+        unsubscribeFromEntries = null;
       }
 
       if (currentUser) {
-        // **Cloud is King**: When a user logs in, the cloud is the single source of truth.
-        unsubscribe = listenToEntries(currentUser.uid, (cloudEntries) => {
+        unsubscribeFromEntries = listenToEntries(currentUser.uid, (cloudEntries) => {
             const sortedEntries = cloudEntries.sort((a, b) => b.date.seconds - a.date.seconds);
             setEntries(sortedEntries);
             localStorage.setItem('bvoy_entries', JSON.stringify(sortedEntries));
         });
       } else {
-        // User is logged out, clear all personal data.
         setEntries([]);
         localStorage.removeItem('bvoy_entries');
       }
     });
 
     return () => {
-      authUnsubscribe();
-      if (unsubscribe) {
-        unsubscribe();
+      unsubscribeFromAuth();
+      if (unsubscribeFromEntries) {
+        unsubscribeFromEntries();
       }
     };
   }, []);
+
+  const t = TRANSLATIONS[language];
 
   const loginGoogle = async () => { await signInWithPopup(auth, googleProvider); };
   const loginEmail = async (email: string, pass: string) => { await signInWithEmailAndPassword(auth, email, pass); };
@@ -109,43 +107,37 @@ export const AppProvider = ({ children }: React.PropsWithChildren<{}>) => {
     }
   };
 
-  const logout = async () => {
+   const logout = async () => {
     if (isWriting) {
       alert(t.logoutWarning);
       return;
     }
     await signOut(auth);
-    // The onAuthStateChanged listener will handle clearing the state.
-    localStorage.clear(); // Also clear settings etc.
+    localStorage.removeItem('bvoy_mode');
+    localStorage.removeItem('bvoy_language');
+    localStorage.removeItem('bvoy_theme');
     setMode(DEFAULT_MODE);
     setLanguage(DEFAULT_LANGUAGE);
     setTheme('default');
   };
 
-  const t = TRANSLATIONS[language];
-
   const addEntry = async (entry: Entry) => {
     const currentUser = auth.currentUser;
-    if (!currentUser) return; 
+    if (!currentUser) return;
 
-    // Optimistic UI update
-    const newEntries = [entry, ...entries].sort((a, b) => b.date.seconds - a.date.seconds);
-    setEntries(newEntries);
-    localStorage.setItem('bvoy_entries', JSON.stringify(newEntries));
-
-    setIsWriting(true); 
+    setIsWriting(true);
     try {
-      let entryToSync = { ...entry };
-      if (entry.imageUrl && entry.imageUrl.startsWith('data:')) {
-        const cloudUrl = await uploadImageToCloud(entry.imageUrl, entry.id, currentUser.uid);
-        entryToSync.imageUrl = cloudUrl; 
-      }
-      await syncEntryToCloud(entryToSync, currentUser.uid);
+        let entryToSync = { ...entry };
+        if (entry.imageUrl && entry.imageUrl.startsWith('data:')) {
+          const cloudUrl = await uploadImageToCloud(entry.imageUrl, entry.id, currentUser.uid);
+          entryToSync.imageUrl = cloudUrl;
+        }
+        await syncEntryToCloud(entryToSync, currentUser.uid);
     } catch (error) {
-      console.error(`Sync failed for new entry ${entry.id}. It is saved locally.`, error);
-      // The listener will eventually correct the state if sync fails.
+        console.error(`Failed to sync new entry ${entry.id}.`, error);
+        alert('Failed to save entry. Please try again.');
     } finally {
-      setIsWriting(false); 
+        setIsWriting(false);
     }
   };
 
@@ -153,16 +145,19 @@ export const AppProvider = ({ children }: React.PropsWithChildren<{}>) => {
     const currentUser = auth.currentUser;
     if (!currentUser) return;
 
-    // Optimistic UI update
-    const newEntries = entries.map(e => e.id === updatedEntry.id ? updatedEntry : e);
-    setEntries(newEntries);
-    localStorage.setItem('bvoy_entries', JSON.stringify(newEntries));
-
-    setIsWriting(true); 
+    setIsWriting(true);
     try {
-      await syncEntryToCloud(updatedEntry, currentUser.uid);
+        let entryToSync = { ...updatedEntry };
+        if (updatedEntry.imageUrl && updatedEntry.imageUrl.startsWith('data:')) {
+             const cloudUrl = await uploadImageToCloud(updatedEntry.imageUrl, updatedEntry.id, currentUser.uid);
+             entryToSync.imageUrl = cloudUrl;
+        }
+        await syncEntryToCloud(entryToSync, currentUser.uid);
+    } catch (error) {
+        console.error(`Failed to update entry ${updatedEntry.id}.`, error);
+        alert('Failed to update entry. Please try again.');
     } finally {
-      setIsWriting(false); 
+        setIsWriting(false);
     }
   };
 
@@ -170,28 +165,25 @@ export const AppProvider = ({ children }: React.PropsWithChildren<{}>) => {
     const target = entries.find(e => e.id === id);
     if (!target) return;
 
-    const confirmed = theme === 'vintage'
-      ? window.confirm(`${t.vintageDelete.title}\n\n${t.vintageDelete.message}`)
-      : window.confirm(`${t.confirmDelete}\n\n${t.deleteWarning}`);
+    const confirmed = window.confirm(
+        theme === 'vintage'
+        ? `${t.vintageDelete.title}\n\n${t.vintageDelete.message}`
+        : `${t.confirmDelete}\n\n${t.deleteWarning}`
+    );
 
     if (confirmed) {
-      const currentUser = auth.currentUser;
-      if (!currentUser) return;
+        const currentUser = auth.currentUser;
+        if (!currentUser) return;
 
-      // Optimistic UI update
-      const newEntries = entries.filter(e => e.id !== id);
-      setEntries(newEntries);
-      localStorage.setItem('bvoy_entries', JSON.stringify(newEntries));
-
-      setIsWriting(true);
-      try {
-        await deleteEntryFromCloud(id, target.imageUrl || null, currentUser.uid);
-      } catch (error) {
-        console.error(`Cloud delete failed for entry ${id}.`, error);
-        // The listener will eventually restore the entry if deletion fails.
-      } finally {
-        setIsWriting(false);
-      }
+        setIsWriting(true);
+        try {
+            await deleteEntryFromCloud(id, target.imageUrl || null, currentUser.uid);
+        } catch (error) {
+            console.error(`Failed to delete entry ${id}.`, error);
+            alert('Failed to delete entry. Please try again.');
+        } finally {
+            setIsWriting(false);
+        }
     }
   };
 
@@ -200,9 +192,9 @@ export const AppProvider = ({ children }: React.PropsWithChildren<{}>) => {
   const updateTheme = (t: Theme) => { setTheme(t); localStorage.setItem('bvoy_theme', t); };
 
   return (
-    <AppContext.Provider value={{ 
-      entries, mode, language, theme, user, isWriting, t, 
-      addEntry, updateEntry, deleteEntry, 
+    <AppContext.Provider value={{
+      entries, mode, language, theme, user, isWriting, t,
+      addEntry, updateEntry, deleteEntry,
       setMode: updateMode, setLanguage: updateLang, setTheme: updateTheme,
       loginGoogle, loginEmail, registerEmail, logout
     }}>
