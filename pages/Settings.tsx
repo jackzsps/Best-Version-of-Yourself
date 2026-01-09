@@ -1,11 +1,15 @@
+
 import React, { useState } from 'react';
 import { useApp } from '../store/AppContext';
-import { RecordMode } from '../types';
+import { RecordMode, Entry } from '../types';
 import AuthModal from '../components/AuthModal';
+import { getArchivedEntries } from '../src/services/storageService';
 
 const Settings = () => {
   const { mode, setMode, language, setLanguage, theme, setTheme, t, user, logout } = useApp();
   const [showAuthModal, setShowAuthModal] = useState(false);
+  const [archivedEntries, setArchivedEntries] = useState<Entry[] | null>(null);
+  const [isLoadingArchive, setIsLoadingArchive] = useState(false);
 
   const isVintageTheme = theme === 'vintage';
   
@@ -15,6 +19,20 @@ const Settings = () => {
   const cardClass = isVintageTheme ? 'vintage-card p-6 rounded-sm' : 'bg-white rounded-2xl p-6 shadow-sm border border-gray-100';
   const textHeadClass = isVintageTheme ? 'text-vintage-ink font-typewriter text-lg font-bold mb-4 border-b border-vintage-line pb-1 inline-block' : 'text-lg font-semibold text-gray-900 mb-4';
   const textBodyClass = isVintageTheme ? 'text-vintage-leather/80 font-handwriting text-lg mb-6' : 'text-gray-500 text-sm mb-6';
+
+  const handleLoadArchive = async () => {
+    if (!user) return;
+    setIsLoadingArchive(true);
+    try {
+      const entries = await getArchivedEntries(user.uid);
+      setArchivedEntries(entries);
+    } catch (error) {
+      console.error("Failed to load archived entries:", error);
+      // You might want to show an error message to the user
+    } finally {
+      setIsLoadingArchive(false);
+    }
+  };
 
   return (
     <div className={`flex-1 ${containerClass} pb-24 no-scrollbar`}>
@@ -63,6 +81,29 @@ const Settings = () => {
              )}
            </div>
         </div>
+
+        {/* Data Management */}
+        {user && (
+            <div className={cardClass}>
+                <h2 className={textHeadClass}>Data Management</h2>
+                <p className={textBodyClass}>Load your archived data.</p>
+                <button onClick={handleLoadArchive} disabled={isLoadingArchive} className={`w-full py-3 px-4 rounded-xl text-sm font-bold transition-all ${isVintageTheme ? 'border-2 border-vintage-ink text-vintage-ink hover:bg-vintage-ink hover:text-vintage-bg font-typewriter' : 'bg-gray-100 text-gray-800 hover:bg-gray-200'}`}>
+                    {isLoadingArchive ? 'Loading...' : 'Load Archived Entries'}
+                </button>
+                {archivedEntries && (
+                    <div className="mt-4">
+                        <h3 className="text-lg font-bold">Archived Entries</h3>
+                        <ul>
+                            {archivedEntries.map((entry, index) => (
+                                <li key={index} className="py-2 border-b">
+                                    {entry.itemName} - {new Date(entry.date.seconds * 1000).toLocaleDateString()}
+                                </li>
+                            ))}
+                        </ul>
+                    </div>
+                )}
+            </div>
+        )}
         
         {/* Theme Settings */}
         <div className={cardClass}>
