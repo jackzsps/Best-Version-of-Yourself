@@ -49,16 +49,14 @@ export const AppProvider = ({ children }: React.PropsWithChildren<{}>) => {
   useEffect(() => {
     try {
       console.log("Attempting to load data from localStorage on initial mount.");
-      const savedEntries = localStorage.getItem('bvoy_entries');
       const savedMode = localStorage.getItem('bvoy_mode');
       const savedLang = localStorage.getItem('bvoy_language');
       const savedTheme = localStorage.getItem('bvoy_theme');
-      if (savedEntries) setEntries(JSON.parse(savedEntries));
       if (savedMode) setMode(savedMode as RecordMode);
       if (savedLang) setLanguage(savedLang as Language);
       if (savedTheme) setTheme(savedTheme as Theme);
     } catch (e) {
-      console.error("Initial local data load failed", e);
+      console.error("Initial local settings load failed", e);
     }
   }, []);
 
@@ -105,10 +103,10 @@ export const AppProvider = ({ children }: React.PropsWithChildren<{}>) => {
           setEntries(localEntriesJSON ? JSON.parse(localEntriesJSON) : []);
         }
       } else {
-        // --- User is LOGGED OUT (or initial state before login check) ---
-        console.log("User is logged out or auth state is initializing.");
-        const localEntriesJSON = localStorage.getItem('bvoy_entries');
-        setEntries(localEntriesJSON ? JSON.parse(localEntriesJSON) : []);
+        // --- User is LOGGED OUT ---
+        console.log("User logged out. Clearing local entries.");
+        setEntries([]);
+        localStorage.removeItem('bvoy_entries');
       }
     });
     return () => unsubscribe();
