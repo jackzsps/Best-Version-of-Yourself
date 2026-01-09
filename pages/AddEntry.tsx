@@ -1,22 +1,42 @@
-//
-import React, { useState, useRef, useEffect } from 'react';
+
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { useApp } from '../store/AppContext';
 import { RecordMode, AnalysisResult, ExpenseCategory, PaymentMethod, UsageCategory, EntryType } from '../types';
 import { analyzeImage } from '../services/geminiService';
 import Button from '../components/Button';
 import { Icon } from '../components/Icons';
 import { 
-  VintageInput, VintageSelect, 
-  BentoInput, BentoSelect, 
-  ThemeDateInput, getUsagePillStyle 
+  BentoInput, 
+  BentoSelect, 
+  ThemeDateInput, 
+  getUsagePillStyle 
 } from '../components/ThemeUI';
 
+// --- Helper Functions ---
+
 const getLocalDateString = (date = new Date()) => {
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, '0');
-  const day = String(date.getDate()).padStart(2, '0');
-  return `${year}-${month}-${day}`;
+  return date.toISOString().split('T')[0];
 };
+
+const ALL_EXPENSE_CATEGORIES: ExpenseCategory[] = ['food', 'transport', 'shopping', 'entertainment', 'bills', 'other'];
+const ALL_USAGE_CATEGORIES: UsageCategory[] = ['must', 'need', 'want'];
+const ALL_ENTRY_TYPES: EntryType[] = ['expense', 'diet', 'combined'];
+
+// --- Type Guards for Safe State Updates ---
+
+function isValidExpenseCategory(category: any): category is ExpenseCategory {
+  return ALL_EXPENSE_CATEGORIES.includes(category);
+}
+
+function isValidUsageCategory(usage: any): usage is UsageCategory {
+  return ALL_USAGE_CATEGORIES.includes(usage);
+}
+
+function isValidRecordType(recordType: any): recordType is EntryType {
+  return ALL_ENTRY_TYPES.includes(recordType);
+}
+
+// --- UI Components ---
 
 const MacroInput = ({ label, value, onChange, max, colorClass, bgClass }: { label: string, value: string, onChange: (val: string) => void, max: number, colorClass: string, bgClass: string }) => {
   const numValue = parseFloat(value) || 0;
@@ -35,6 +55,8 @@ const MacroInput = ({ label, value, onChange, max, colorClass, bgClass }: { labe
   );
 }
 
+// --- Main Component: AddEntry ---
+
 const AddEntry = () => {
   const { mode, addEntry, t, language, theme, user } = useApp();
   const [step, setStep] = useState<'upload' | 'analyzing' | 'review'>('upload');
@@ -43,8 +65,7 @@ const AddEntry = () => {
   const [error, setError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const isVintageTheme = theme === 'vintage';
-
+  // Form State
   const [recordType, setRecordType] = useState<EntryType>('combined');
   const [finalName, setFinalName] = useState('');
   const [finalCost, setFinalCost] = useState('');
@@ -58,77 +79,84 @@ const AddEntry = () => {
   const [usage, setUsage] = useState<UsageCategory>('need');
   const [activeMode, setActiveMode] = useState<RecordMode>(mode);
 
-  const categories: ExpenseCategory[] = ['food', 'transport', 'shopping', 'entertainment', 'bills', 'other'];
-  const usageCategories: UsageCategory[] = ['must', 'need', 'want'];
-  const entryTypes: EntryType[] = ['expense', 'diet', 'combined'];
+  const isVintageTheme = theme === 'vintage';
+
+  /**
+   * Safely updates form state from AI analysis result.
+   * Uses type guards to prevent invalid data.
+   */
+  const updateStateWithAnalysis = useCallback((result: AnalysisResult | null, recordingMode: RecordMode) => {
+    if (!result) return;
+
+    setAnalysis(result);
+    setFinalName(result.itemName || '');
+    setFinalCost(result.cost?.toString() || '');
+    
+    if (isValidExpenseCategory(result.category)) setCategory(result.category);
+    if (isValidUsageCategory(result.usage)) setUsage(result.usage);
+    if (isValidRecordType(result.recordType)) setRecordType(result.recordType);
+
+    const useMax = recordingMode === RecordMode.STRICT;
+    const getVal = (field: { min: number, max: number } | null | undefined) => {
+        if (!field) return '0';
+        return (useMax ? field.max : field.min)?.toString() || '0';
+    };
+
+    setFinalCalories(getVal(result.calories));
+    if (result.macros) {
+      setFinalProtein(getVal(result.macros.protein));
+      setFinalCarbs(getVal(result.macros.carbs));
+      setFinalFat(getVal(result.macros.fat));
+    }
+
+  }, []); // Dependencies will be added if they use props or state from outside
+
+  const performAnalysis = async (base64: string) => {
+    setError(null); // Clear previous errors
+    setStep('analyzing');
+    try {
+      if (!user) {
+        throw new Error("User is not signed in.");
+      }
+      const result = await analyzeImage(base64, language);
+      updateStateWithAnalysis(result, activeMode);
+    } catch (err: any) {
+      console.error("AddEntry Analysis Fail:", err);
+      setError(t.addEntry.analysisFailed); // Set user-friendly error message
+    } finally {
+      setStep('review'); // Always move to review step
+    }
+  };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
       const reader = new FileReader();
       reader.onloadend = () => {
-        setImagePreview(reader.result as string);
-        setStep('analyzing');
-        performAnalysis(reader.result as string);
+        const resultString = reader.result as string;
+        setImagePreview(resultString);
+        performAnalysis(resultString);
       };
       reader.readAsDataURL(file);
     }
   };
-
-  const performAnalysis = async (base64: string) => {
-    try {
-      if (!user) throw new Error("Please sign in.");
-      const result = await analyzeImage(base64, language);
-      if (result) {
-        setAnalysis(result);
-        setFinalName(result.itemName || '');
-        setFinalCost(result.cost?.toString() || '');
-        setCategory(result.category as any || 'food');
-        setUsage(result.usage as any || 'need');
-        setRecordType(result.recordType || 'combined');
-        const useMax = mode === RecordMode.STRICT;
-        if (result.calories) setFinalCalories(useMax ? (result.calories.max?.toString() || '0') : (result.calories.min?.toString() || '0'));
-        if (result.macros) {
-          setFinalProtein(useMax ? (result.macros.protein?.max?.toString() || '0') : (result.macros.protein?.min?.toString() || '0'));
-          setFinalCarbs(useMax ? (result.macros.carbs?.max?.toString() || '0') : (result.macros.carbs?.min?.toString() || '0'));
-          setFinalFat(useMax ? (result.macros.fat?.max?.toString() || '0') : (result.macros.fat?.min?.toString() || '0'));
-        }
-      }
-      setStep('review');
-    } catch (err: any) {
-      console.error("AddEntry Analysis Fail:", err);
-      setError(err.message);
-      setStep('review');
-    }
-  };
-
+  
+  // Effect to re-evaluate values when recording mode changes
   useEffect(() => {
-    if (!analysis) return;
-    const useMax = activeMode === RecordMode.STRICT;
-    if (analysis.calories) setFinalCalories(useMax ? (analysis.calories.max?.toString() || '0') : (analysis.calories.min?.toString() || '0'));
-    if (analysis.macros) {
-      setFinalProtein(useMax ? (analysis.macros.protein?.max?.toString() || '0') : (analysis.macros.protein?.min?.toString() || '0'));
-      setFinalCarbs(useMax ? (analysis.macros.carbs?.max?.toString() || '0') : (analysis.macros.carbs?.min?.toString() || '0'));
-      setFinalFat(useMax ? (analysis.macros.fat?.max?.toString() || '0') : (analysis.macros.fat?.min?.toString() || '0'));
-    }
-  }, [activeMode, analysis]);
+    updateStateWithAnalysis(analysis, activeMode);
+  }, [activeMode, analysis, updateStateWithAnalysis]);
+
 
   const handleSave = () => {
     const now = new Date();
     const [year, month, day] = entryDate.split('-').map(Number);
     const saveDate = new Date(year, month - 1, day, now.getHours(), now.getMinutes(), now.getSeconds());
-    const firestoreTimestamp = {
-      seconds: Math.floor(saveDate.getTime() / 1000),
-      nanoseconds: (saveDate.getTime() % 1000) * 1000000
-    };
-
+    
     addEntry({
       id: Date.now().toString(),
-      // 注意：這裡使用 firestoreTimestamp，請確保你的 Entry type 定義包含 date 或兼容此格式
-      date: firestoreTimestamp, 
-      // [FIXED] 將 || undefined 改為 || null，避免 Firestore 寫入錯誤
+      date: saveDate,
       imageUrl: imagePreview || null, 
-      itemName: finalName || 'New Item',
+      itemName: finalName || t.common.untitled,
       type: recordType,
       category,
       paymentMethod,
@@ -139,18 +167,24 @@ const AddEntry = () => {
       carbs: recordType === 'expense' ? 0 : (parseFloat(finalCarbs) || 0),
       fat: recordType === 'expense' ? 0 : (parseFloat(finalFat) || 0),
       modeUsed: activeMode,
-      // [FIXED] 加上 || null，避免 analysis 未定義時傳入 undefined
       note: analysis?.reasoning || null 
     });
     
+    // Reset state after saving
     setStep('upload');
     setImagePreview(null);
     setAnalysis(null);
+    setError(null);
     setEntryDate(getLocalDateString());
+    setFinalName('');
+    setFinalCost('');
+    setFinalCalories('');
     setFinalProtein('');
     setFinalCarbs('');
     setFinalFat('');
   };
+
+  // --- RENDER LOGIC ---
 
   if (step === 'analyzing') {
     return (
@@ -166,14 +200,18 @@ const AddEntry = () => {
     return (
       <div className={`flex-1 overflow-y-auto pb-24 no-scrollbar ${isVintageTheme ? 'bg-vintage-bg' : 'bg-pastel-bg'}`}>
         <div className="p-6">
-           {error && <div className="mb-4 p-4 bg-red-50 text-red-600 rounded-2xl text-sm border border-red-100 flex items-center gap-2"><span>⚠️</span> {error}</div>}
+           {error && (
+             <div className="mb-4 p-4 bg-red-50 text-red-600 rounded-2xl text-sm border border-red-100 flex items-center gap-2">
+               <span>⚠️</span> {error}
+             </div>
+            )}
            <div className="rounded-bento overflow-hidden shadow-bento h-64 relative bg-white">
               {imagePreview && <img src={imagePreview} alt="Review" className="w-full h-full object-cover" />}
               <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent flex items-end p-6"><h2 className="text-white text-2xl font-bold">{finalName || t.common.untitled}</h2></div>
            </div>
         </div>
         <div className="p-6 space-y-6 -mt-4">
-          <div className="flex p-1 rounded-2xl bg-white shadow-sm">{entryTypes.map(type => (<button key={type} onClick={() => setRecordType(type)} className={`flex-1 py-3 text-xs font-bold transition-all ${recordType === type ? 'bg-gray-900 text-white rounded-xl shadow-lg' : 'text-gray-400'}`}>{t.entryTypes[type]}</button>))}</div>
+          <div className="flex p-1 rounded-2xl bg-white shadow-sm">{ALL_ENTRY_TYPES.map(type => (<button key={type} onClick={() => setRecordType(type)} className={`flex-1 py-3 text-xs font-bold transition-all ${recordType === type ? 'bg-gray-900 text-white rounded-xl shadow-lg' : 'text-gray-400'}`}>{t.entryTypes[type]}</button>))}</div>
           <div className="bg-white p-6 rounded-bento shadow-bento space-y-4">
              {(recordType === 'diet' || recordType === 'combined') && (
                <div className="bg-pastel-bg p-4 rounded-2xl">
@@ -193,11 +231,11 @@ const AddEntry = () => {
                 <div><label className="block text-xs font-bold uppercase mb-2 text-gray-400">{t.addEntry.itemName}</label><BentoInput value={finalName} onChange={e => setFinalName(e.target.value)} /></div>
                 <div className="grid grid-cols-2 gap-4">
                    <div><label className="block text-xs font-bold uppercase mb-2 text-gray-400">{t.addEntry.date}</label><ThemeDateInput value={entryDate} onChange={e => setEntryDate(e.target.value)} theme={theme} /></div>
-                   <div><label className="block text-xs font-bold uppercase mb-2 text-gray-400">{t.addEntry.category}</label><BentoSelect value={category} onChange={(e) => setCategory(e.target.value as any)}>{categories.map(c => <option key={c} value={c}>{t.categories[c]}</option>)}</BentoSelect></div>
+                   <div><label className="block text-xs font-bold uppercase mb-2 text-gray-400">{t.addEntry.category}</label><BentoSelect value={category} onChange={(e) => setCategory(e.target.value as ExpenseCategory)}>{ALL_EXPENSE_CATEGORIES.map(c => <option key={c} value={c}>{t.categories[c]}</option>)}</BentoSelect></div>
                 </div>
                 {(recordType === 'expense' || recordType === 'combined') && (
                    <div className="space-y-4">
-                      <div><label className="block text-xs font-bold uppercase mb-2 text-gray-400">{t.addEntry.usage}</label><div className="flex gap-2">{usageCategories.map(u => (<button key={u} onClick={() => setUsage(u)} className={`flex-1 py-3 text-xs rounded-xl border transition-all ${getUsagePillStyle(u, usage === u, theme)}`}>{t.usage[u]}</button>))}</div></div>
+                      <div><label className="block text-xs font-bold uppercase mb-2 text-gray-400">{t.addEntry.usage}</label><div className="flex gap-2">{ALL_USAGE_CATEGORIES.map(u => (<button key={u} onClick={() => setUsage(u)} className={`flex-1 py-3 text-xs rounded-xl border transition-all ${getUsagePillStyle(u, usage === u, theme)}`}>{t.usage[u]}</button>))}</div></div>
                       <div><label className="block text-xs font-bold uppercase mb-2 text-gray-400">{t.addEntry.cost}</label><BentoInput type="number" value={finalCost} onChange={e => setFinalCost(e.target.value)} placeholder="0.00" /></div>
                    </div>
                 )}
