@@ -1,3 +1,4 @@
+//
 import React, { useState, useRef, useEffect } from 'react';
 import { useApp } from '../store/AppContext';
 import { RecordMode, AnalysisResult, ExpenseCategory, PaymentMethod, UsageCategory, EntryType } from '../types';
@@ -123,8 +124,10 @@ const AddEntry = () => {
 
     addEntry({
       id: Date.now().toString(),
-      date: firestoreTimestamp,
-      imageUrl: imagePreview || undefined,
+      // 注意：這裡使用 firestoreTimestamp，請確保你的 Entry type 定義包含 date 或兼容此格式
+      date: firestoreTimestamp, 
+      // [FIXED] 將 || undefined 改為 || null，避免 Firestore 寫入錯誤
+      imageUrl: imagePreview || null, 
       itemName: finalName || 'New Item',
       type: recordType,
       category,
@@ -136,7 +139,8 @@ const AddEntry = () => {
       carbs: recordType === 'expense' ? 0 : (parseFloat(finalCarbs) || 0),
       fat: recordType === 'expense' ? 0 : (parseFloat(finalFat) || 0),
       modeUsed: activeMode,
-      note: analysis?.reasoning
+      // [FIXED] 加上 || null，避免 analysis 未定義時傳入 undefined
+      note: analysis?.reasoning || null 
     });
     
     setStep('upload');
