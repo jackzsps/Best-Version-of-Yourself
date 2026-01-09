@@ -20,10 +20,14 @@ const Dashboard = () => {
 
   const isVintage = theme === 'vintage';
 
+  // Helper to convert Firestore timestamp to JS Date
+  const toDate = (ts: { seconds: number, nanoseconds: number }) => new Date(ts.seconds * 1000);
+
   // 1. 今日統計
   const today = new Date();
   today.setHours(0, 0, 0, 0);
-  const todayEntries = entries.filter(e => e.timestamp >= today.getTime());
+  const todayStartSeconds = Math.floor(today.getTime() / 1000);
+  const todayEntries = entries.filter(e => e.date && e.date.seconds >= todayStartSeconds);
   const todayCost = todayEntries.reduce((sum, e) => sum + (e.cost || 0), 0);
   const todayCalories = todayEntries.reduce((sum, e) => sum + (e.calories || 0), 0);
 
@@ -33,10 +37,11 @@ const Dashboard = () => {
      past.setHours(0, 0, 0, 0);
      if (timeRange === 'week') past.setDate(past.getDate() - 6);
      else past.setDate(past.getDate() - 29);
-     return entries.filter(e => e.timestamp >= past.getTime());
+     const pastStartSeconds = Math.floor(past.getTime() / 1000);
+     return entries.filter(e => e.date && e.date.seconds >= pastStartSeconds);
   }, [entries, timeRange]);
 
-  // 3. 圖表數據 - 根據語系調整日期格式
+  // 3. 圖表數據
   const chartData = useMemo(() => {
     const data = [];
     const days = timeRange === 'week' ? 7 : 30;
@@ -46,9 +51,10 @@ const Dashboard = () => {
       const d = new Date();
       d.setDate(d.getDate() - i);
       d.setHours(0, 0, 0, 0);
-      const dayEntries = entries.filter(e => e.timestamp >= d.getTime() && e.timestamp < d.getTime() + 86400000);
+      const dayStartSec = Math.floor(d.getTime() / 1000);
+      const dayEndSec = dayStartSec + 86400;
+      const dayEntries = entries.filter(e => e.date && e.date.seconds >= dayStartSec && e.date.seconds < dayEndSec);
       data.push({
-        // 動態切換日期語系
         name: d.toLocaleDateString(dateLocale, { weekday: 'short' }),
         cost: dayEntries.reduce((acc, e) => acc + (e.cost || 0), 0),
         kcal: dayEntries.reduce((acc, e) => acc + (e.calories || 0), 0)
@@ -60,7 +66,6 @@ const Dashboard = () => {
   const spendingData = useMemo(() => {
     const map = new Map<string, number>();
     filteredEntries.forEach(e => e.cost > 0 && map.set(e.category, (map.get(e.category) || 0) + e.cost));
-    // 使用 t.categories 翻譯
     return Array.from(map.entries()).map(([key, value]) => ({ 
       name: t.categories[key as keyof typeof t.categories] || key, 
       value 
@@ -71,7 +76,6 @@ const Dashboard = () => {
     let p = 0, c = 0, f = 0;
     filteredEntries.forEach(e => { p += e.protein || 0; c += e.carbs || 0; f += e.fat || 0; });
     const res = [];
-    // 使用 t.addEntry 中的營養素名稱
     if (p > 0) res.push({ name: t.addEntry.protein, value: p, colorKey: 'protein' });
     if (c > 0) res.push({ name: t.addEntry.carbs, value: c, colorKey: 'carbs' });
     if (f > 0) res.push({ name: t.addEntry.fat, value: f, colorKey: 'fat' });

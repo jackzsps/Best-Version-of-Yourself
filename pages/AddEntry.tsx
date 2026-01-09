@@ -115,9 +115,37 @@ const AddEntry = () => {
   const handleSave = () => {
     const now = new Date();
     const [year, month, day] = entryDate.split('-').map(Number);
-    const timestamp = new Date(year, month - 1, day, now.getHours(), now.getMinutes(), now.getSeconds()).getTime();
-    addEntry({ id: Date.now().toString(), timestamp, imageUrl: imagePreview || undefined, itemName: finalName || 'New Item', type: recordType, category, paymentMethod, usage, cost: recordType === 'diet' ? 0 : (parseFloat(finalCost) || 0), calories: recordType === 'expense' ? 0 : (parseFloat(finalCalories) || 0), protein: recordType === 'expense' ? 0 : (parseFloat(finalProtein) || 0), carbs: recordType === 'expense' ? 0 : (parseFloat(finalCarbs) || 0), fat: recordType === 'expense' ? 0 : (parseFloat(finalFat) || 0), modeUsed: activeMode, note: analysis?.reasoning });
-    setStep('upload'); setImagePreview(null); setAnalysis(null); setEntryDate(getLocalDateString()); setFinalProtein(''); setFinalCarbs(''); setFinalFat('');
+    const saveDate = new Date(year, month - 1, day, now.getHours(), now.getMinutes(), now.getSeconds());
+    const firestoreTimestamp = {
+      seconds: Math.floor(saveDate.getTime() / 1000),
+      nanoseconds: (saveDate.getTime() % 1000) * 1000000
+    };
+
+    addEntry({
+      id: Date.now().toString(),
+      date: firestoreTimestamp,
+      imageUrl: imagePreview || undefined,
+      itemName: finalName || 'New Item',
+      type: recordType,
+      category,
+      paymentMethod,
+      usage,
+      cost: recordType === 'diet' ? 0 : (parseFloat(finalCost) || 0),
+      calories: recordType === 'expense' ? 0 : (parseFloat(finalCalories) || 0),
+      protein: recordType === 'expense' ? 0 : (parseFloat(finalProtein) || 0),
+      carbs: recordType === 'expense' ? 0 : (parseFloat(finalCarbs) || 0),
+      fat: recordType === 'expense' ? 0 : (parseFloat(finalFat) || 0),
+      modeUsed: activeMode,
+      note: analysis?.reasoning
+    });
+    
+    setStep('upload');
+    setImagePreview(null);
+    setAnalysis(null);
+    setEntryDate(getLocalDateString());
+    setFinalProtein('');
+    setFinalCarbs('');
+    setFinalFat('');
   };
 
   if (step === 'analyzing') {

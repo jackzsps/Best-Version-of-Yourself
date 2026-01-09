@@ -9,8 +9,19 @@ interface EntryListProps {
   theme: Theme;
 }
 
+// Helper function to convert Firestore Timestamp to a readable date string
+const formatDate = (dateObj: { seconds: number; nanoseconds: number } | undefined, locale: string) => {
+  if (!dateObj || typeof dateObj.seconds !== 'number') {
+    return 'Invalid Date';
+  }
+  return new Date(dateObj.seconds * 1000).toLocaleDateString(locale);
+};
+
 const EntryList: React.FC<EntryListProps> = ({ entries, onSelectEntry, t, theme }) => {
   const isVintage = theme === 'vintage';
+
+  // Sort entries using the new `date` field, which is an object with seconds.
+  const sortedEntries = [...entries].sort((a, b) => b.date.seconds - a.date.seconds);
 
   return (
     <div>
@@ -20,7 +31,7 @@ const EntryList: React.FC<EntryListProps> = ({ entries, onSelectEntry, t, theme 
          {t.dashboard.recent}
        </h3>
        
-       {entries.length === 0 ? (
+       {sortedEntries.length === 0 ? (
          <div className={`text-center py-10 ${isVintage ? 'text-vintage-leather/60 font-handwriting text-xl' : 'text-gray-400'}`}>
             {t.dashboard.noEntries}
             <br/>
@@ -28,7 +39,7 @@ const EntryList: React.FC<EntryListProps> = ({ entries, onSelectEntry, t, theme 
          </div>
        ) : (
          <div className="space-y-3">
-            {entries.sort((a,b) => b.timestamp - a.timestamp).map(entry => (
+            {sortedEntries.map(entry => (
                <div 
                  key={entry.id}
                  onClick={() => onSelectEntry(entry)}
@@ -57,7 +68,7 @@ const EntryList: React.FC<EntryListProps> = ({ entries, onSelectEntry, t, theme 
                           {t.usage[entry.usage]}
                         </span>
                         <span className={isVintage ? 'text-vintage-leather' : 'text-gray-400'}>
-                           {new Date(entry.timestamp).toLocaleDateString()}
+                           {formatDate(entry.date, 'en-US')}
                         </span>
                      </div>
                   </div>

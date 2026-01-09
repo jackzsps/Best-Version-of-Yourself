@@ -1,9 +1,10 @@
+
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { Entry, RecordMode, Language, Theme } from '../types';
 import { DEFAULT_MODE, DEFAULT_LANGUAGE } from '../constants';
 import { TRANSLATIONS } from '../translations';
 
-// Firebase Imports (Modular)
+// Firebase Imports
 import { 
   signInWithPopup, 
   signInWithEmailAndPassword, 
@@ -44,8 +45,10 @@ export const AppProvider = ({ children }: React.PropsWithChildren<{}>) => {
   const [theme, setTheme] = useState<Theme>('default');
   const [user, setUser] = useState<User | null>(null);
 
+  // Effect for loading ALL initial data from localStorage on mount
   useEffect(() => {
     try {
+      console.log("Attempting to load data from localStorage on initial mount.");
       const savedEntries = localStorage.getItem('bvoy_entries');
       const savedMode = localStorage.getItem('bvoy_mode');
       const savedLang = localStorage.getItem('bvoy_language');
@@ -55,23 +58,57 @@ export const AppProvider = ({ children }: React.PropsWithChildren<{}>) => {
       if (savedLang) setLanguage(savedLang as Language);
       if (savedTheme) setTheme(savedTheme as Theme);
     } catch (e) {
-      console.error("Local data load failed", e);
+      console.error("Initial local data load failed", e);
     }
   }, []);
 
+  // Auth state change and data synchronization effect
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
       setUser(currentUser);
+
       if (currentUser) {
+        // --- User is LOGGED IN ---
         try {
+          console.log(`User ${currentUser.uid} logged in. Starting data sync.`);
+          const localEntriesJSON = localStorage.getItem('bvoy_entries');
+          const localEntries: Entry[] = localEntriesJSON ? JSON.parse(localEntriesJSON) : [];
           const cloudEntries = await fetchAllFromCloud(currentUser.uid);
-          if (cloudEntries.length > 0) {
-            setEntries(cloudEntries);
-            localStorage.setItem('bvoy_entries', JSON.stringify(cloudEntries));
+
+          const cloudEntryIds = new Set(cloudEntries.map(e => e.id));
+          const localOnlyEntries = localEntries.filter(local => !cloudEntryIds.has(local.id));
+          
+          let combinedEntries = [...cloudEntries];
+
+          if (localOnlyEntries.length > 0) {
+            console.log(`Syncing ${localOnlyEntries.length} local-only entries to the cloud.`);
+            for (const entry of localOnlyEntries) {
+              let entryToSync = { ...entry };
+              if (entry.imageUrl && entry.imageUrl.startsWith('data:')) {
+                const cloudUrl = await uploadImageToCloud(entry.imageUrl, entry.id, currentUser.uid);
+                entryToSync.imageUrl = cloudUrl;
+              }
+              await syncEntryToCloud(entryToSync, currentUser.uid);
+              combinedEntries.push(entryToSync); // Add the synced entry to the combined list
+            }
           }
+
+          const sortedEntries = combinedEntries.sort((a, b) => b.date.seconds - a.date.seconds);
+          setEntries(sortedEntries);
+          localStorage.setItem('bvoy_entries', JSON.stringify(sortedEntries));
+          console.log("Data sync complete. Local and cloud data are merged.");
+
         } catch (error) {
-          console.error("Initial cloud sync failed", error);
+          console.error("Failed to sync data on login:", error);
+          // Fallback to local data if cloud sync fails
+          const localEntriesJSON = localStorage.getItem('bvoy_entries');
+          setEntries(localEntriesJSON ? JSON.parse(localEntriesJSON) : []);
         }
+      } else {
+        // --- User is LOGGED OUT (or initial state before login check) ---
+        console.log("User is logged out or auth state is initializing.");
+        const localEntriesJSON = localStorage.getItem('bvoy_entries');
+        setEntries(localEntriesJSON ? JSON.parse(localEntriesJSON) : []);
       }
     });
     return () => unsubscribe();
@@ -88,21 +125,22 @@ export const AppProvider = ({ children }: React.PropsWithChildren<{}>) => {
   };
 
   const logout = async () => {
+    console.log("Logout initiated.");
     await signOut(auth);
-    setEntries([]);
-    localStorage.removeItem('bvoy_entries');
   };
 
   const addEntry = async (entry: Entry) => {
-    const newEntries = [entry, ...entries];
+    const newEntries = [entry, ...entries].sort((a, b) => b.date.seconds - a.date.seconds);
     setEntries(newEntries);
     localStorage.setItem('bvoy_entries', JSON.stringify(newEntries));
     if (user) {
+      console.log(`Syncing new entry ${entry.id} to the cloud.`);
       try {
         let entryToSync = { ...entry };
         if (entry.imageUrl && entry.imageUrl.startsWith('data:')) {
           const cloudUrl = await uploadImageToCloud(entry.imageUrl, entry.id, user.uid);
           entryToSync.imageUrl = cloudUrl; 
+          // Update entry in the state with the cloud URL
           setEntries(prev => {
              const updated = prev.map(e => e.id === entry.id ? entryToSync : e);
              localStorage.setItem('bvoy_entries', JSON.stringify(updated));
@@ -111,7 +149,7 @@ export const AppProvider = ({ children }: React.PropsWithChildren<{}>) => {
         }
         await syncEntryToCloud(entryToSync, user.uid);
       } catch (error) {
-        console.error("Entry cloud sync failed", error);
+        console.error(`Failed to sync new entry ${entry.id} to cloud. It is saved locally.`, error);
       }
     }
   };
@@ -122,7 +160,10 @@ export const AppProvider = ({ children }: React.PropsWithChildren<{}>) => {
       localStorage.setItem('bvoy_entries', JSON.stringify(updated));
       return updated;
     });
-    if (user) await syncEntryToCloud(updatedEntry, user.uid);
+    if (user) {
+      console.log(`Syncing updated entry ${updatedEntry.id} to the cloud.`);
+      await syncEntryToCloud(updatedEntry, user.uid);
+    }
   };
 
   const deleteEntry = async (id: string) => {
@@ -132,7 +173,10 @@ export const AppProvider = ({ children }: React.PropsWithChildren<{}>) => {
       localStorage.setItem('bvoy_entries', JSON.stringify(updated));
       return updated;
     });
-    if (user) await deleteEntryFromCloud(id, !!target?.imageUrl, user.uid);
+    if (user && target) {
+      console.log(`Deleting entry ${id} from the cloud.`);
+      await deleteEntryFromCloud(id, !!target.imageUrl, user.uid);
+    }
   };
 
   const updateMode = (m: RecordMode) => { setMode(m); localStorage.setItem('bvoy_mode', m); };
