@@ -8,18 +8,12 @@ import {
   doc, 
   setDoc, 
   deleteDoc,
-  Timestamp
+  Timestamp,
+  orderBy
 } from 'firebase/firestore';
 import { ref, uploadString, getDownloadURL, deleteObject } from 'firebase/storage';
 import { Entry } from '../../types';
 import { Unsubscribe } from 'firebase/auth';
-
-// Helper to get the date 45 days ago
-const getFortyFiveDaysAgo = (): Timestamp => {
-  const date = new Date();
-  date.setDate(date.getDate() - 45);
-  return Timestamp.fromDate(date);
-};
 
 // --- WRITE OPERATIONS ---
 
@@ -48,14 +42,14 @@ export const syncEntryToCloud = async (entry: Entry, userId: string): Promise<vo
 // --- READ OPERATION ---
 
 /**
- * Listens for real-time updates on recent entries (last 45 days).
- * This is the primary "read" operation.
+ * Listens for real-time updates on all entries, ordered by date.
+ * This is a simplified query for debugging purposes.
  */
 export const listenToEntries = (userId: string, callback: (entries: Entry[]) => void): Unsubscribe => {
   const entriesCollectionRef = collection(db, 'users', userId, 'entries');
-  const fortyFiveDaysAgo = getFortyFiveDaysAgo();
   
-  const q = query(entriesCollectionRef, where("date", ">=", fortyFiveDaysAgo));
+  // DEBUG: Querying all entries and ordering by date to isolate indexing/filtering issues.
+  const q = query(entriesCollectionRef, orderBy("date", "desc"));
 
   const unsubscribe = onSnapshot(q, (querySnapshot) => {
     const entries: Entry[] = [];
@@ -65,6 +59,9 @@ export const listenToEntries = (userId: string, callback: (entries: Entry[]) => 
     callback(entries);
   }, (error) => {
     console.error("Error listening to Firestore entries:", error);
+    // If there is an index issue, Firestore will log a detailed error here
+    // with a link to create the required index in the Firebase console.
+    alert("An error occurred while fetching data. Check the browser console for details.");
   });
 
   return unsubscribe;

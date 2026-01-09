@@ -19,7 +19,7 @@ import {
     deleteEntryFromCloud,
     listenToEntries
 } from '../src/services/cloudService';
-import { Unsubscribe } from 'firebase/firestore';
+import { Unsubscribe, Timestamp } from 'firebase/firestore';
 
 interface AppState {
   entries: Entry[];
@@ -77,7 +77,11 @@ export const AppProvider = ({ children }: React.PropsWithChildren<{}>) => {
 
       if (currentUser) {
         unsubscribeFromEntries = listenToEntries(currentUser.uid, (cloudEntries) => {
-            const sortedEntries = cloudEntries.sort((a, b) => b.date.seconds - a.date.seconds);
+            const sortedEntries = cloudEntries.sort((a, b) => {
+                const dateA = a.date?.seconds ?? 0;
+                const dateB = b.date?.seconds ?? 0;
+                return dateB - dateA;
+            });
             setEntries(sortedEntries);
             localStorage.setItem('bvoy_entries', JSON.stringify(sortedEntries));
         });
@@ -109,7 +113,7 @@ export const AppProvider = ({ children }: React.PropsWithChildren<{}>) => {
 
    const logout = async () => {
     if (isWriting) {
-      alert(t.logoutWarning);
+      alert(t.settings.logoutWarning);
       return;
     }
     await signOut(auth);
@@ -128,6 +132,10 @@ export const AppProvider = ({ children }: React.PropsWithChildren<{}>) => {
     setIsWriting(true);
     try {
         let entryToSync = { ...entry };
+        if (!entryToSync.date) {
+            entryToSync.date = Timestamp.now();
+        }
+
         if (entry.imageUrl && entry.imageUrl.startsWith('data:')) {
           const cloudUrl = await uploadImageToCloud(entry.imageUrl, entry.id, currentUser.uid);
           entryToSync.imageUrl = cloudUrl;
@@ -148,6 +156,10 @@ export const AppProvider = ({ children }: React.PropsWithChildren<{}>) => {
     setIsWriting(true);
     try {
         let entryToSync = { ...updatedEntry };
+        if (!entryToSync.date) {
+            entryToSync.date = Timestamp.now();
+        }
+
         if (updatedEntry.imageUrl && updatedEntry.imageUrl.startsWith('data:')) {
              const cloudUrl = await uploadImageToCloud(updatedEntry.imageUrl, updatedEntry.id, currentUser.uid);
              entryToSync.imageUrl = cloudUrl;
@@ -167,8 +179,8 @@ export const AppProvider = ({ children }: React.PropsWithChildren<{}>) => {
 
     const confirmed = window.confirm(
         theme === 'vintage'
-        ? `${t.vintageDelete.title}\n\n${t.vintageDelete.message}`
-        : `${t.confirmDelete}\n\n${t.deleteWarning}`
+        ? `${t.dashboard.vintageDelete.title}\n\n${t.dashboard.vintageDelete.message}`
+        : `${t.dashboard.confirmDelete}\n\n${t.dashboard.deleteWarning}`
     );
 
     if (confirmed) {

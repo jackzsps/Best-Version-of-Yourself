@@ -1,3 +1,5 @@
+import { Timestamp } from 'firebase/firestore';
+
 export enum RecordMode {
   STRICT = 'STRICT',       // Max values
   CONSERVATIVE = 'CONSERVATIVE' // Min values
@@ -38,6 +40,7 @@ export interface AnalysisResult {
 export interface Entry {
   id: string;
   timestamp: number;
+  date: Timestamp; // Added date field for Firestore queries
   imageUrl?: string;
   itemName: string;
   type: EntryType;
