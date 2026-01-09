@@ -1,52 +1,65 @@
-import React, { Component, ErrorInfo, ReactNode } from 'react';
+import React, { ReactNode } from 'react';
+import { ErrorBoundary, FallbackProps } from 'react-error-boundary';
+import Button from './Button'; // Assuming a generic Button component exists
 
-interface Props {
+// --- Fallback Component ---
+// This component is displayed when an error is caught by the ErrorBoundary.
+
+const ErrorFallback: React.FC<FallbackProps> = ({ error, resetErrorBoundary }) => {
+  // It's good practice to log the error to an external service
+  // console.error("Caught by ErrorBoundary:", error);
+
+  return (
+    <div className="flex flex-col items-center justify-center h-screen bg-gray-50 p-8 text-center" role="alert">
+      <h1 className="text-3xl font-bold text-red-600 mb-4">Something went wrong.</h1>
+      <p className="text-gray-700 mb-6 max-w-lg">
+        We've encountered an unexpected issue. Please try refreshing the page.
+      </p>
+      
+      {/* Displaying error details can be helpful in development */}
+      {process.env.NODE_ENV === 'development' && (
+          <details className="w-full max-w-lg bg-gray-100 p-4 rounded-lg mb-6 text-left">
+              <summary className="font-medium text-gray-600 cursor-pointer">Error Details</summary>
+              <pre className="mt-4 text-xs text-gray-500 overflow-auto whitespace-pre-wrap">
+                  {error.message}
+                  \n\n
+                  {error.stack}
+              </pre>
+          </details>
+      )}
+
+      <Button 
+        onClick={resetErrorBoundary} 
+        variant="primary"
+      >
+        Reload Page
+      </Button>
+    </div>
+  );
+};
+
+// --- Main Error Boundary Wrapper ---
+// This component wraps parts of the application that might throw errors.
+
+interface AppErrorBoundaryProps {
   children: ReactNode;
 }
 
-interface State {
-  hasError: boolean;
-  error: Error | null;
-  errorInfo: ErrorInfo | null;
-}
-
-class ErrorBoundary extends Component<Props, State> {
-  public state: State = {
-    hasError: false,
-    error: null,
-    errorInfo: null
+const AppErrorBoundary: React.FC<AppErrorBoundaryProps> = ({ children }) => {
+  const handleReset = () => {
+    // This function is called when the reset button in the fallback is clicked.
+    // For a simple reset, reloading the page is a straightforward solution.
+    window.location.reload();
   };
 
-  public static getDerivedStateFromError(error: Error): State {
-    return { hasError: true, error, errorInfo: null };
-  }
+  return (
+    <ErrorBoundary
+      FallbackComponent={ErrorFallback}
+      onReset={handleReset}
+    >
+      {children}
+    </ErrorBoundary>
+  );
+};
 
-  public componentDidCatch(error: Error, errorInfo: ErrorInfo) {
-    console.error("Uncaught error:", error, errorInfo);
-    this.setState({ errorInfo });
-  }
-
-  public render() {
-    if (this.state.hasError) {
-      return (
-        <div className="p-8 text-center">
-          <h1 className="text-xl font-bold text-red-600 mb-4">Something went wrong.</h1>
-          <p className="text-gray-700 mb-4">{this.state.error && this.state.error.toString()}</p>
-          <pre className="text-xs text-left bg-gray-100 p-4 overflow-auto rounded mb-4 text-gray-500">
-             {this.state.errorInfo?.componentStack}
-          </pre>
-          <button 
-            onClick={() => window.location.reload()}
-            className="px-4 py-2 bg-blue-600 text-white rounded"
-          >
-            Reload Page
-          </button>
-        </div>
-      );
-    }
-
-    return this.props.children;
-  }
-}
-
-export default ErrorBoundary;
+export default AppErrorBoundary;

@@ -1,28 +1,108 @@
-import React, { useState } from 'react';
+import React, { useReducer, useEffect } from 'react';
 import { useApp } from '../store/AppContext';
+import { AuthError } from 'firebase/auth';
+
+// --- Types & State Management ---
 
 interface AuthModalProps {
   isOpen: boolean;
   onClose: () => void;
 }
 
+type State = {
+  isLogin: boolean;
+  email: string;
+  password: string;
+  name: string;
+  error: string;
+  isLoading: boolean;
+};
+
+type Action = 
+  | { type: 'SET_FIELD'; field: keyof State; value: string }
+  | { type: 'TOGGLE_MODE' }
+  | { type: 'SET_LOADING'; payload: boolean }
+  | { type: 'SET_ERROR'; payload: string }
+  | { type: 'RESET' };
+
+const initialState: State = {
+  isLogin: true,
+  email: '',
+  password: '',
+  name: '',
+  error: '',
+  isLoading: false,
+};
+
+const authReducer = (state: State, action: Action): State => {
+  switch (action.type) {
+    case 'SET_FIELD':
+      return { ...state, [action.field]: action.value };
+    case 'TOGGLE_MODE':
+      return { ...state, isLogin: !state.isLogin, error: '' };
+    case 'SET_LOADING':
+      return { ...state, isLoading: action.payload };
+    case 'SET_ERROR':
+      return { ...state, error: action.payload };
+    case 'RESET':
+      return { ...initialState, isLogin: state.isLogin };
+    default:
+      return state;
+  }
+};
+
+// --- Helper Functions ---
+
+const getAuthErrorMessage = (error: AuthError, t: any): string => {
+    switch (error.code) {
+        case 'auth/invalid-email': return t.auth.errorEmail;
+        case 'auth/invalid-credential': return t.auth.errorCredential;
+        case 'auth/email-already-in-use': return t.auth.errorInUse;
+        case 'auth/weak-password': return t.auth.errorWeak;
+        case 'auth/network-request-failed': return t.auth.errorNetwork;
+        default: return error.message || t.common.error;
+    }
+};
+
+// --- Style Hook ---
+
+const useStyles = (isVintage: boolean) => ({
+    modalBg: isVintage ? 'bg-vintage-bg border-2 border-vintage-ink shadow-2xl' : 'bg-white rounded-2xl shadow-xl',
+    input: isVintage 
+        ? 'w-full bg-transparent border-b border-vintage-ink/50 py-2 font-typewriter text-vintage-ink placeholder-vintage-leather/50 focus:outline-none focus:border-vintage-ink'
+        : 'w-full px-4 py-3 rounded-lg bg-gray-50 border border-gray-200 focus:ring-2 focus:ring-brand-500 focus:border-transparent outline-none transition-all',
+    button: isVintage
+        ? 'w-full py-3 border-2 border-vintage-ink font-typewriter font-bold hover:bg-vintage-ink hover:text-vintage-bg transition-colors'
+        : 'w-full py-3 rounded-lg bg-gray-900 text-white font-semibold shadow-lg active:scale-95 transition-all',
+    title: `text-2xl font-bold mb-8 text-center ${isVintage ? 'font-typewriter text-vintage-ink' : 'text-gray-900'}`,
+    switchButton: `text-sm hover:underline transition-all ${isVintage ? 'text-vintage-leather font-typewriter' : 'text-brand-600 font-medium'}`,
+});
+
+// --- Component ---
+
 const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
   const { loginEmail, registerEmail, theme, t } = useApp();
-  const [isLogin, setIsLogin] = useState(true);
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [name, setName] = useState('');
-  const [error, setError] = useState('');
-  const [loading, setLoading] = useState(false);
+  const [state, dispatch] = useReducer(authReducer, initialState);
+  const { isLogin, email, password, name, error, isLoading } = state;
+
+  const styles = useStyles(theme === 'vintage');
+
+  useEffect(() => {
+    if (isOpen) {
+        dispatch({ type: 'RESET' });
+    }
+  }, [isOpen]);
 
   if (!isOpen) return null;
 
-  const isVintage = theme === 'vintage';
+  const handleFieldChange = (field: keyof State) => (e: React.ChangeEvent<HTMLInputElement>) => {
+    dispatch({ type: 'SET_FIELD', field, value: e.target.value });
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError('');
-    setLoading(true);
+    dispatch({ type: 'SET_ERROR', payload: '' });
+    dispatch({ type: 'SET_LOADING', payload: true });
 
     try {
       if (isLogin) {
@@ -31,55 +111,42 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
         await registerEmail(email, password, name);
       }
       onClose();
-    } catch (err: any) {
-      console.error("Auth Error:", err);
-      let msg = err.message || "Error";
-      if (msg.includes("auth/invalid-email")) msg = t.auth.errorEmail;
-      if (msg.includes("auth/invalid-credential")) msg = t.auth.errorCredential;
-      if (msg.includes("auth/email-already-in-use")) msg = t.auth.errorInUse;
-      if (msg.includes("auth/weak-password")) msg = t.auth.errorWeak;
-      if (msg.includes("auth/network-request-failed")) msg = t.auth.errorNetwork;
-      setError(msg);
+    } catch (err) {
+        console.error("Auth Error:", err);
+        const errorMessage = getAuthErrorMessage(err as AuthError, t);
+        dispatch({ type: 'SET_ERROR', payload: errorMessage });
     } finally {
-      setLoading(false);
+      dispatch({ type: 'SET_LOADING', payload: false });
     }
   };
 
-  const modalBg = isVintage ? 'bg-vintage-bg border-2 border-vintage-ink shadow-2xl' : 'bg-white rounded-2xl shadow-xl';
-  const inputClass = isVintage 
-    ? 'w-full bg-transparent border-b border-vintage-ink/50 py-2 font-typewriter text-vintage-ink placeholder-vintage-leather/50 focus:outline-none focus:border-vintage-ink'
-    : 'w-full px-4 py-3 rounded-lg bg-gray-50 border border-gray-200 focus:ring-2 focus:ring-brand-500 focus:border-transparent outline-none transition-all';
-  const btnClass = isVintage
-    ? 'w-full py-3 border-2 border-vintage-ink font-typewriter font-bold hover:bg-vintage-ink hover:text-vintage-bg transition-colors'
-    : 'w-full py-3 rounded-lg bg-gray-900 text-white font-semibold shadow-lg active:scale-95 transition-all';
-
   return (
-    <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-      <div className={`w-full max-w-md p-8 relative ${modalBg}`}>
-        <button onClick={onClose} className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 transition-colors">
+    <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm" aria-modal="true" role="dialog">
+      <div className={`w-full max-w-md p-8 relative ${styles.modalBg}">
+        <button onClick={onClose} className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 transition-colors" aria-label={t.common.close}>
           <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
         </button>
 
-        <h2 className={`text-2xl font-bold mb-8 text-center ${isVintage ? 'font-typewriter text-vintage-ink' : 'text-gray-900'}`}>
+        <h2 className={styles.title}>
           {isLogin ? t.auth.loginTitle : t.auth.registerTitle}
         </h2>
 
-        {error && <div className="mb-6 p-4 bg-red-50 text-red-600 text-sm rounded-xl border border-red-100 animate-shake">{error}</div>}
+        {error && <div className="mb-6 p-4 bg-red-50 text-red-600 text-sm rounded-xl border border-red-100 animate-shake" role="alert">{error}</div>}
 
         <form onSubmit={handleSubmit} className="space-y-5">
           {!isLogin && (
-            <input type="text" placeholder={t.auth.namePlaceholder} value={name} onChange={e => setName(e.target.value)} className={inputClass} required />
+            <input type="text" placeholder={t.auth.namePlaceholder} value={name} onChange={handleFieldChange('name')} className={styles.input} required />
           )}
-          <input type="email" placeholder={t.auth.emailPlaceholder} value={email} onChange={e => setEmail(e.target.value)} className={inputClass} required />
-          <input type="password" placeholder={t.auth.passwordPlaceholder} value={password} onChange={e => setPassword(e.target.value)} className={inputClass} required />
+          <input type="email" placeholder={t.auth.emailPlaceholder} value={email} onChange={handleFieldChange('email')} className={styles.input} required />
+          <input type="password" placeholder={t.auth.passwordPlaceholder} value={password} onChange={handleFieldChange('password')} className={styles.input} required />
 
-          <button type="submit" className={btnClass} disabled={loading}>
-            {loading ? t.common.processing : (isLogin ? t.auth.loginBtn : t.auth.registerBtn)}
+          <button type="submit" className={styles.button} disabled={isLoading}>
+            {isLoading ? t.common.processing : (isLogin ? t.auth.loginBtn : t.auth.registerBtn)}
           </button>
         </form>
 
         <div className="mt-8 text-center">
-          <button onClick={() => { setIsLogin(!isLogin); setError(''); }} className={`text-sm hover:underline transition-all ${isVintage ? 'text-vintage-leather font-typewriter' : 'text-brand-600 font-medium'}`}>
+          <button onClick={() => dispatch({ type: 'TOGGLE_MODE' })} className={styles.switchButton}>
             {isLogin ? t.auth.toRegister : t.auth.toLogin}
           </button>
         </div>
