@@ -1,6 +1,6 @@
 import { db, storage } from '../utils/firebase';
 import { 
-  collection, doc, setDoc, deleteDoc, getDocs, query 
+  collection, doc, setDoc, deleteDoc, getDocs, query, onSnapshot, Unsubscribe
 } from 'firebase/firestore';
 import { 
   ref, uploadString, getDownloadURL, deleteObject 
@@ -38,9 +38,19 @@ export const deleteEntryFromCloud = async (entryId: string, hasImage: boolean, u
   }
 };
 
-// 從雲端拉取所有資料
+// 從雲端拉取所有資料 (一次性)
 export const fetchAllFromCloud = async (userId: string): Promise<Entry[]> => {
   const q = query(collection(db, 'users', userId, 'entries'));
   const querySnapshot = await getDocs(q);
   return querySnapshot.docs.map(doc => doc.data() as Entry);
+};
+
+// 監聽雲端資料變化 (即時)
+export const listenToEntries = (userId: string, callback: (entries: Entry[]) => void): Unsubscribe => {
+  const q = query(collection(db, 'users', userId, 'entries'));
+  const unsubscribe = onSnapshot(q, (querySnapshot) => {
+    const entries = querySnapshot.docs.map(doc => doc.data() as Entry);
+    callback(entries);
+  });
+  return unsubscribe;
 };
