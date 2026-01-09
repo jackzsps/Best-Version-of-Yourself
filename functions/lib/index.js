@@ -33,155 +33,75 @@ var __importStar = (this && this.__importStar) || (function () {
     };
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.analyzeImage = exports.scheduledArchive = void 0;
-const https_1 = require("firebase-functions/v2/https");
-const scheduler_1 = require("firebase-functions/v2/scheduler");
-const v2_1 = require("firebase-functions/v2");
+exports.scheduledArchiveEntries = void 0;
+const logger = __importStar(require("firebase-functions/logger"));
+const functions = __importStar(require("firebase-functions"));
 const admin = __importStar(require("firebase-admin"));
-const generative_ai_1 = require("@google/generative-ai");
 admin.initializeApp();
 const db = admin.firestore();
 const storage = admin.storage();
-(0, v2_1.setGlobalOptions)({ region: "us-central1" });
-const ARCHIVE_THRESHOLD_MONTHS = 6;
-exports.scheduledArchive = (0, scheduler_1.onSchedule)("0 0 1 * *", async (event) => {
-    console.log("Running scheduled archive job");
-    const thresholdDate = new Date();
-    thresholdDate.setMonth(thresholdDate.getMonth() - ARCHIVE_THRESHOLD_MONTHS);
-    const thresholdTimestamp = admin.firestore.Timestamp.fromDate(thresholdDate);
-    const usersSnapshot = await db.collection("users").get();
-    if (usersSnapshot.empty) {
-        console.log("No users found. Exiting archive job.");
-        return;
-    }
-    for (const userDoc of usersSnapshot.docs) {
-        const userId = userDoc.id;
-        console.log(`Archiving entries for user: ${userId}`);
-        const entriesRef = db.collection("users").doc(userId).collection("entries");
-        const q = entriesRef.where("date", "<", thresholdTimestamp);
-        try {
-            const querySnapshot = await q.get();
-            if (querySnapshot.empty) {
-                console.log(`No old entries to archive for user: ${userId}`);
-                continue;
+/**
+ * 每月自動執行的排程函式，用於歸檔超過 6 個月的舊紀錄。
+ * 執行時間：每個月 1 號的凌晨 00:00 (UTC)
+ */
+exports.scheduledArchiveEntries = functions
+    .region("asia-east2") // 建議指定與您的 Firestore 相同的區域
+    .pubsub.schedule("0 0 1 * *") // 每月 1 號午夜
+    .timeZone("UTC") // 使用 UTC 以避免夏令時問題
+    .onRun(async (context) => {
+    logger.info("開始執行排程歸檔任務", { structuredData: true });
+    const sixMonthsAgo = new Date();
+    sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
+    const thresholdTimestamp = admin.firestore.Timestamp.fromDate(sixMonthsAgo);
+    try {
+        // 1. 取得所有使用者
+        const usersSnapshot = await db.collection("users").get();
+        if (usersSnapshot.empty) {
+            logger.info("未找到任何使用者，歸檔任務結束。");
+            return null;
+        }
+        // 2. 針對每個使用者，執行歸檔邏輯
+        const archivePromises = usersSnapshot.docs.map(async (userDoc) => {
+            const userId = userDoc.id;
+            const entriesRef = db.collection("users", userId, "entries");
+            const q = entriesRef.where("date", "<", thresholdTimestamp);
+            const entriesToArchive = await q.get();
+            if (entriesToArchive.empty) {
+                logger.info(`使用者 ${userId} 沒有需要歸檔的紀錄。`);
+                return;
             }
+            logger.info(`找到 ${entriesToArchive.size} 筆紀錄，準備為使用者 ${userId} 進行歸檔。`);
             const batch = db.batch();
-            let archiveCount = 0;
-            for (const doc of querySnapshot.docs) {
+            const storageUploadPromises = [];
+            entriesToArchive.forEach((doc) => {
                 const entry = doc.data();
                 const entryId = doc.id;
+                // 【防禦性檢查】確保日期欄位存在且為有效時間戳
+                if (!entry.date || !(entry.date instanceof admin.firestore.Timestamp)) {
+                    logger.warn(`紀錄 ${entryId} 的日期格式不正確，已跳過歸檔。`);
+                    return; // 跳過此筆紀錄
+                }
+                // 準備上傳到 Storage
                 const archivePath = `archive/${userId}/${entryId}.json`;
                 const file = storage.bucket().file(archivePath);
-                await file.save(JSON.stringify(entry), { contentType: 'application/json' });
+                storageUploadPromises.push(file.save(JSON.stringify(entry), { contentType: "application/json" }));
+                // 將刪除操作加入批次處理
                 batch.delete(doc.ref);
-                archiveCount++;
-            }
+            });
+            // 等待所有檔案都上傳至 Storage
+            await Promise.all(storageUploadPromises);
+            // 執行批次刪除 Firestore 中的紀錄
             await batch.commit();
-            console.log(`Successfully archived ${archiveCount} entries for user: ${userId}`);
-        }
-        catch (error) {
-            console.error(`Failed to archive entries for user ${userId}:`, error);
-        }
-    }
-    console.log("Finished scheduled archive job.");
-});
-exports.analyzeImage = (0, https_1.onCall)({ secrets: ["GEMINI_API_KEY"] }, async (request) => {
-    if (!request.auth) {
-        throw new https_1.HttpsError('unauthenticated', 'Login required.');
-    }
-    const apiKey = (process.env.GEMINI_API_KEY || "").trim();
-    if (!apiKey) {
-        throw new https_1.HttpsError('internal', 'GEMINI_API_KEY missing.');
-    }
-    const { base64Image, language } = request.data;
-    if (!base64Image) {
-        throw new https_1.HttpsError('invalid-argument', 'Image missing.');
-    }
-    const schema = {
-        type: generative_ai_1.SchemaType.OBJECT,
-        properties: {
-            isFood: { type: generative_ai_1.SchemaType.BOOLEAN },
-            isExpense: { type: generative_ai_1.SchemaType.BOOLEAN },
-            recordType: { type: generative_ai_1.SchemaType.STRING, enum: ["combined", "expense", "diet"] },
-            itemName: { type: generative_ai_1.SchemaType.STRING },
-            category: {
-                type: generative_ai_1.SchemaType.STRING,
-                enum: ["food", "transport", "shopping", "entertainment", "bills", "other"]
-            },
-            usage: { type: generative_ai_1.SchemaType.STRING, enum: ["must", "need", "want"] },
-            cost: { type: generative_ai_1.SchemaType.NUMBER, nullable: true },
-            calories: {
-                type: generative_ai_1.SchemaType.OBJECT,
-                properties: {
-                    min: { type: generative_ai_1.SchemaType.NUMBER },
-                    max: { type: generative_ai_1.SchemaType.NUMBER }
-                },
-                required: ["min", "max"]
-            },
-            macros: {
-                type: generative_ai_1.SchemaType.OBJECT,
-                properties: {
-                    protein: {
-                        type: generative_ai_1.SchemaType.OBJECT,
-                        properties: { min: { type: generative_ai_1.SchemaType.NUMBER }, max: { type: generative_ai_1.SchemaType.NUMBER } },
-                        required: ["min", "max"]
-                    },
-                    carbs: {
-                        type: generative_ai_1.SchemaType.OBJECT,
-                        properties: { min: { type: generative_ai_1.SchemaType.NUMBER }, max: { type: generative_ai_1.SchemaType.NUMBER } },
-                        required: ["min", "max"]
-                    },
-                    fat: {
-                        type: generative_ai_1.SchemaType.OBJECT,
-                        properties: { min: { type: generative_ai_1.SchemaType.NUMBER }, max: { type: generative_ai_1.SchemaType.NUMBER } },
-                        required: ["min", "max"]
-                    }
-                },
-                required: ["protein", "carbs", "fat"]
-            },
-            reasoning: { type: generative_ai_1.SchemaType.STRING }
-        },
-        required: ["isFood", "isExpense", "recordType", "itemName", "category", "usage", "calories", "reasoning"]
-    };
-    try {
-        const genAI = new generative_ai_1.GoogleGenerativeAI(apiKey);
-        const model = genAI.getGenerativeModel({
-            model: "gemini-3-flash-preview",
-            generationConfig: {
-                responseMimeType: "application/json",
-                responseSchema: schema
-            }
+            logger.info(`成功為使用者 ${userId} 歸檔了 ${storageUploadPromises.length} 筆紀錄。`);
         });
-        const base64Data = base64Image.split(',')[1] || base64Image;
-        const lang = language === 'zh-TW' ? "Traditional Chinese (繁體中文)" : "English";
-        const prompt = `Analyze this image for a tracker app.
-    CRITICAL RULES:
-    1. If the item is NOT food/drink (e.g. receipt for gas, clothing, tools), set "isFood" to false AND "recordType" to "expense".
-    2. For "expense" type, set all calorie and macro values (min and max) to 0.
-    3. Categorize non-food items into transport, shopping, entertainment, bills, or other.
-    4. Language for text: ${lang}.`;
-        const result = await model.generateContent([
-            { text: prompt },
-            { inlineData: { data: base64Data, mimeType: "image/jpeg" } }
-        ]);
-        const text = result.response.text();
-        if (!text)
-            throw new Error("Empty AI response");
-        const data = JSON.parse(text);
-        if (!data.isFood) {
-            data.recordType = "expense";
-            data.calories = { min: 0, max: 0 };
-            data.macros = {
-                protein: { min: 0, max: 0 },
-                carbs: { min: 0, max: 0 },
-                fat: { min: 0, max: 0 }
-            };
-        }
-        return data;
+        await Promise.all(archivePromises);
+        logger.info("排程歸檔任務成功執行完畢。");
+        return null;
     }
     catch (error) {
-        console.error("Gemini Error:", error);
-        throw new https_1.HttpsError('internal', `Analysis failed: ${error.message}`);
+        logger.error("排程歸檔任務執行期間發生錯誤:", error);
+        // 拋出錯誤以便在 Firebase 控制台收到失敗通知
+        throw error;
     }
 });
 //# sourceMappingURL=index.js.map

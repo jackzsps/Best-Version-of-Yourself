@@ -1,10 +1,10 @@
 import React, { useState, lazy, Suspense } from 'react';
 import { HashRouter as Router, Routes, Route, NavLink } from 'react-router-dom';
 import { AppProvider, useApp } from './store/AppContext';
-import { HomeIcon, PlusCircleIcon, SettingsIcon } from './components/Icons';
+import { Icon } from './components/Icons';
 import ErrorBoundary from './components/ErrorBoundary';
 
-// Lazy load pages - 恢復真正的頁面
+// Lazy load pages
 const Dashboard = lazy(() => import('./pages/Dashboard'));
 const AddEntry = lazy(() => import('./pages/AddEntry'));
 const Settings = lazy(() => import('./pages/Settings'));
@@ -31,17 +31,17 @@ const Layout = ({ children }: React.PropsWithChildren<{}>) => {
           : 'bg-white/80 backdrop-blur-md border-transparent shadow-soft'
       }`}>
         <NavLink to="/" className={({ isActive }) => `flex flex-col items-center p-2 rounded-xl transition-colors ${isActive ? (isVintageTheme ? 'text-vintage-bg' : 'text-gray-900') : (isVintageTheme ? 'text-vintage-bg/60' : 'text-gray-400 hover:text-gray-600')}`}>
-          <HomeIcon className="w-6 h-6 mb-1" />
+          <Icon name="home" className="w-6 h-6 mb-1" />
         </NavLink>
         <NavLink to="/add" className={({ isActive }) => `flex flex-col items-center p-2 -mt-8`}>
           {() => (
             <div className={`w-14 h-14 rounded-full flex items-center justify-center shadow-soft transition-transform active:scale-95 ${isVintageTheme ? 'bg-vintage-stamp text-vintage-bg border-2 border-white shadow-xl' : 'bg-gray-900 text-white'}`}>
-              <PlusCircleIcon className="w-8 h-8" />
+              <Icon name="plusCircle" className="w-8 h-8" />
             </div>
           )}
         </NavLink>
         <NavLink to="/settings" className={({ isActive }) => `flex flex-col items-center p-2 rounded-xl transition-colors ${isActive ? (isVintageTheme ? 'text-vintage-bg' : 'text-gray-900') : (isVintageTheme ? 'text-vintage-bg/60' : 'text-gray-400 hover:text-gray-600')}`}>
-          <SettingsIcon className="w-6 h-6 mb-1" />
+          <Icon name="settings" className="w-6 h-6 mb-1" />
         </NavLink>
       </nav>
     </div>

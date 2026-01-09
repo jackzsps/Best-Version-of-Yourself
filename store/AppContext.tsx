@@ -112,10 +112,6 @@ export const AppProvider = ({ children }: React.PropsWithChildren<{}>) => {
   };
 
    const logout = async () => {
-    if (isWriting) {
-      alert(t.settings.logoutWarning);
-      return;
-    }
     await signOut(auth);
     localStorage.removeItem('bvoy_mode');
     localStorage.removeItem('bvoy_language');
@@ -131,10 +127,10 @@ export const AppProvider = ({ children }: React.PropsWithChildren<{}>) => {
 
     setIsWriting(true);
     try {
-        let entryToSync = { ...entry };
-        if (!entryToSync.date) {
-            entryToSync.date = Timestamp.now();
-        }
+        const entryToSync = { 
+            ...entry,
+            date: entry.date && entry.date.seconds ? entry.date : Timestamp.now(),
+        };
 
         if (entry.imageUrl && entry.imageUrl.startsWith('data:')) {
           const cloudUrl = await uploadImageToCloud(entry.imageUrl, entry.id, currentUser.uid);
@@ -155,10 +151,10 @@ export const AppProvider = ({ children }: React.PropsWithChildren<{}>) => {
 
     setIsWriting(true);
     try {
-        let entryToSync = { ...updatedEntry };
-        if (!entryToSync.date) {
-            entryToSync.date = Timestamp.now();
-        }
+        const entryToSync = { 
+            ...updatedEntry,
+            date: updatedEntry.date && updatedEntry.date.seconds ? updatedEntry.date : Timestamp.now(),
+        };
 
         if (updatedEntry.imageUrl && updatedEntry.imageUrl.startsWith('data:')) {
              const cloudUrl = await uploadImageToCloud(updatedEntry.imageUrl, updatedEntry.id, currentUser.uid);

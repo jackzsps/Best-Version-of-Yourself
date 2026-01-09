@@ -1,5 +1,5 @@
 import React from 'react';
-import { CalendarIcon } from './Icons';
+import { Icon } from './Icons';
 import { Theme, UsageCategory } from '../types';
 
 // --- Styled Inputs ---
@@ -72,7 +72,7 @@ export const ThemeDateInput = ({
           onChange={onChange}
           className="w-full p-2 pr-10 rounded-none border-b-2 border-vintage-line bg-transparent text-vintage-ink font-handwriting text-2xl focus:outline-none focus:border-vintage-ink transition-colors [&::-webkit-calendar-picker-indicator]:opacity-0 [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:right-0 [&::-webkit-calendar-picker-indicator]:w-full [&::-webkit-calendar-picker-indicator]:h-full cursor-pointer"
         />
-        <CalendarIcon className="absolute right-2 top-1/2 -translate-y-1/2 w-6 h-6 text-vintage-leather pointer-events-none" />
+        <Icon name="calendar" className="absolute right-2 top-1/2 -translate-y-1/2 w-6 h-6 text-vintage-leather pointer-events-none" />
       </div>
     );
   }
@@ -85,7 +85,7 @@ export const ThemeDateInput = ({
         onChange={onChange}
         className="w-full px-4 py-3 pr-10 rounded-2xl bg-gray-50 text-gray-900 font-semibold focus:outline-none focus:ring-2 focus:ring-brand-100 transition-all border-none appearance-none min-h-[3rem] [&::-webkit-calendar-picker-indicator]:opacity-0 [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:right-0 [&::-webkit-calendar-picker-indicator]:w-full [&::-webkit-calendar-picker-indicator]:h-full cursor-pointer"
       />
-      <CalendarIcon className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 pointer-events-none" />
+      <Icon name="calendar" className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 pointer-events-none" />
     </div>
   );
 };

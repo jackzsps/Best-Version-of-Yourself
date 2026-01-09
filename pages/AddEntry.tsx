@@ -4,7 +4,7 @@ import { useApp } from '../store/AppContext';
 import { RecordMode, AnalysisResult, ExpenseCategory, PaymentMethod, UsageCategory, EntryType } from '../types';
 import { analyzeImage } from '../services/geminiService';
 import Button from '../components/Button';
-import { CameraIcon } from '../components/Icons';
+import { Icon } from '../components/Icons';
 import { 
   VintageInput, VintageSelect, 
   BentoInput, BentoSelect, 
@@ -214,7 +214,7 @@ const AddEntry = () => {
     <div className={`flex-1 flex flex-col p-6 pb-24 ${isVintageTheme ? 'bg-vintage-bg' : 'bg-pastel-bg'}`}>
       <header className="mb-8 mt-4"><h1 className={`text-3xl font-extrabold mb-2 ${isVintageTheme ? 'text-vintage-ink font-typewriter' : 'text-gray-900 tracking-tight'}`}>{t.addEntry.title}</h1><p className="text-gray-400 font-medium">{t.addEntry.subtitle}</p></header>
       <div className="flex-1 flex flex-col justify-center items-center gap-8">
-        <div onClick={() => fileInputRef.current?.click()} className={`w-full aspect-square max-w-[280px] flex flex-col items-center justify-center cursor-pointer group transition-all bg-white rounded-[3rem] shadow-soft hover:scale-105 active:scale-95`}><div className="w-24 h-24 rounded-full flex items-center justify-center mb-6 bg-pastel-bg text-gray-900 group-hover:bg-brand-50 group-hover:text-brand-600"><CameraIcon className="w-10 h-10" /></div><span className="font-bold text-lg text-gray-900">{t.addEntry.tapToCapture}</span></div>
+        <div onClick={() => fileInputRef.current?.click()} className={`w-full aspect-square max-w-[280px] flex flex-col items-center justify-center cursor-pointer group transition-all bg-white rounded-[3rem] shadow-soft hover:scale-105 active:scale-95`}><div className="w-24 h-24 rounded-full flex items-center justify-center mb-6 bg-pastel-bg text-gray-900 group-hover:bg-brand-50 group-hover:text-brand-600"><Icon name="camera" className="w-10 h-10" /></div><span className="font-bold text-lg text-gray-900">{t.addEntry.tapToCapture}</span></div>
         <input type="file" accept="image/*" capture="environment" ref={fileInputRef} onChange={handleFileChange} className="hidden" />
         <div className="w-full max-w-[280px]"><Button variant="ghost" fullWidth onClick={() => setStep('review')} className="text-gray-400 hover:text-gray-900">{t.addEntry.manual}</Button></div>
       </div>

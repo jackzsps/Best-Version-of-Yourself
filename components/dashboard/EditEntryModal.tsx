@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Entry, ExpenseCategory, PaymentMethod, UsageCategory, EntryType, Theme } from '../../types';
 import Button from '../Button';
-import { TrashIcon, XIcon } from '../Icons';
+import { Icon } from '../Icons';
 import { 
   VintageInput, VintageSelect, VintageTextArea, 
   BentoInput, BentoSelect, BentoTextArea, 
@@ -132,7 +132,7 @@ const EditEntryModal = ({
            ) : (
              <div className="w-full">
                 <div className="w-20 h-20 bg-red-50 text-red-500 rounded-full flex items-center justify-center mx-auto mb-6 animate-bounce">
-                  <TrashIcon className="w-10 h-10" />
+                  <Icon name="trash" className="w-10 h-10" />
                 </div>
                 <h3 className="text-2xl font-bold text-gray-900 mb-2">{t.dashboard.confirmDelete}</h3>
                 <p className="text-gray-500 mb-8 text-sm">{t.dashboard.deleteWarning}</p>
@@ -165,7 +165,7 @@ const EditEntryModal = ({
             {t.dashboard.editEntry}
           </h3>
           <button onClick={onClose} className={closeBtnClass}>
-            <XIcon className="w-6 h-6" />
+            <Icon name="x" className="w-6 h-6" />
           </button>
         </div>
 
@@ -304,7 +304,7 @@ const EditEntryModal = ({
                   : 'flex items-center justify-center w-14 h-14 rounded-2xl bg-red-50 text-red-500 hover:bg-red-100 transition-colors'
                }
              >
-               <TrashIcon className="w-5 h-5" />
+               <Icon name="trash" className="w-5 h-5" />
              </button>
              <Button 
                 fullWidth 

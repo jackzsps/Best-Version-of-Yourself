@@ -1,7 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import { useApp } from '../store/AppContext';
 import { Entry } from '../types';
-import { XIcon } from '../components/Icons';
+import { Icon } from '../components/Icons';
 
 // Sub-components
 import StatsOverview from '../components/dashboard/StatsOverview';
@@ -92,7 +92,7 @@ const Dashboard = () => {
            </div>
            {selectedDay && (
               <button onClick={() => setSelectedDay(null)} className="px-3 py-1 bg-gray-900 text-white text-xs rounded-full flex items-center gap-1">
-                 <XIcon className="w-3 h-3" /> {t.common.reset}
+                 <Icon name="x" className="w-3 h-3" /> {t.common.reset}
               </button>
            )}
         </div>
