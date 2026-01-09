@@ -1,5 +1,5 @@
 import * as logger from "firebase-functions/logger";
-import * as functions from "firebase-functions";
+import * as functions from "firebase-functions/v1";
 import * as admin from "firebase-admin";
 
 admin.initializeApp();
@@ -14,7 +14,7 @@ export const scheduledArchiveEntries = functions
   .region("asia-east2") // 建議指定與您的 Firestore 相同的區域
   .pubsub.schedule("0 0 1 * *") // 每月 1 號午夜
   .timeZone("UTC") // 使用 UTC 以避免夏令時問題
-  .onRun(async (context) => {
+  .onRun(async (context: functions.EventContext) => {
     logger.info("開始執行排程歸檔任務", { structuredData: true });
 
     const sixMonthsAgo = new Date();
@@ -33,7 +33,7 @@ export const scheduledArchiveEntries = functions
       // 2. 針對每個使用者，執行歸檔邏輯
       const archivePromises = usersSnapshot.docs.map(async (userDoc) => {
         const userId = userDoc.id;
-        const entriesRef = db.collection("users", userId, "entries");
+        const entriesRef = db.collection('users').doc(userId).collection('entries');
         const q = entriesRef.where("date", "<", thresholdTimestamp);
     
         const entriesToArchive = await q.get();

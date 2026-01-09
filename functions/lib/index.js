@@ -35,7 +35,7 @@ var __importStar = (this && this.__importStar) || (function () {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.scheduledArchiveEntries = void 0;
 const logger = __importStar(require("firebase-functions/logger"));
-const functions = __importStar(require("firebase-functions"));
+const functions = __importStar(require("firebase-functions/v1"));
 const admin = __importStar(require("firebase-admin"));
 admin.initializeApp();
 const db = admin.firestore();
@@ -63,7 +63,7 @@ exports.scheduledArchiveEntries = functions
         // 2. 針對每個使用者，執行歸檔邏輯
         const archivePromises = usersSnapshot.docs.map(async (userDoc) => {
             const userId = userDoc.id;
-            const entriesRef = db.collection("users", userId, "entries");
+            const entriesRef = db.collection('users').doc(userId).collection('entries');
             const q = entriesRef.where("date", "<", thresholdTimestamp);
             const entriesToArchive = await q.get();
             if (entriesToArchive.empty) {
