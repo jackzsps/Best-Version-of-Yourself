@@ -1,128 +1,180 @@
+/**
+ * Import function triggers from their respective submodules:
+ *
+ * import {onCall} from "firebase-functions/v2/https";
+ * import {onDocumentWritten} from "firebase-functions/v2/firestore";
+ *
+ * See a full list of supported triggers at https://firebase.google.com/docs/functions
+ */
 
-import * as logger from "firebase-functions/logger";
+// --- 區塊 1: 引入依賴 ---
+// 新版 Functions (v2) - 用於 AI 分析
+import { onCall, HttpsError } from "firebase-functions/v2/https";
+import { setGlobalOptions } from "firebase-functions/v2";
+
+// 舊版 Functions (v1) - 用於排程 (Schedule 觸發目前在 v1 支援度較好)
 import * as functions from "firebase-functions/v1";
+
+// Firebase Admin SDK - 用於資料庫與儲存操作
 import * as admin from "firebase-admin";
-import {getFirestore} from "firebase-admin/firestore";
-import {initializeApp} from "firebase-admin/app";
-import {VertexAI} from "@google-cloud/vertexai";
 
-// Initialize Firebase Admin and Vertex AI
-initializeApp();
-const db = getFirestore();
+// Google AI SDK - 用於呼叫 Gemini
+import { GoogleGenerativeAI, SchemaType } from "@google/generative-ai";
 
-// Initialize VertexAI
-const vertexAI = new VertexAI({project: "best-ver-of-yourself-080-b2069", location: "us-central1"});
+// --- 區塊 2: 初始化 ---
+// 初始化 Firebase Admin
+admin.initializeApp();
+const db = admin.firestore();
 
-const generativeModel = vertexAI.getGenerativeModel({
-  model: "gemini-1.0-pro-vision-001",
+// 設定 v2 全域選項 (主要影響 analyzeImage)
+setGlobalOptions({ region: "us-central1" });
+
+// --- 區塊 3: 定義 AI 分析用的 Schema ---
+const analysisSchema = {
+  type: SchemaType.OBJECT,
+  properties: {
+    isFood: { type: SchemaType.BOOLEAN },
+    isExpense: { type: SchemaType.BOOLEAN },
+    recordType: { type: SchemaType.STRING, enum: ["combined", "expense", "diet"] },
+    itemName: { type: SchemaType.STRING },
+    category: { type: SchemaType.STRING, enum: ["food", "transport", "shopping", "entertainment", "bills", "other"] },
+    paymentMethod: { type: SchemaType.STRING, enum: ["cash", "card", "mobile"], nullable: true },
+    usage: { type: SchemaType.STRING, enum: ["must", "need", "want"] },
+    cost: { type: SchemaType.NUMBER, nullable: true },
+    calories: {
+      type: SchemaType.OBJECT,
+      properties: { min: { type: SchemaType.NUMBER }, max: { type: SchemaType.NUMBER } },
+      required: ["min", "max"]
+    },
+    macros: {
+      type: SchemaType.OBJECT,
+      properties: {
+        protein: { type: SchemaType.OBJECT, properties: { min: { type: SchemaType.NUMBER }, max: { type: SchemaType.NUMBER } }, required: ["min", "max"] },
+        carbs: { type: SchemaType.OBJECT, properties: { min: { type: SchemaType.NUMBER }, max: { type: SchemaType.NUMBER } }, required: ["min", "max"] },
+        fat: { type: SchemaType.OBJECT, properties: { min: { type: SchemaType.NUMBER }, max: { type: SchemaType.NUMBER } }, required: ["min", "max"] }
+      },
+      required: ["protein", "carbs", "fat"]
+    },
+    reasoning: { type: SchemaType.STRING }
+  },
+  required: ["isFood", "isExpense", "recordType", "itemName", "category", "usage", "calories", "macros", "reasoning"]
+};
+
+// --- 區塊 4: AI 圖片分析函式 (新版架構) ---
+// 採用 Gen 2, Secrets 管理, Schema 輸出, 以及 Gemini 3.0 -> 2.5 降級機制
+export const analyzeImage = onCall({ secrets: ["GEMINI_API_KEY"] }, async (request) => {
+  // 1. 基礎驗證
+  if (!request.auth) throw new HttpsError('unauthenticated', 'Login required.');
+  
+  // 安全地獲取 API Key
+  const apiKey = process.env.GEMINI_API_KEY;
+  if (!apiKey) throw new HttpsError('internal', 'GEMINI_API_KEY missing.');
+  
+  const { base64Image, language } = request.data;
+  if (!base64Image) throw new HttpsError('invalid-argument', 'Image missing.');
+
+  // 2. 準備 AI 參數
+  const genAI = new GoogleGenerativeAI(apiKey);
+  const lang = language === 'zh-TW' ? "Traditional Chinese (繁體中文)" : "English";
+  const base64Data = base64Image.split(',')[1] || base64Image;
+
+  const prompt = `Analyze this image for a tracker app.
+    CRITICAL RULES:
+    1. If the item is NOT food/drink (e.g. receipt for gas, clothing, tools), set "isFood" to false AND "recordType" to "expense".
+    2. For "expense" type, set all calorie and macro values (min and max) to 0.
+    3. Categorize non-food items into transport, shopping, entertainment, bills, or other.
+    4. If it's a receipt, try to identify the payment method (cash, card, mobile).
+    5. Language for text fields: ${lang}.`;
+
+  const requestParts = [
+    { text: prompt },
+    { inlineData: { data: base64Data, mimeType: "image/jpeg" } }
+  ];
+
+  const commonConfig = {
+    responseMimeType: "application/json",
+    responseSchema: analysisSchema,
+    temperature: 0.2,
+  };
+
+  // --- 核心邏輯：雙模型切換 (Retry Pattern) ---
+  let responseText: string | null = null;
+  let usedModel = "unknown";
+
+  try {
+    // 優先嘗試：Gemini 3.0 Flash Preview (冒險版)
+    console.log("Attempting with Gemini 3.0 Flash Preview...");
+    const modelV3 = genAI.getGenerativeModel({
+      model: "gemini-3.0-flash-preview", 
+      generationConfig: commonConfig
+    });
+
+    const result = await modelV3.generateContent(requestParts);
+    responseText = result.response.text();
+    usedModel = "gemini-3.0-flash-preview";
+
+  } catch (error: any) {
+    // 捕捉錯誤並降級
+    console.warn(`Gemini 3.0 failed. Reason: ${error.message}. Switching to fallback...`);
+
+    try {
+      // 備案嘗試：Gemini 2.5 Flash (穩定版)
+      console.log("Fallback attempting with Gemini 2.5 Flash...");
+      const modelV25 = genAI.getGenerativeModel({
+        model: "gemini-2.5-flash", 
+        generationConfig: commonConfig
+      });
+
+      const resultFallback = await modelV25.generateContent(requestParts);
+      responseText = resultFallback.response.text();
+      usedModel = "gemini-2.5-flash";
+
+    } catch (fallbackError: any) {
+      console.error("Both models failed.", fallbackError);
+      throw new HttpsError('internal', `AI Analysis completely failed. Error: ${fallbackError.message}`);
+    }
+  }
+
+  if (!responseText) {
+    throw new HttpsError('internal', "Received empty response from AI models.");
+  }
+
+  // 3. 解析與後處理
+  try {
+    const data = JSON.parse(responseText);
+
+    // 注入除錯資訊
+    data._debug_model = usedModel; 
+
+    // 二次保險：強制清理非食物數據
+    if (!data.isFood) {
+      data.recordType = "expense";
+      data.calories = { min: 0, max: 0 };
+      data.macros = {
+        protein: { min: 0, max: 0 },
+        carbs: { min: 0, max: 0 },
+        fat: { min: 0, max: 0 }
+      };
+    }
+
+    return data;
+
+  } catch (parseError) {
+    console.error("JSON Parse Error:", parseError);
+    throw new HttpsError('internal', 'Failed to parse AI response.');
+  }
 });
 
-/**
- * A callable Cloud Function that analyzes an image using Gemini 1.0 Pro Vision.
- *
- * @param {object} data - The data object containing the base64 encoded image.
- * @param {string} data.base64Image - The base64 encoded image string.
- * @param {string} data.language - The user's preferred language (e.g., 'en', 'zh-TW').
- * @returns {Promise<object>} A promise that resolves with the analysis result.
- */
-export const analyzeImage = functions
-  .region("us-central1")
-  .https.onCall(async (data, context) => {
-    // 1. Validate input
-    if (!data.base64Image) {
-      throw new functions.https.HttpsError(
-        "invalid-argument",
-        "The function must be called with one argument 'base64Image' containing the image data to analyze."
-      );
-    }
 
-    // 2. Define valid categories and usage from the frontend translations
-    const validCategories = ['food', 'transport', 'shopping', 'entertainment', 'bills', 'other'];
-    const validUsage = ['must', 'need', 'want'];
-    const language = data.language === "zh-TW" ? "Traditional Chinese" : "English";
-
-    // 3. Construct the prompt for the generative model
-    const prompt = `
-      You are an expert financial and dietary assistant.
-      Analyze the provided image and respond ONLY with a valid, parsable JSON object.
-      Do not include the JSON markdown syntax ('''json ... ''').
-
-      The user's preferred language is ${language}. Your "reasoning" field MUST be in ${language}.
-      All other fields must follow the specified format.
-
-      Based on the image, identify the item, estimate its cost, calories, and macronutrients.
-      The result must conform to the following JSON structure:
-
-      {
-        "itemName": "string (in ${language})",
-        "recordType": "string, one of ['expense', 'diet', 'combined']",
-        "category": "string, MUST be one of [${validCategories.join(", ")}]",
-        "usage": "string, MUST be one of [${validUsage.join(", ")}]",
-        "cost": "number | null",
-        "calories": { "min": number, "max": number } | null,
-        "macros": {
-          "protein": { "min": number, "max": number },
-          "carbs": { "min": number, "max": number },
-          "fat": { "min": number, "max": number }
-        } | null,
-        "reasoning": "string (in ${language}, your detailed analysis)"
-      }
-
-      RULES:
-      - If it's a food item, estimate calories and macros. Otherwise, set them to null.
-      - If it's a receipt or shows a price, estimate the cost. Otherwise, set cost to null.
-      - If it's clearly a food/drink, set recordType to 'diet' (or 'combined' if a price is visible).
-      - If it's a non-food item or a bill/receipt, set recordType to 'expense'.
-      - For ranges (calories/macros), provide a reasonable min and max. If you have a single estimate, set min and max to the same value.
-      - CRITICAL: The "category" and "usage" fields MUST strictly be chosen from the provided lists. Do not invent new ones.
-      - If the image contains no recognizable item, product, or receipt, return a JSON object with all fields set to null.
-    `;
-
-    const imagePart = {
-      inlineData: {
-        mimeType: "image/jpeg",
-        data: data.base64Image.replace("data:image/jpeg;base64,", ""),
-      },
-    };
-
-    // 4. Call the Vertex AI model
-    try {
-      logger.info("Calling Vertex AI Gemini model...");
-      const request = {
-        contents: [{role: "user", parts: [{text: prompt}, imagePart]}],
-      };
-      const response = await generativeModel.generateContent(request);
-
-      // Safely access the response content using optional chaining
-      const content = response?.response?.candidates?.[0]?.content?.parts?.[0]?.text;
-
-      if (!content) {
-        logger.error("Invalid or empty response from Gemini model", { response });
-        throw new Error("Empty or invalid response from Gemini model.");
-      }
-
-      logger.info("Gemini response received:", content);
-      return JSON.parse(content);
-    } catch (error) {
-      logger.error("Error calling Vertex AI or parsing response:", error);
-      throw new functions.https.HttpsError(
-        "internal",
-        "Failed to analyze image with AI."
-      );
-    }
-  });
-
-
-/**
- * A scheduled function that archives old entries.
- * Runs on the 1st of every month at midnight UTC.
- */
+// --- 區塊 5: 定期封存函式 (舊版架構 - 保留原樣) ---
+// 使用 functions.pubsub (v1) 在 asia-east2 運行
 export const scheduledArchiveEntries = functions
   .region("asia-east2")
   .pubsub.schedule("0 0 1 * *")
   .timeZone("UTC")
   .onRun(async (context) => {
-    logger.info("Starting scheduled archive job.", {structuredData: true});
+    functions.logger.info("Starting scheduled archive job.", {structuredData: true});
+    
     const sixMonthsAgo = new Date();
     sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
     const thresholdTimestamp = admin.firestore.Timestamp.fromDate(sixMonthsAgo);
@@ -130,7 +182,7 @@ export const scheduledArchiveEntries = functions
     try {
       const usersSnapshot = await db.collection("users").get();
       if (usersSnapshot.empty) {
-        logger.info("No users found, ending archive job.");
+        functions.logger.info("No users found, ending archive job.");
         return null;
       }
 
@@ -141,11 +193,11 @@ export const scheduledArchiveEntries = functions
         const entriesToArchive = await q.get();
 
         if (entriesToArchive.empty) {
-          logger.info(`User ${userId} has no entries to archive.`);
+          functions.logger.info(`User ${userId} has no entries to archive.`);
           return;
         }
 
-        logger.info(`Found ${entriesToArchive.size} entries to archive for user ${userId}.`);
+        functions.logger.info(`Found ${entriesToArchive.size} entries to archive for user ${userId}.`);
 
         const batch = db.batch();
         const storageUploadPromises: Promise<any>[] = [];
@@ -154,8 +206,9 @@ export const scheduledArchiveEntries = functions
           const entry = doc.data();
           const entryId = doc.id;
 
+          // 檢查時間戳格式
           if (!entry.date || !(entry.date instanceof admin.firestore.Timestamp)) {
-            logger.warn(`Entry ${entryId} for user ${userId} has invalid date, skipping.`);
+            functions.logger.warn(`Entry ${entryId} for user ${userId} has invalid date, skipping.`);
             return;
           }
 
@@ -171,14 +224,14 @@ export const scheduledArchiveEntries = functions
         await Promise.all(storageUploadPromises);
         await batch.commit();
 
-        logger.info(`Successfully archived ${storageUploadPromises.length} entries for user ${userId}.`);
+        functions.logger.info(`Successfully archived ${storageUploadPromises.length} entries for user ${userId}.`);
       });
 
       await Promise.all(archivePromises);
-      logger.info("Scheduled archive job completed successfully.");
+      functions.logger.info("Scheduled archive job completed successfully.");
       return null;
     } catch (error) {
-      logger.error("Error during scheduled archive job:", error);
+      functions.logger.error("Error during scheduled archive job:", error);
       throw error;
     }
   });
