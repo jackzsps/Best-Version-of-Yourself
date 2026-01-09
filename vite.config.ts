@@ -13,13 +13,13 @@ export default defineConfig(({ mode }) => {
         plugins: [react()],
         resolve: {
             alias: {
-                '@': path.resolve(__dirname, '.'),
+                '@': path.resolve(__dirname, './src'),
             }
         },
         test: {
             globals: true,
             environment: 'jsdom',
-            setupFiles: './vitest.setup.ts',
+            setupFiles: './src/vitest.setup.ts',
             css: true, 
         },
     };

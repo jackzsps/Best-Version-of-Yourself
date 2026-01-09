@@ -12,13 +12,13 @@ import {
   updateProfile,
   User
 } from 'firebase/auth';
-import { auth, googleProvider } from '../src/utils/firebase';
+import { auth, googleProvider } from '../utils/firebase';
 import {
     uploadImageToCloud,
     syncEntryToCloud,
     deleteEntryFromCloud,
     listenToEntries
-} from '../src/services/cloudService';
+} from '../services/cloudService';
 import { Unsubscribe, Timestamp } from 'firebase/firestore';
 
 interface AppState {

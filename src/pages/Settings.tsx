@@ -1,9 +1,8 @@
-
 import React, { useState } from 'react';
 import { useApp } from '../store/AppContext';
 import { RecordMode, Entry } from '../types';
 import AuthModal from '../components/AuthModal';
-import { getArchivedEntries } from '../src/services/storageService';
+import { getArchivedEntries } from '../services/storageService';
 
 const Settings = () => {
   const { mode, setMode, language, setLanguage, theme, setTheme, t, user, logout, isWriting } = useApp();
