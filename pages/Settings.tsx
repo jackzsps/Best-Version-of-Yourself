@@ -6,7 +6,7 @@ import AuthModal from '../components/AuthModal';
 import { getArchivedEntries } from '../src/services/storageService';
 
 const Settings = () => {
-  const { mode, setMode, language, setLanguage, theme, setTheme, t, user, logout } = useApp();
+  const { mode, setMode, language, setLanguage, theme, setTheme, t, user, logout, isWriting } = useApp();
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [archivedEntries, setArchivedEntries] = useState<Entry[] | null>(null);
   const [isLoadingArchive, setIsLoadingArchive] = useState(false);
@@ -19,6 +19,14 @@ const Settings = () => {
   const cardClass = isVintageTheme ? 'vintage-card p-6 rounded-sm' : 'bg-white rounded-2xl p-6 shadow-sm border border-gray-100';
   const textHeadClass = isVintageTheme ? 'text-vintage-ink font-typewriter text-lg font-bold mb-4 border-b border-vintage-line pb-1 inline-block' : 'text-lg font-semibold text-gray-900 mb-4';
   const textBodyClass = isVintageTheme ? 'text-vintage-leather/80 font-handwriting text-lg mb-6' : 'text-gray-500 text-sm mb-6';
+
+  const handleLogout = () => {
+    if (isWriting) {
+      alert(t.settings.logoutWarning);
+    } else {
+      logout();
+    }
+  };
 
   const handleLoadArchive = async () => {
     if (!user) return;
@@ -66,7 +74,7 @@ const Settings = () => {
                       </p>
                     </div>
                  </div>
-                 <button onClick={logout} className={`w-full py-3 px-4 rounded-xl text-sm font-bold transition-all ${isVintageTheme ? 'border-2 border-vintage-ink text-vintage-ink hover:bg-vintage-ink hover:text-vintage-bg font-typewriter' : 'bg-red-50 text-red-600 hover:bg-red-100'}`}>
+                 <button onClick={handleLogout} className={`w-full py-3 px-4 rounded-xl text-sm font-bold transition-all ${isVintageTheme ? 'border-2 border-vintage-ink text-vintage-ink hover:bg-vintage-ink hover:text-vintage-bg font-typewriter' : 'bg-red-50 text-red-600 hover:bg-red-100'}`}>
                     {t.settings.signOut}
                  </button>
                </>
