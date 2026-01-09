@@ -41,27 +41,47 @@ const Dashboard = () => {
      return entries.filter(e => e.date && e.date.seconds >= pastStartSeconds);
   }, [entries, timeRange]);
 
-  // 3. 圖表數據
-  const chartData = useMemo(() => {
-    const data = [];
-    const days = timeRange === 'week' ? 7 : 30;
-    const dateLocale = language === 'zh-TW' ? 'zh-TW' : 'en-US';
-    
-    for (let i = days - 1; i >= 0; i--) {
-      const d = new Date();
-      d.setDate(d.getDate() - i);
-      d.setHours(0, 0, 0, 0);
-      const dayStartSec = Math.floor(d.getTime() / 1000);
-      const dayEndSec = dayStartSec + 86400;
-      const dayEntries = entries.filter(e => e.date && e.date.seconds >= dayStartSec && e.date.seconds < dayEndSec);
-      data.push({
-        name: d.toLocaleDateString(dateLocale, { weekday: 'short' }),
-        cost: dayEntries.reduce((acc, e) => acc + (e.cost || 0), 0),
-        kcal: dayEntries.reduce((acc, e) => acc + (e.calories || 0), 0)
+// 3. 圖表數據 (優化版：O(N) 複雜度)
+const chartData = useMemo(() => {
+  const days = timeRange === 'week' ? 7 : 30;
+  const dateLocale = language === 'zh-TW' ? 'zh-TW' : 'en-US';
+  
+  // 初始化 Map
+  const statsMap = new Map<string, { cost: number; kcal: number }>();
+
+  // 單次遍歷所有資料
+  entries.forEach(e => {
+      if (!e.date || !e.date.seconds) return;
+      
+      // 建立日期 Key (例如: "2023-10-27")
+      // 注意：這裡直接用 Date 物件操作，忽略時分秒
+      const dateObj = new Date(e.date.seconds * 1000);
+      const key = dateObj.toDateString(); 
+
+      const current = statsMap.get(key) || { cost: 0, kcal: 0 };
+      statsMap.set(key, {
+          cost: current.cost + (e.cost || 0),
+          kcal: current.kcal + (e.calories || 0)
       });
-    }
-    return data;
-  }, [entries, timeRange, language]);
+  });
+
+  // 產生最終陣列
+  const data = [];
+  for (let i = days - 1; i >= 0; i--) {
+    const d = new Date();
+    d.setDate(d.getDate() - i);
+    const key = d.toDateString();
+    const stats = statsMap.get(key) || { cost: 0, kcal: 0 };
+
+    data.push({
+      name: d.toLocaleDateString(dateLocale, { weekday: 'short' }),
+      cost: stats.cost,
+      kcal: stats.kcal
+    });
+  }
+  return data;
+}, [entries, timeRange, language]);
+
 
   const spendingData = useMemo(() => {
     const map = new Map<string, number>();
