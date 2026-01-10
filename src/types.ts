@@ -36,12 +36,28 @@ export interface AnalysisResult {
   macros: Macros | null;
   reasoning: string;
 }
+// 1. 新增這個定義，方便管理
+export interface FirestoreTimestamp {
+  seconds: number;
+  nanoseconds: number;
+}
+
+
 
 export interface Entry {
   id: string;
-  timestamp: number;
-  date: Timestamp; // Added date field for Firestore queries
-  imageUrl?: string;
+
+  
+  //timestamp: number;
+  //date: Timestamp; // Added date field for Firestore queries
+  // 🔴 刪除這行: timestamp: number;
+  // 🟢 改成這行:
+  date: FirestoreTimestamp;
+  //imageUrl?: string;
+// 🟢 修改這兩行，明確允許 null (這樣跟 AddEntry 的 || null 才能配合)
+imageUrl?: string | null; 
+note?: string | null;
+  
   itemName: string;
   type: EntryType;
   category: ExpenseCategory;
@@ -53,7 +69,7 @@ export interface Entry {
   carbs: number;
   fat: number;
   modeUsed: RecordMode;
-  note?: string;
+  //note?: string;
 }
 
 export type Tab = 'dashboard' | 'add' | 'settings';

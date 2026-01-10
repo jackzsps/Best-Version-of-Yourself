@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Entry, ExpenseCategory, PaymentMethod, UsageCategory, EntryType, Theme } from '../../types';
 import Button from '../Button';
 import { Icon } from '../Icons';
+import { Timestamp } from 'firebase/firestore'; // Import Timestamp from firebase/firestore
 import { 
   VintageInput, VintageSelect, VintageTextArea, 
   BentoInput, BentoSelect, BentoTextArea, 
@@ -39,7 +40,7 @@ const EditEntryModal = ({
   const [fat, setFat] = useState(entry.fat ? entry.fat.toString() : '');
   
   const [note, setNote] = useState(entry.note || '');
-  const [dateStr, setDateStr] = useState(getLocalDateString(entry.timestamp));
+  const [dateStr, setDateStr] = useState(getLocalDateString(entry.date instanceof Timestamp ? entry.date.toMillis() : (entry.date.seconds * 1000)));
   const [category, setCategory] = useState<ExpenseCategory>(entry.category || 'food');
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>(entry.paymentMethod || 'cash');
   const [usage, setUsage] = useState<UsageCategory>(entry.usage || 'need');
@@ -55,9 +56,21 @@ const EditEntryModal = ({
   const isVintage = theme === 'vintage';
 
   const handleSave = () => {
-    const originalDate = new Date(entry.timestamp);
+    // Correctly reconstruct the date object
+    // Original timestamp (if available) to preserve time
+    let originalDate: Date;
+    if (entry.date instanceof Timestamp) {
+        originalDate = entry.date.toDate();
+    } else {
+        originalDate = new Date((entry.date as any).seconds * 1000);
+    }
+    
     const [year, month, day] = dateStr.split('-').map(Number);
-    const newTimestamp = new Date(year, month - 1, day, originalDate.getHours(), originalDate.getMinutes(), originalDate.getSeconds()).getTime();
+    // Create new Date object preserving original time
+    const newDate = new Date(year, month - 1, day, originalDate.getHours(), originalDate.getMinutes(), originalDate.getSeconds());
+
+    // Convert to Firestore Timestamp
+    const newTimestamp = Timestamp.fromDate(newDate);
 
     const costToSave = recordType === 'diet' ? 0 : (parseFloat(cost) || 0);
     const caloriesToSave = recordType === 'expense' ? 0 : (parseFloat(calories) || 0);
@@ -73,7 +86,7 @@ const EditEntryModal = ({
       protein: proteinToSave,
       carbs: carbsToSave,
       fat: fatToSave,
-      timestamp: newTimestamp,
+      date: newTimestamp, // Use the Timestamp object
       category,
       paymentMethod,
       usage,

@@ -1,10 +1,10 @@
-
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { useApp } from '../store/AppContext';
 import { RecordMode, AnalysisResult, ExpenseCategory, PaymentMethod, UsageCategory, EntryType } from '../types';
 import { analyzeImage } from '../services/geminiService';
 import Button from '../components/Button';
-import { Icon } from '../components/Icons';
+import { Icon } from '../components/Icons'; // 確保 Icons.tsx 有 export 這個元件，若無請改回 CameraIcon
+import { Timestamp } from 'firebase/firestore'; // Import Timestamp from firebase/firestore
 import { 
   BentoInput, 
   BentoSelect, 
@@ -109,7 +109,7 @@ const AddEntry = () => {
       setFinalFat(getVal(result.macros.fat));
     }
 
-  }, []); // Dependencies will be added if they use props or state from outside
+  }, []);
 
   const performAnalysis = async (base64: string) => {
     setError(null); // Clear previous errors
@@ -122,9 +122,9 @@ const AddEntry = () => {
       updateStateWithAnalysis(result, activeMode);
     } catch (err: any) {
       console.error("AddEntry Analysis Fail:", err);
-      setError(t.addEntry.analysisFailed); // Set user-friendly error message
+      setError(t.addEntry.analysisFailed);
     } finally {
-      setStep('review'); // Always move to review step
+      setStep('review');
     }
   };
 
@@ -152,9 +152,11 @@ const AddEntry = () => {
     const [year, month, day] = entryDate.split('-').map(Number);
     const saveDate = new Date(year, month - 1, day, now.getHours(), now.getMinutes(), now.getSeconds());
     
+    const firestoreTimestamp = Timestamp.fromDate(saveDate); // Use Timestamp.fromDate
+
     addEntry({
       id: Date.now().toString(),
-      date: saveDate,
+      date: firestoreTimestamp, // 使用 SDK 產生的 Timestamp
       imageUrl: imagePreview || null, 
       itemName: finalName || t.common.untitled,
       type: recordType,
@@ -231,31 +233,55 @@ const AddEntry = () => {
                 <div><label className="block text-xs font-bold uppercase mb-2 text-gray-400">{t.addEntry.itemName}</label><BentoInput value={finalName} onChange={e => setFinalName(e.target.value)} /></div>
                 <div className="grid grid-cols-2 gap-4">
                    <div><label className="block text-xs font-bold uppercase mb-2 text-gray-400">{t.addEntry.date}</label><ThemeDateInput value={entryDate} onChange={e => setEntryDate(e.target.value)} theme={theme} /></div>
-                   <div><label className="block text-xs font-bold uppercase mb-2 text-gray-400">{t.addEntry.category}</label><BentoSelect value={category} onChange={(e) => setCategory(e.target.value as ExpenseCategory)}>{ALL_EXPENSE_CATEGORIES.map(c => <option key={c} value={c}>{t.categories[c]}</option>)}</BentoSelect></div>
+                   <div><label className="block text-xs font-bold uppercase mb-2 text-gray-400">{t.addEntry.category}</label><BentoSelect value={category} onChange={e => setCategory(e.target.value as ExpenseCategory)}>{ALL_EXPENSE_CATEGORIES.map(c => (<option key={c} value={c}>{t.categories[c]}</option>))}</BentoSelect></div>
                 </div>
                 {(recordType === 'expense' || recordType === 'combined') && (
-                   <div className="space-y-4">
-                      <div><label className="block text-xs font-bold uppercase mb-2 text-gray-400">{t.addEntry.usage}</label><div className="flex gap-2">{ALL_USAGE_CATEGORIES.map(u => (<button key={u} onClick={() => setUsage(u)} className={`flex-1 py-3 text-xs rounded-xl border transition-all ${getUsagePillStyle(u, usage === u, theme)}`}>{t.usage[u]}</button>))}</div></div>
-                      <div><label className="block text-xs font-bold uppercase mb-2 text-gray-400">{t.addEntry.cost}</label><BentoInput type="number" value={finalCost} onChange={e => setFinalCost(e.target.value)} placeholder="0.00" /></div>
-                   </div>
+                  <>
+                     <div><label className="block text-xs font-bold uppercase mb-2 text-gray-400">{t.addEntry.usage}</label><div className="flex gap-2">{ALL_USAGE_CATEGORIES.map(u => (<button key={u} onClick={() => setUsage(u)} className={`flex-1 py-3 text-sm rounded-xl border transition-all ${getUsagePillStyle(u, usage === u, theme)}`}>{t.usage[u]}</button>))}</div></div>
+                     <div className="grid grid-cols-2 gap-4">
+                        <div><label className="block text-xs font-bold uppercase mb-2 text-gray-400">{t.addEntry.paymentMethod}</label><BentoSelect value={paymentMethod} onChange={e => setPaymentMethod(e.target.value as PaymentMethod)}><option value="cash">{t.paymentMethods.cash}</option><option value="card">{t.paymentMethods.card}</option><option value="mobile">{t.paymentMethods.mobile}</option></BentoSelect></div>
+                        <div><label className="block text-xs font-bold uppercase mb-2 text-gray-400">{t.addEntry.cost}</label><div className="relative"><span className="absolute left-4 top-3.5 text-gray-400 font-bold">$</span><BentoInput type="number" value={finalCost} onChange={e => setFinalCost(e.target.value)} className="!pl-8" placeholder="0.00" /></div></div>
+                     </div>
+                  </>
                 )}
              </div>
-             {analysis?.reasoning && <div className="p-4 rounded-xl text-sm bg-gray-50 text-gray-500 font-medium italic"><p className="font-bold mb-1 text-gray-900 not-italic">{t.addEntry.aiInsight}</p>{analysis.reasoning}</div>}
           </div>
-          <div className="pt-4 flex gap-3"><Button variant="ghost" onClick={() => { setStep('upload'); setError(null); }} className="flex-1 text-gray-400">{t.common.cancel}</Button><Button fullWidth onClick={handleSave} className="flex-[2] h-14 bg-gray-900 text-white rounded-2xl shadow-lg">{t.addEntry.saveEntry}</Button></div>
+          <div className="flex gap-3">
+             <Button fullWidth onClick={() => { setStep('upload'); setImagePreview(null); }} className="bg-gray-100 text-gray-600 hover:bg-gray-200">{t.common.cancel}</Button>
+             <Button fullWidth onClick={handleSave} className="bg-gray-900 text-white shadow-xl hover:bg-black">{t.common.save}</Button>
+          </div>
         </div>
       </div>
     );
-  };
+  }
 
+  // Step === 'upload'
   return (
-    <div className={`flex-1 flex flex-col p-6 pb-24 ${isVintageTheme ? 'bg-vintage-bg' : 'bg-pastel-bg'}`}>
-      <header className="mb-8 mt-4"><h1 className={`text-3xl font-extrabold mb-2 ${isVintageTheme ? 'text-vintage-ink font-typewriter' : 'text-gray-900 tracking-tight'}`}>{t.addEntry.title}</h1><p className="text-gray-400 font-medium">{t.addEntry.subtitle}</p></header>
-      <div className="flex-1 flex flex-col justify-center items-center gap-8">
-        <div onClick={() => fileInputRef.current?.click()} className={`w-full aspect-square max-w-[280px] flex flex-col items-center justify-center cursor-pointer group transition-all bg-white rounded-[3rem] shadow-soft hover:scale-105 active:scale-95`}><div className="w-24 h-24 rounded-full flex items-center justify-center mb-6 bg-pastel-bg text-gray-900 group-hover:bg-brand-50 group-hover:text-brand-600"><Icon name="camera" className="w-10 h-10" /></div><span className="font-bold text-lg text-gray-900">{t.addEntry.tapToCapture}</span></div>
-        <input type="file" accept="image/*" capture="environment" ref={fileInputRef} onChange={handleFileChange} className="hidden" />
-        <div className="w-full max-w-[280px]"><Button variant="ghost" fullWidth onClick={() => setStep('review')} className="text-gray-400 hover:text-gray-900">{t.addEntry.manual}</Button></div>
-      </div>
+    <div className={`flex-1 flex flex-col p-6 relative overflow-hidden ${isVintageTheme ? 'bg-vintage-bg' : 'bg-pastel-bg'}`}>
+       <div className="flex-1 flex flex-col items-center justify-center z-10">
+          <div className={`relative w-64 h-64 mb-10 group cursor-pointer ${isVintageTheme ? '' : ''}`} onClick={() => fileInputRef.current?.click()}>
+             <div className={`absolute inset-0 rounded-full animate-spin-slow opacity-20 ${isVintageTheme ? 'border-4 border-dashed border-vintage-ink' : 'bg-gradient-to-r from-brand-200 to-accent-200 blur-2xl'}`} />
+             <div className={`absolute inset-4 rounded-full flex items-center justify-center transition-transform group-hover:scale-105 duration-500 ${isVintageTheme ? 'bg-vintage-card border-4 border-vintage-ink shadow-[4px_4px_0px_rgba(44,36,27,1)]' : 'bg-white shadow-soft'}`}>
+                <div className={`text-center ${isVintageTheme ? 'text-vintage-ink' : 'text-gray-900'}`}>
+                   <Icon name="camera" className="w-16 h-16 mx-auto mb-2 opacity-80" />
+                   <span className={`font-bold text-lg tracking-wide ${isVintageTheme ? 'font-typewriter' : ''}`}>{t.addEntry.tapToScan}</span>
+                </div>
+             </div>
+          </div>
+          <div className={`text-center max-w-xs ${isVintageTheme ? 'font-handwriting text-xl text-vintage-ink/70' : 'text-gray-500'}`}>
+             <p>{t.addEntry.uploadDesc}</p>
+          </div>
+       </div>
+       <input type="file" accept="image/*" capture="environment" className="hidden" ref={fileInputRef} onChange={handleFileChange} />
+       
+       {/* Decorative Background Elements */}
+       {!isVintageTheme && (
+         <>
+           <div className="absolute top-0 left-0 w-full h-1/2 bg-gradient-to-b from-brand-50/50 to-transparent -z-0" />
+           <div className="absolute -bottom-20 -right-20 w-80 h-80 bg-accent-100 rounded-full blur-3xl opacity-30 pointer-events-none" />
+           <div className="absolute top-20 -left-20 w-60 h-60 bg-brand-100 rounded-full blur-3xl opacity-30 pointer-events-none" />
+         </>
+       )}
     </div>
   );
 };

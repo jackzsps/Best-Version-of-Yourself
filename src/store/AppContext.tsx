@@ -129,7 +129,8 @@ export const AppProvider = ({ children }: React.PropsWithChildren<{}>) => {
     try {
         const entryToSync = { 
             ...entry,
-            date: entry.date && entry.date.seconds ? entry.date : Timestamp.now(),
+             // Ensure date is a Timestamp
+            date: entry.date instanceof Timestamp ? entry.date : (entry.date && typeof entry.date.seconds === 'number' ? new Timestamp(entry.date.seconds, entry.date.nanoseconds) : Timestamp.now()),
         };
 
         if (entry.imageUrl && entry.imageUrl.startsWith('data:')) {
@@ -153,7 +154,8 @@ export const AppProvider = ({ children }: React.PropsWithChildren<{}>) => {
     try {
         const entryToSync = { 
             ...updatedEntry,
-            date: updatedEntry.date && updatedEntry.date.seconds ? updatedEntry.date : Timestamp.now(),
+            // Ensure date is a Timestamp
+            date: updatedEntry.date instanceof Timestamp ? updatedEntry.date : (updatedEntry.date && typeof updatedEntry.date.seconds === 'number' ? new Timestamp(updatedEntry.date.seconds, updatedEntry.date.nanoseconds) : Timestamp.now()),
         };
 
         if (updatedEntry.imageUrl && updatedEntry.imageUrl.startsWith('data:')) {
