@@ -233,7 +233,7 @@ const AddEntry = () => {
                     <Icon name="pencil" className="w-5 h-5" />
                   </div>
                   <span className={`font-bold ${isVintageTheme ? 'text-vintage-ink font-typewriter' : 'text-gray-600'}`}>
-                    {t.addEntry?.manualMode || "手動輸入"}
+                    {t.addEntry?.manual || "手動輸入"}
                   </span>
               </div>
            )}
@@ -411,7 +411,7 @@ const AddEntry = () => {
              }`}
           >
              {isVintageTheme ? '✎' : <Icon name="pencil" className="w-4 h-4" />}
-             {t.addEntry?.manualMode || "手動輸入紀錄"}
+             {t.addEntry?.manual || "手動輸入紀錄"}
           </button>
 
        </div>
