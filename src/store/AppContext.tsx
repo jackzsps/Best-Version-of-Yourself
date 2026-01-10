@@ -51,53 +51,82 @@ export const AppProvider = ({ children }: React.PropsWithChildren<{}>) => {
   const [user, setUser] = useState<User | null>(null);
   const [isWriting, setIsWriting] = useState<boolean>(false);
 
+  //useEffect(() => {
+    //try {
+      //const savedMode = localStorage.getItem('bvoy_mode');
+      //const savedLang = localStorage.getItem('bvoy_language');
+      //const savedTheme = localStorage.getItem('bvoy_theme');
+      //if (savedMode) setMode(savedMode as RecordMode);
+      //if (savedLang) setLanguage(savedLang as Language);
+      //if (savedTheme) setTheme(savedTheme as Theme);
+    //} catch (e) {
+   //   console.error("Initial settings load failed", e);
+    //}
+  //}, []);
   useEffect(() => {
-    try {
-      const savedMode = localStorage.getItem('bvoy_mode');
-      const savedLang = localStorage.getItem('bvoy_language');
-      const savedTheme = localStorage.getItem('bvoy_theme');
-      if (savedMode) setMode(savedMode as RecordMode);
-      if (savedLang) setLanguage(savedLang as Language);
-      if (savedTheme) setTheme(savedTheme as Theme);
-    } catch (e) {
-      console.error("Initial settings load failed", e);
-    }
-  }, []);
+    let unsubscribe: Unsubscribe | null = null;
 
-  useEffect(() => {
-    let unsubscribeFromEntries: Unsubscribe | null = null;
-
-    const unsubscribeFromAuth = onAuthStateChanged(auth, (currentUser) => {
+    const authUnsubscribe = onAuthStateChanged(auth, async (currentUser) => {
       setUser(currentUser);
-
-      if (unsubscribeFromEntries) {
-        unsubscribeFromEntries();
-        unsubscribeFromEntries = null;
-      }
+      
+      if (unsubscribe) unsubscribe();
 
       if (currentUser) {
-        unsubscribeFromEntries = listenToEntries(currentUser.uid, (cloudEntries) => {
-            const sortedEntries = cloudEntries.sort((a, b) => {
-                const dateA = a.date?.seconds ?? 0;
-                const dateB = b.date?.seconds ?? 0;
+        console.log(`User ${currentUser.uid} logged in. Setting up real-time listener.`);
+        
+        unsubscribe = listenToEntries(currentUser.uid, async (cloudEntries) => {
+            console.log("Received real-time update from Firestore.");
+            
+            // 1. 取得目前 LocalStorage 中的資料 (作為本地暫存的依據)
+            const localDataJson = localStorage.getItem('bvoy_entries');
+            const localEntries: Entry[] = localDataJson ? JSON.parse(localDataJson) : [];
+
+            // 2. 找出「本地有，但雲端沒有」的資料 (假設是未同步成功的)
+            // 判斷標準：ID 不在 cloudEntries 中
+            const unsyncedEntries = localEntries.filter(
+              le => !cloudEntries.some(ce => ce.id === le.id)
+            );
+
+            if (unsyncedEntries.length > 0) {
+              console.log(`Found ${unsyncedEntries.length} unsynced entries. Syncing now...`);
+              // 3. 背景補上傳這些資料
+              unsyncedEntries.forEach(entry => {
+                syncEntryToCloud(entry, currentUser.uid).catch(err => 
+                  console.error(`Auto-sync failed for entry ${entry.id}`, err)
+                );
+              });
+            }
+
+            // 4. 合併資料：雲端資料 + 本地未同步資料
+            // 這樣使用者立刻看得到舊資料，且背景正在幫他修復同步
+            const mergedEntries = [...cloudEntries, ...unsyncedEntries];
+            
+            // 排序
+            const sortedEntries = mergedEntries.sort((a, b) => {
+                // 增加防呆，避免 date 欄位錯誤導致 crash
+                const dateA = a.date?.seconds || 0;
+                const dateB = b.date?.seconds || 0;
                 return dateB - dateA;
             });
+
             setEntries(sortedEntries);
             localStorage.setItem('bvoy_entries', JSON.stringify(sortedEntries));
         });
+
       } else {
-        setEntries([]);
-        localStorage.removeItem('bvoy_entries');
+        // ... (保持原樣：未登入時讀取本地資料)
+        console.log("User is not logged in. Using local data only.");
+        const localData = localStorage.getItem('bvoy_entries');
+        setEntries(localData ? JSON.parse(localData) : []);
       }
     });
 
     return () => {
-      unsubscribeFromAuth();
-      if (unsubscribeFromEntries) {
-        unsubscribeFromEntries();
-      }
+        authUnsubscribe();
+        if (unsubscribe) unsubscribe();
     };
   }, []);
+
 
   const t = TRANSLATIONS[language];
 

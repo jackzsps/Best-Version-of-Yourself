@@ -46,18 +46,16 @@ export interface FirestoreTimestamp {
 
 export interface Entry {
   id: string;
-
   
+//🔴 刪除這行: timestamp: number;
   //timestamp: number;
   //date: Timestamp; // Added date field for Firestore queries
-  // 🔴 刪除這行: timestamp: number;
-  // 🟢 改成這行:
   date: FirestoreTimestamp;
-  //imageUrl?: string;
+
 // 🟢 修改這兩行，明確允許 null (這樣跟 AddEntry 的 || null 才能配合)
 imageUrl?: string | null; 
 note?: string | null;
-  
+
   itemName: string;
   type: EntryType;
   category: ExpenseCategory;
