@@ -78,14 +78,31 @@ export const analyzeImage = onCall({ secrets: ["GEMINI_API_KEY"] }, async (reque
   const lang = language === 'zh-TW' ? "Traditional Chinese (繁體中文)" : "English";
   const base64Data = base64Image.split(',')[1] || base64Image;
 
-  const prompt = `Analyze this image for a tracker app.
-  CRITICAL RULES:
-  1. If the item is NOT food/drink (e.g. receipt for gas, clothing, tools), set "isFood" to false AND "recordType" to "expense".
-  2. For "expense" type, set all calorie and macro values (min and max) to 0.
-  3. Categorize non-food items into transport, shopping, entertainment, bills, or other.
-  4. Language for text: ${lang}.
-  5. Set "reasoning" to a short, friendly, and helpful comment about the item (e.g. nutritional advice for food, or a brief description).`; // ★ 新增這行指令 ★
+  const prompt = `Analyze this image for a combined finance and fitness tracking app.
+    CRITICAL RULES:
+    
+    1. DETERMINE RECORD TYPE ('recordType'):
+       - 'expense': Raw ingredients (groceries), receipts, non-food items, bills. (User bought it but might not eat it now).
+       - 'diet': Plated food without prices, home-cooked meals, leftovers. (User is eating but paid earlier).
+       - 'combined': Restaurant meals, cafe items, food with visible price tags. (User is paying and eating).
 
+    2. CATEGORIZE:
+       - If not food/drink, categorize into transport, shopping, entertainment, bills, or other.
+       - If food, categorize as 'food'.
+
+    3. DATA CLEANUP:
+       - If 'recordType' is 'expense' (and not food ingredients), set all calorie and macro values (min/max) to 0.
+
+    4. LANGUAGE:
+       - Language for text: ${lang}.
+
+    5. [CRITICAL] FILL THE "reasoning" FIELD:
+       - You MUST provide a short, warm, and helpful comment (max 30 words) in ${lang}.
+       - If it's food/diet: Give a quick nutritional tip or a positive comment (e.g., "Great protein source!", "Looks tasty!").
+       - If it's an expense: Briefly state the item's purpose (e.g., "Monthly utility bill", "Grocery run").
+       - If unsure: Describe what you see.`
+       ;
+       
   const requestParts = [
     { text: prompt },
     { inlineData: { data: base64Data, mimeType: "image/jpeg" } }
