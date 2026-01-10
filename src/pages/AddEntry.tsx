@@ -3,11 +3,15 @@ import { useApp } from '../store/AppContext';
 import { RecordMode, AnalysisResult, ExpenseCategory, PaymentMethod, UsageCategory, EntryType } from '../types';
 import { analyzeImage } from '../services/geminiService';
 import Button from '../components/Button';
-import { Icon } from '../components/Icons'; // 確保 Icons.tsx 有 export 這個元件，若無請改回 CameraIcon
-import { Timestamp } from 'firebase/firestore'; // Import Timestamp from firebase/firestore
+import { Icon } from '../components/Icons'; 
+import { Timestamp } from 'firebase/firestore'; 
 import { 
   BentoInput, 
   BentoSelect, 
+  BentoTextArea,
+  VintageInput,
+  VintageSelect,
+  VintageTextArea,
   ThemeDateInput, 
   getUsagePillStyle 
 } from '../components/ThemeUI';
@@ -21,6 +25,7 @@ const getLocalDateString = (date = new Date()) => {
 const ALL_EXPENSE_CATEGORIES: ExpenseCategory[] = ['food', 'transport', 'shopping', 'entertainment', 'bills', 'other'];
 const ALL_USAGE_CATEGORIES: UsageCategory[] = ['must', 'need', 'want'];
 const ALL_ENTRY_TYPES: EntryType[] = ['expense', 'diet', 'combined'];
+const ALL_PAYMENT_METHODS: PaymentMethod[] = ['cash', 'card', 'mobile'];
 
 // --- Type Guards for Safe State Updates ---
 
@@ -34,25 +39,6 @@ function isValidUsageCategory(usage: any): usage is UsageCategory {
 
 function isValidRecordType(recordType: any): recordType is EntryType {
   return ALL_ENTRY_TYPES.includes(recordType);
-}
-
-// --- UI Components ---
-
-const MacroInput = ({ label, value, onChange, max, colorClass, bgClass }: { label: string, value: string, onChange: (val: string) => void, max: number, colorClass: string, bgClass: string }) => {
-  const numValue = parseFloat(value) || 0;
-  const percentage = Math.min((numValue / max) * 100, 100);
-  return (
-    <div className="flex flex-col gap-1">
-      <div className="flex justify-between items-end text-xs font-semibold text-gray-500">
-        <span>{label}</span>
-        <div className="flex items-center gap-1">
-           <input type="number" value={value} onChange={(e) => onChange(e.target.value)} className="w-16 text-right bg-transparent border-b border-gray-300 focus:border-brand-500 outline-none p-0 text-gray-900 font-bold" placeholder="0" />
-           <span>g</span>
-        </div>
-      </div>
-      <div className={`h-3 w-full ${bgClass} rounded-full overflow-hidden`}><div className={`h-full ${colorClass} rounded-full transition-all duration-300 ease-out`} style={{ width: `${percentage}%` }} /></div>
-    </div>
-  );
 }
 
 // --- Main Component: AddEntry ---
@@ -77,9 +63,13 @@ const AddEntry = () => {
   const [category, setCategory] = useState<ExpenseCategory>('food');
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('cash');
   const [usage, setUsage] = useState<UsageCategory>('need');
+  const [note, setNote] = useState('');
   const [activeMode, setActiveMode] = useState<RecordMode>(mode);
 
   const isVintageTheme = theme === 'vintage';
+  const labelClass = isVintageTheme
+    ? 'block text-xs font-bold uppercase mb-1 text-vintage-leather font-typewriter'
+    : 'block text-xs font-bold uppercase mb-2 text-gray-400';
 
   /**
    * Safely updates form state from AI analysis result.
@@ -91,6 +81,7 @@ const AddEntry = () => {
     setAnalysis(result);
     setFinalName(result.itemName || '');
     setFinalCost(result.cost?.toString() || '');
+    setNote(result.reasoning || '');
     
     if (isValidExpenseCategory(result.category)) setCategory(result.category);
     if (isValidUsageCategory(result.usage)) setUsage(result.usage);
@@ -169,7 +160,7 @@ const AddEntry = () => {
       carbs: recordType === 'expense' ? 0 : (parseFloat(finalCarbs) || 0),
       fat: recordType === 'expense' ? 0 : (parseFloat(finalFat) || 0),
       modeUsed: activeMode,
-      note: analysis?.reasoning || null 
+      note: note || null 
     });
     
     // Reset state after saving
@@ -184,6 +175,7 @@ const AddEntry = () => {
     setFinalProtein('');
     setFinalCarbs('');
     setFinalFat('');
+    setNote('');
   };
 
   // --- RENDER LOGIC ---
@@ -199,56 +191,167 @@ const AddEntry = () => {
   }
 
   if (step === 'review') {
+    const containerClass = isVintageTheme 
+      ? 'bg-vintage-bg min-h-full'
+      : 'bg-pastel-bg min-h-full';
+    
+    const cardClass = isVintageTheme
+      ? 'bg-vintage-card w-full p-6 relative shadow-[5px_5px_0px_rgba(44,36,27,0.2)] border-2 border-vintage-line rounded-sm space-y-6 mt-4'
+      : 'bg-white p-6 rounded-bento shadow-bento space-y-4';
+
     return (
-      <div className={`flex-1 overflow-y-auto pb-24 no-scrollbar ${isVintageTheme ? 'bg-vintage-bg' : 'bg-pastel-bg'}`}>
+      <div className={`flex-1 overflow-y-auto pb-24 no-scrollbar ${containerClass}`}>
         <div className="p-6">
            {error && (
              <div className="mb-4 p-4 bg-red-50 text-red-600 rounded-2xl text-sm border border-red-100 flex items-center gap-2">
                <span>⚠️</span> {error}
              </div>
             )}
-           <div className="rounded-bento overflow-hidden shadow-bento h-64 relative bg-white">
-              {imagePreview && <img src={imagePreview} alt="Review" className="w-full h-full object-cover" />}
-              <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent flex items-end p-6"><h2 className="text-white text-2xl font-bold">{finalName || t.common.untitled}</h2></div>
+           
+           {imagePreview && (
+              <div className="rounded-bento overflow-hidden shadow-bento h-64 relative bg-white mb-6">
+                 <img src={imagePreview} alt="Review" className="w-full h-full object-cover" />
+                 <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent flex items-end p-6"><h2 className="text-white text-2xl font-bold">{finalName || t.common.untitled}</h2></div>
+              </div>
+           )}
+
+           <div className={`flex p-1 ${isVintageTheme ? 'border-b border-vintage-line pb-4 mb-2' : 'bg-white rounded-2xl shadow-sm'}`}>
+              {ALL_ENTRY_TYPES.map(type => (
+                <button
+                  key={type}
+                  onClick={() => setRecordType(type)}
+                  className={`flex-1 py-3 text-xs font-bold transition-all ${
+                    recordType === type
+                      ? (isVintageTheme ? 'text-vintage-ink font-typewriter underline decoration-wavy decoration-vintage-stamp' : 'bg-gray-900 text-white rounded-xl shadow-lg')
+                      : (isVintageTheme ? 'text-vintage-leather/50 font-typewriter' : 'text-gray-400')
+                  }`}
+                >
+                  {t.entryTypes[type]}
+                </button>
+              ))}
            </div>
-        </div>
-        <div className="p-6 space-y-6 -mt-4">
-          <div className="flex p-1 rounded-2xl bg-white shadow-sm">{ALL_ENTRY_TYPES.map(type => (<button key={type} onClick={() => setRecordType(type)} className={`flex-1 py-3 text-xs font-bold transition-all ${recordType === type ? 'bg-gray-900 text-white rounded-xl shadow-lg' : 'text-gray-400'}`}>{t.entryTypes[type]}</button>))}</div>
-          <div className="bg-white p-6 rounded-bento shadow-bento space-y-4">
-             {(recordType === 'diet' || recordType === 'combined') && (
-               <div className="bg-pastel-bg p-4 rounded-2xl">
-                  <div className="flex bg-white/50 p-1 rounded-xl mb-4 border border-white/50">
-                      <button onClick={() => setActiveMode(RecordMode.STRICT)} className={`flex-1 py-1.5 text-xs font-bold rounded-lg ${activeMode === RecordMode.STRICT ? 'bg-brand-500 text-white shadow' : 'text-gray-400'}`}>{t.addEntry.modeStrict}</button>
-                      <button onClick={() => setActiveMode(RecordMode.CONSERVATIVE)} className={`flex-1 py-1.5 text-xs font-bold rounded-lg ${activeMode === RecordMode.CONSERVATIVE ? 'bg-emerald-500 text-white shadow' : 'text-gray-400'}`}>{t.addEntry.modeConservative}</button>
-                  </div>
-                  <div className="flex justify-between items-center mb-4"><span className="text-sm font-bold text-gray-400 uppercase">{t.addEntry.nutrition}</span><div className="flex items-center"><input type="number" value={finalCalories} onChange={(e) => setFinalCalories(e.target.value)} className="w-20 text-right bg-transparent border-b-2 border-brand-100 focus:border-brand-500 outline-none text-lg font-bold text-gray-900" placeholder="0" /><span className="text-lg font-bold text-gray-900 ml-1">kcal</span></div></div>
-                  <div className="space-y-3">
-                    <MacroInput label={t.addEntry.protein} value={finalProtein} onChange={setFinalProtein} max={50} colorClass="bg-red-400" bgClass="bg-red-100" />
-                    <MacroInput label={t.addEntry.carbs} value={finalCarbs} onChange={setFinalCarbs} max={100} colorClass="bg-yellow-400" bgClass="bg-yellow-100" />
-                    <MacroInput label={t.addEntry.fat} value={finalFat} onChange={setFinalFat} max={40} colorClass="bg-blue-400" bgClass="bg-blue-100" />
-                  </div>
-               </div>
+
+           <div className={cardClass}>
+             {isVintageTheme && (
+                <div className="absolute top-0 left-1/2 -translate-x-1/2 -mt-3 w-4 h-4 rounded-full bg-vintage-line shadow-inner"></div>
              )}
-             <div className="space-y-4 pt-2">
-                <div><label className="block text-xs font-bold uppercase mb-2 text-gray-400">{t.addEntry.itemName}</label><BentoInput value={finalName} onChange={e => setFinalName(e.target.value)} /></div>
-                <div className="grid grid-cols-2 gap-4">
-                   <div><label className="block text-xs font-bold uppercase mb-2 text-gray-400">{t.addEntry.date}</label><ThemeDateInput value={entryDate} onChange={e => setEntryDate(e.target.value)} theme={theme} /></div>
-                   <div><label className="block text-xs font-bold uppercase mb-2 text-gray-400">{t.addEntry.category}</label><BentoSelect value={category} onChange={e => setCategory(e.target.value as ExpenseCategory)}>{ALL_EXPENSE_CATEGORIES.map(c => (<option key={c} value={c}>{t.categories[c]}</option>))}</BentoSelect></div>
+
+             <div>
+               <label className={labelClass}>{t.addEntry.date}</label>
+               <ThemeDateInput value={entryDate} onChange={e => setEntryDate(e.target.value)} theme={theme} />
+             </div>
+
+             <div>
+               <label className={labelClass}>{t.addEntry.itemName}</label>
+               {isVintageTheme
+                  ? <VintageInput type="text" value={finalName} onChange={e => setFinalName(e.target.value)} />
+                  : <BentoInput type="text" value={finalName} onChange={e => setFinalName(e.target.value)} />
+               }
+             </div>
+
+             <div className="grid grid-cols-2 gap-4">
+                <div className="col-span-2">
+                   <label className={labelClass}>{t.addEntry.category}</label>
+                   {isVintageTheme
+                     ? <VintageSelect value={category} onChange={e => setCategory(e.target.value as ExpenseCategory)}>{ALL_EXPENSE_CATEGORIES.map(c => <option key={c} value={c}>{t.categories[c]}</option>)}</VintageSelect>
+                     : <BentoSelect value={category} onChange={e => setCategory(e.target.value as ExpenseCategory)}>{ALL_EXPENSE_CATEGORIES.map(c => <option key={c} value={c}>{t.categories[c]}</option>)}</BentoSelect>
+                   }
                 </div>
+
+                {(recordType === 'expense' || recordType === 'combined') && (
+                  <div className="col-span-2">
+                     <label className={labelClass}>{t.addEntry.usage}</label>
+                     <div className="flex gap-2">
+                      {ALL_USAGE_CATEGORIES.map(u => (
+                        <button
+                          key={u}
+                          onClick={() => setUsage(u)}
+                          className={`flex-1 py-3 text-sm rounded-xl border transition-all ${
+                             isVintageTheme ? 'rounded-none border-2 font-typewriter' : ''
+                          } ${getUsagePillStyle(u, usage === u, theme)}`}
+                        >
+                          {t.usage[u]}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
                 {(recordType === 'expense' || recordType === 'combined') && (
                   <>
-                     <div><label className="block text-xs font-bold uppercase mb-2 text-gray-400">{t.addEntry.usage}</label><div className="flex gap-2">{ALL_USAGE_CATEGORIES.map(u => (<button key={u} onClick={() => setUsage(u)} className={`flex-1 py-3 text-sm rounded-xl border transition-all ${getUsagePillStyle(u, usage === u, theme)}`}>{t.usage[u]}</button>))}</div></div>
-                     <div className="grid grid-cols-2 gap-4">
-                        <div><label className="block text-xs font-bold uppercase mb-2 text-gray-400">{t.addEntry.paymentMethod}</label><BentoSelect value={paymentMethod} onChange={e => setPaymentMethod(e.target.value as PaymentMethod)}><option value="cash">{t.paymentMethods.cash}</option><option value="card">{t.paymentMethods.card}</option><option value="mobile">{t.paymentMethods.mobile}</option></BentoSelect></div>
-                        <div><label className="block text-xs font-bold uppercase mb-2 text-gray-400">{t.addEntry.cost}</label><div className="relative"><span className="absolute left-4 top-3.5 text-gray-400 font-bold">$</span><BentoInput type="number" value={finalCost} onChange={e => setFinalCost(e.target.value)} className="!pl-8" placeholder="0.00" /></div></div>
-                     </div>
+                    <div>
+                       <label className={labelClass}>{t.addEntry.paymentMethod}</label>
+                       {isVintageTheme
+                         ? <VintageSelect value={paymentMethod} onChange={e => setPaymentMethod(e.target.value as PaymentMethod)}>{ALL_PAYMENT_METHODS.map(p => <option key={p} value={p}>{t.paymentMethods[p]}</option>)}</VintageSelect>
+                         : <BentoSelect value={paymentMethod} onChange={e => setPaymentMethod(e.target.value as PaymentMethod)}>{ALL_PAYMENT_METHODS.map(p => <option key={p} value={p}>{t.paymentMethods[p]}</option>)}</BentoSelect>
+                       }
+                    </div>
+                    <div>
+                      <label className={labelClass}>{t.addEntry.cost}</label>
+                      {isVintageTheme
+                        ? <VintageInput type="number" value={finalCost} onChange={e => setFinalCost(e.target.value)} placeholder="0.00" />
+                        : <div className="relative"><span className="absolute left-4 top-3.5 text-gray-400 font-bold">$</span><BentoInput type="number" value={finalCost} onChange={e => setFinalCost(e.target.value)} className="!pl-8" placeholder="0.00" /></div>
+                      }
+                    </div>
                   </>
                 )}
              </div>
+
+             {(recordType === 'diet' || recordType === 'combined') && (
+                <div className={`${isVintageTheme ? 'mt-4 border-t border-vintage-line pt-4 border-dashed' : 'bg-pastel-bg p-4 rounded-2xl shadow-sm border border-gray-100 mt-2'}`}>
+                   {!isVintageTheme && (
+                     <div className="flex bg-white/50 p-1 rounded-xl mb-4 border border-white/50">
+                        <button onClick={() => setActiveMode(RecordMode.STRICT)} className={`flex-1 py-1.5 text-xs font-bold rounded-lg ${activeMode === RecordMode.STRICT ? 'bg-brand-500 text-white shadow' : 'text-gray-400'}`}>{t.addEntry.modeStrict}</button>
+                        <button onClick={() => setActiveMode(RecordMode.CONSERVATIVE)} className={`flex-1 py-1.5 text-xs font-bold rounded-lg ${activeMode === RecordMode.CONSERVATIVE ? 'bg-emerald-500 text-white shadow' : 'text-gray-400'}`}>{t.addEntry.modeConservative}</button>
+                     </div>
+                   )}
+                   
+                   <div>
+                      <label className={labelClass}>{t.addEntry.calories}</label>
+                      {isVintageTheme
+                        ? <VintageInput type="number" value={finalCalories} onChange={e => setFinalCalories(e.target.value)} placeholder="0" />
+                        : <BentoInput type="number" value={finalCalories} onChange={e => setFinalCalories(e.target.value)} placeholder="0" />
+                      }
+                   </div>
+                   
+                   <div className="grid grid-cols-3 gap-3 mt-4">
+                      <div>
+                         <label className={labelClass}>{t.addEntry.protein}</label>
+                         {isVintageTheme
+                           ? <VintageInput type="number" value={finalProtein} onChange={e => setFinalProtein(e.target.value)} className="!text-lg" placeholder="g" />
+                           : <BentoInput type="number" value={finalProtein} onChange={e => setFinalProtein(e.target.value)} className="!p-3 !text-sm" placeholder="g" />
+                         }
+                      </div>
+                      <div>
+                         <label className={labelClass}>{t.addEntry.carbs}</label>
+                         {isVintageTheme
+                           ? <VintageInput type="number" value={finalCarbs} onChange={e => setFinalCarbs(e.target.value)} className="!text-lg" placeholder="g" />
+                           : <BentoInput type="number" value={finalCarbs} onChange={e => setFinalCarbs(e.target.value)} className="!p-3 !text-sm" placeholder="g" />
+                         }
+                      </div>
+                      <div>
+                         <label className={labelClass}>{t.addEntry.fat}</label>
+                         {isVintageTheme
+                           ? <VintageInput type="number" value={finalFat} onChange={e => setFinalFat(e.target.value)} className="!text-lg" placeholder="g" />
+                           : <BentoInput type="number" value={finalFat} onChange={e => setFinalFat(e.target.value)} className="!p-3 !text-sm" placeholder="g" />
+                         }
+                      </div>
+                   </div>
+                </div>
+             )}
+             
+             <div>
+                <label className={labelClass}>{t.addEntry.note}</label>
+                {isVintageTheme
+                  ? <VintageTextArea value={note} onChange={e => setNote(e.target.value)} rows={3} />
+                  : <BentoTextArea value={note} onChange={e => setNote(e.target.value)} rows={3} />
+                }
+             </div>
           </div>
-          <div className="flex gap-3">
-             <Button fullWidth onClick={() => { setStep('upload'); setImagePreview(null); }} className="bg-gray-100 text-gray-600 hover:bg-gray-200">{t.common.cancel}</Button>
-             <Button fullWidth onClick={handleSave} className="bg-gray-900 text-white shadow-xl hover:bg-black">{t.common.save}</Button>
+          
+          <div className="mt-8 flex gap-3">
+             <Button fullWidth onClick={() => { setStep('upload'); setImagePreview(null); }} className={isVintageTheme ? 'bg-transparent border-2 border-vintage-ink text-vintage-ink font-typewriter hover:bg-vintage-ink hover:text-vintage-bg rounded-sm' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}>{t.common.cancel}</Button>
+             <Button fullWidth onClick={handleSave} className={isVintageTheme ? 'bg-vintage-leather text-vintage-card font-typewriter shadow-md hover:bg-vintage-ink border-2 border-vintage-ink rounded-sm' : 'bg-gray-900 text-white shadow-xl hover:bg-black'}>{t.common.save}</Button>
           </div>
         </div>
       </div>
