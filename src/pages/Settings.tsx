@@ -3,6 +3,7 @@ import { useApp } from '../store/AppContext';
 import { RecordMode, Entry } from '../types';
 import AuthModal from '../components/AuthModal';
 import { getArchivedEntries } from '../services/storageService';
+import { Link } from 'react-router-dom';
 
 const Settings = () => {
   const { mode, setMode, language, setLanguage, theme, setTheme, t, user, logout, isWriting } = useApp();
@@ -157,6 +158,15 @@ const Settings = () => {
             </label>
           </div>
         </div>
+
+        {/* Privacy Policy */}
+         <div className={cardClass}>
+           <h2 className={textHeadClass}>{t.settings.privacyPolicy}</h2>
+           <Link to="/privacy-policy" className={`block w-full text-center py-3 px-4 rounded-xl text-sm font-bold transition-all ${isVintageTheme ? 'border-2 border-vintage-ink text-vintage-ink hover:bg-vintage-ink hover:text-vintage-bg font-typewriter' : 'bg-gray-100 text-gray-800 hover:bg-gray-200'}`}>
+              {t.settings.privacyPolicy}
+           </Link>
+         </div>
+
       </div>
       
       <AuthModal isOpen={showAuthModal} onClose={() => setShowAuthModal(false)} />

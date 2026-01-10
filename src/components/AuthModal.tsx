@@ -1,6 +1,7 @@
 import React, { useReducer, useEffect } from 'react';
 import { useApp } from '../store/AppContext';
 import { AuthError } from 'firebase/auth';
+import { Icon } from './Icons';
 
 // --- Types & State Management ---
 
@@ -74,14 +75,19 @@ const useStyles = (isVintage: boolean) => ({
     button: isVintage
         ? 'w-full py-3 border-2 border-vintage-ink font-typewriter font-bold hover:bg-vintage-ink hover:text-vintage-bg transition-colors'
         : 'w-full py-3 rounded-lg bg-gray-900 text-white font-semibold shadow-lg active:scale-95 transition-all',
+    googleButton: isVintage
+        ? 'w-full py-3 border-2 border-vintage-ink font-typewriter font-bold flex items-center justify-center gap-2 hover:bg-vintage-ink/10 transition-colors'
+        : 'w-full py-3 rounded-lg bg-white border border-gray-300 text-gray-700 font-semibold shadow-sm hover:bg-gray-50 flex items-center justify-center gap-2 transition-all',
     title: `text-2xl font-bold mb-8 text-center ${isVintage ? 'font-typewriter text-vintage-ink' : 'text-gray-900'}`,
     switchButton: `text-sm hover:underline transition-all ${isVintage ? 'text-vintage-leather font-typewriter' : 'text-brand-600 font-medium'}`,
+    divider: isVintage ? 'border-vintage-ink/30' : 'border-gray-200',
+    dividerText: isVintage ? 'bg-vintage-bg text-vintage-leather font-typewriter' : 'bg-white text-gray-500',
 });
 
 // --- Component ---
 
 const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
-  const { loginEmail, registerEmail, theme, t } = useApp();
+  const { loginEmail, registerEmail, loginGoogle, theme, t } = useApp();
   const [state, dispatch] = useReducer(authReducer, initialState);
   const { isLogin, email, password, name, error, isLoading } = state;
 
@@ -120,11 +126,27 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
     }
   };
 
+  const handleGoogleLogin = async () => {
+    dispatch({ type: 'SET_ERROR', payload: '' });
+    dispatch({ type: 'SET_LOADING', payload: true });
+    
+    try {
+      await loginGoogle();
+      onClose();
+    } catch (err) {
+      console.error("Google Auth Error:", err);
+      const errorMessage = getAuthErrorMessage(err as AuthError, t);
+      dispatch({ type: 'SET_ERROR', payload: errorMessage });
+    } finally {
+      dispatch({ type: 'SET_LOADING', payload: false });
+    }
+  };
+
   return (
     <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm" aria-modal="true" role="dialog">
       <div className={`w-full max-w-md p-8 relative ${styles.modalBg}`}>
         <button onClick={onClose} className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 transition-colors" aria-label={t.common.close}>
-          <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+          <Icon name="x" className="w-6 h-6" />
         </button>
 
         <h2 className={styles.title}>
@@ -132,6 +154,25 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
         </h2>
 
         {error && <div className="mb-6 p-4 bg-red-50 text-red-600 text-sm rounded-xl border border-red-100 animate-shake" role="alert">{error}</div>}
+
+        <div className="space-y-4">
+            <button 
+                type="button" 
+                onClick={handleGoogleLogin} 
+                className={styles.googleButton}
+                disabled={isLoading}
+            >
+                <Icon name="google" className="w-5 h-5" />
+                {isLogin ? "Sign in with Google" : "Sign up with Google"}
+            </button>
+
+            <div className="relative flex items-center justify-center my-6">
+                <hr className={`absolute w-full ${styles.divider}`} />
+                <span className={`relative px-4 text-sm ${styles.dividerText}`}>
+                    {t.common.or || 'OR'}
+                </span>
+            </div>
+        </div>
 
         <form onSubmit={handleSubmit} className="space-y-5">
           {!isLogin && (

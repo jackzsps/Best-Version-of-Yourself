@@ -11,7 +11,8 @@ export const TRANSLATIONS = {
       update: "Update",
       close: "Close",
       reset: "Reset",
-      untitled: "Untitled"
+      untitled: "Untitled",
+      or: "OR"
     },
     nav: {
       home: "Home",
@@ -139,7 +140,8 @@ export const TRANSLATIONS = {
       conservative: "Conservative",
       conservativeDesc: "Records the minimum detected value.",
       about: "About",
-      poweredBy: "Powered by Google Gemini"
+      poweredBy: "Powered by Google Gemini",
+      privacyPolicy: "Privacy Policy"
     },
     auth: {
       loginTitle: "Welcome Back",
@@ -170,7 +172,8 @@ export const TRANSLATIONS = {
       update: "更新",
       close: "關閉",
       reset: "重設",
-      untitled: "未命名"
+      untitled: "未命名",
+      or: "或"
     },
     nav: {
       home: "首頁",
@@ -298,7 +301,8 @@ export const TRANSLATIONS = {
       conservative: "保守",
       conservativeDesc: "紀錄偵測到的最小值。",
       about: "關於",
-      poweredBy: "Powered by Google Gemini"
+      poweredBy: "Powered by Google Gemini",
+      privacyPolicy: "隱私權政策"
     },
     auth: {
       loginTitle: "登入帳號",

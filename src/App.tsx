@@ -1,4 +1,4 @@
-import React, { useState, lazy, Suspense } from 'react';
+import React, { lazy, Suspense } from 'react';
 import { HashRouter as Router, Routes, Route, NavLink } from 'react-router-dom';
 import { AppProvider, useApp } from './store/AppContext';
 import { Icon } from './components/Icons';
@@ -8,6 +8,7 @@ import ErrorBoundary from './components/ErrorBoundary';
 const Dashboard = lazy(() => import('./pages/Dashboard'));
 const AddEntry = lazy(() => import('./pages/AddEntry'));
 const Settings = lazy(() => import('./pages/Settings'));
+const PrivacyPolicy = lazy(() => import('./pages/PrivacyPolicy'));
 
 const LoadingFallback = () => (
   <div className="flex-1 flex flex-col items-center justify-center h-full min-h-[50vh] animate-fade-in">
@@ -59,6 +60,7 @@ const App = () => {
                   <Route path="/" element={<Dashboard />} />
                   <Route path="/add" element={<AddEntry />} />
                   <Route path="/settings" element={<Settings />} />
+                  <Route path="/privacy-policy" element={<PrivacyPolicy />} />
                </Routes>
             </Suspense>
           </Layout>

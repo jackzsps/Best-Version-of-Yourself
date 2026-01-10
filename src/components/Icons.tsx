@@ -35,6 +35,9 @@ const iconPaths = {
   pencil: (
     <><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z" /></>
   ),
+  google: (
+    <><path d="M12.48 10.92v3.28h7.84c-.24 1.84-.853 3.187-1.787 4.133-1.147 1.147-2.933 2.4-6.053 2.4-4.827 0-8.6-3.893-8.6-8.72s3.773-8.72 8.6-8.72c2.6 0 4.507 1.027 5.907 2.347l2.307-2.307C18.747 1.44 16.133 0 12.48 0 5.867 0 .533 5.347.533 12S5.867 24 12.48 24c3.44 0 6.053-1.147 8.213-3.293 2.187-2.187 2.853-5.267 2.853-7.773 0-.773-.067-1.52-.2-2.267H12.48z" /></>
+  )
 };
 
 export type IconName = keyof typeof iconPaths;
@@ -55,7 +58,7 @@ export const Icon: React.FC<IconProps> = ({ name, className, ...props }) => {
       width="24"
       height="24"
       viewBox="0 0 24 24"
-      fill="none"
+      fill="currentColor"
       stroke="currentColor"
       strokeWidth="2"
       strokeLinecap="round"
