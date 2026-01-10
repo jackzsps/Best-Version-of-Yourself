@@ -15,6 +15,7 @@ import {
   ThemeDateInput, 
   getUsagePillStyle 
 } from '../components/ThemeUI';
+import { compressImage } from '../utils/imageUtils';
 
 // --- Helper Functions ---
 
@@ -119,16 +120,29 @@ const AddEntry = () => {
     }
   };
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        const resultString = reader.result as string;
-        setImagePreview(resultString);
-        performAnalysis(resultString);
-      };
-      reader.readAsDataURL(file);
+      try {
+        // [優化 UX] 立即設定為分析狀態，讓使用者看到 Loading 動畫，感覺「反應很快」
+        setStep('analyzing'); 
+        setError(null);
+
+        // [執行壓縮] 使用極致效能版參數 (1280, 0.7)
+        // 這一步會將 5MB 的照片瞬間變為約 300KB
+        const compressedBase64 = await compressImage(file, 1280, 0.7);
+        
+        // [更新狀態] 使用壓縮後的小圖
+        setImagePreview(compressedBase64);
+        
+        // [開始分析] 傳送小圖給 AI，傳輸速度會快非常多
+        performAnalysis(compressedBase64);
+
+      } catch (err: any) {
+        console.error("Image processing failed:", err);
+        setError("圖片處理失敗，請重試");
+        setStep('upload'); // 失敗時退回上傳畫面
+      }
     }
   };
   
