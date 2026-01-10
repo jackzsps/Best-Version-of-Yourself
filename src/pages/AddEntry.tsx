@@ -28,16 +28,13 @@ const ALL_USAGE_CATEGORIES: UsageCategory[] = ['must', 'need', 'want'];
 const ALL_ENTRY_TYPES: EntryType[] = ['expense', 'diet', 'combined'];
 const ALL_PAYMENT_METHODS: PaymentMethod[] = ['cash', 'card', 'mobile'];
 
-// --- Type Guards for Safe State Updates ---
-
+// --- Type Guards ---
 function isValidExpenseCategory(category: any): category is ExpenseCategory {
   return ALL_EXPENSE_CATEGORIES.includes(category);
 }
-
 function isValidUsageCategory(usage: any): usage is UsageCategory {
   return ALL_USAGE_CATEGORIES.includes(usage);
 }
-
 function isValidRecordType(recordType: any): recordType is EntryType {
   return ALL_ENTRY_TYPES.includes(recordType);
 }
@@ -67,23 +64,20 @@ const AddEntry = () => {
   const [note, setNote] = useState('');
   const [activeMode, setActiveMode] = useState<RecordMode>(mode);
 
+  // 模式狀態
+  const [entryMode, setEntryMode] = useState<'camera' | 'manual'>('camera');
+
   const isVintageTheme = theme === 'vintage';
   const labelClass = isVintageTheme
     ? 'block text-xs font-bold uppercase mb-1 text-vintage-leather font-typewriter'
     : 'block text-xs font-bold uppercase mb-2 text-gray-400';
 
-  /**
-   * Safely updates form state from AI analysis result.
-   * Uses type guards to prevent invalid data.
-   */
   const updateStateWithAnalysis = useCallback((result: AnalysisResult | null, recordingMode: RecordMode) => {
     if (!result) return;
-
     setAnalysis(result);
     setFinalName(result.itemName || '');
     setFinalCost(result.cost?.toString() || '');
     setNote(result.reasoning || '');
-    
     if (isValidExpenseCategory(result.category)) setCategory(result.category);
     if (isValidUsageCategory(result.usage)) setUsage(result.usage);
     if (isValidRecordType(result.recordType)) setRecordType(result.recordType);
@@ -100,16 +94,31 @@ const AddEntry = () => {
       setFinalCarbs(getVal(result.macros.carbs));
       setFinalFat(getVal(result.macros.fat));
     }
-
   }, []);
 
+  // --- Actions ---
+
+  const startManualEntry = () => {
+    setEntryMode('manual');
+    setImagePreview(null);
+    setAnalysis(null);
+    setFinalName('');
+    setFinalCost('');
+    setNote('');
+    setStep('review');
+  };
+
+  const switchToCameraMode = () => {
+    setEntryMode('camera');
+    setStep('upload');
+    setImagePreview(null);
+  };
+
   const performAnalysis = async (base64: string) => {
-    setError(null); // Clear previous errors
+    setError(null);
     setStep('analyzing');
     try {
-      if (!user) {
-        throw new Error("User is not signed in.");
-      }
+      if (!user) throw new Error("User is not signed in.");
       const result = await analyzeImage(base64, language);
       updateStateWithAnalysis(result, activeMode);
     } catch (err: any) {
@@ -124,45 +133,34 @@ const AddEntry = () => {
     const file = e.target.files?.[0];
     if (file) {
       try {
-        // [優化 UX] 立即設定為分析狀態，讓使用者看到 Loading 動畫，感覺「反應很快」
+        setEntryMode('camera');
         setStep('analyzing'); 
         setError(null);
-
-        // [執行壓縮] 使用極致效能版參數 (1280, 0.7)
-        // 這一步會將 5MB 的照片瞬間變為約 300KB
         const compressedBase64 = await compressImage(file, 1280, 0.7);
-        
-        // [更新狀態] 使用壓縮後的小圖
         setImagePreview(compressedBase64);
-        
-        // [開始分析] 傳送小圖給 AI，傳輸速度會快非常多
         performAnalysis(compressedBase64);
-
       } catch (err: any) {
         console.error("Image processing failed:", err);
         setError("圖片處理失敗，請重試");
-        setStep('upload'); // 失敗時退回上傳畫面
+        setStep('upload');
       }
     }
   };
   
-  // Effect to re-evaluate values when recording mode changes
   useEffect(() => {
     updateStateWithAnalysis(analysis, activeMode);
   }, [activeMode, analysis, updateStateWithAnalysis]);
-
 
   const handleSave = () => {
     const now = new Date();
     const [year, month, day] = entryDate.split('-').map(Number);
     const saveDate = new Date(year, month - 1, day, now.getHours(), now.getMinutes(), now.getSeconds());
-    
-    const firestoreTimestamp = Timestamp.fromDate(saveDate); // Use Timestamp.fromDate
+    const firestoreTimestamp = Timestamp.fromDate(saveDate);
 
     addEntry({
       id: Date.now().toString(),
-      date: firestoreTimestamp, // 使用 SDK 產生的 Timestamp
-      imageUrl: imagePreview || null, 
+      date: firestoreTimestamp,
+      imageUrl: imagePreview || null,
       itemName: finalName || t.common.untitled,
       type: recordType,
       category,
@@ -177,8 +175,9 @@ const AddEntry = () => {
       note: note || null 
     });
     
-    // Reset state after saving
+    // Reset state
     setStep('upload');
+    setEntryMode('camera');
     setImagePreview(null);
     setAnalysis(null);
     setError(null);
@@ -222,10 +221,20 @@ const AddEntry = () => {
              </div>
             )}
            
-           {imagePreview && (
+           {/* Review 頂部：有圖顯示圖，沒圖顯示手動輸入標題 */}
+           {imagePreview ? (
               <div className="rounded-bento overflow-hidden shadow-bento h-64 relative bg-white mb-6">
                  <img src={imagePreview} alt="Review" className="w-full h-full object-cover" />
                  <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent flex items-end p-6"><h2 className="text-white text-2xl font-bold">{finalName || t.common.untitled}</h2></div>
+              </div>
+           ) : (
+              <div className={`mb-6 p-4 rounded-xl flex items-center justify-center gap-3 ${isVintageTheme ? 'border-2 border-dashed border-vintage-line bg-vintage-paper/50' : 'bg-white shadow-sm border border-gray-100'}`}>
+                  <div className={`p-2 rounded-full ${isVintageTheme ? 'bg-vintage-ink text-vintage-bg' : 'bg-brand-100 text-brand-600'}`}>
+                    <Icon name="pencil" className="w-5 h-5" />
+                  </div>
+                  <span className={`font-bold ${isVintageTheme ? 'text-vintage-ink font-typewriter' : 'text-gray-600'}`}>
+                    {t.addEntry?.manualMode || "手動輸入"}
+                  </span>
               </div>
            )}
 
@@ -287,7 +296,7 @@ const AddEntry = () => {
                           {t.usage[u]}
                         </button>
                       ))}
-                    </div>
+                     </div>
                   </div>
                 )}
 
@@ -364,7 +373,7 @@ const AddEntry = () => {
           </div>
           
           <div className="mt-8 flex gap-3">
-             <Button fullWidth onClick={() => { setStep('upload'); setImagePreview(null); }} className={isVintageTheme ? 'bg-transparent border-2 border-vintage-ink text-vintage-ink font-typewriter hover:bg-vintage-ink hover:text-vintage-bg rounded-sm' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}>{t.common.cancel}</Button>
+             <Button fullWidth onClick={() => { setStep('upload'); setImagePreview(null); setEntryMode('camera'); }} className={isVintageTheme ? 'bg-transparent border-2 border-vintage-ink text-vintage-ink font-typewriter hover:bg-vintage-ink hover:text-vintage-bg rounded-sm' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}>{t.common.cancel}</Button>
              <Button fullWidth onClick={handleSave} className={isVintageTheme ? 'bg-vintage-leather text-vintage-card font-typewriter shadow-md hover:bg-vintage-ink border-2 border-vintage-ink rounded-sm' : 'bg-gray-900 text-white shadow-xl hover:bg-black'}>{t.common.save}</Button>
           </div>
         </div>
@@ -372,11 +381,13 @@ const AddEntry = () => {
     );
   }
 
-  // Step === 'upload'
+  // Step === 'upload' (極簡模式：大按鈕 + 一行文字)
   return (
     <div className={`flex-1 flex flex-col p-6 relative overflow-hidden ${isVintageTheme ? 'bg-vintage-bg' : 'bg-pastel-bg'}`}>
        <div className="flex-1 flex flex-col items-center justify-center z-10">
-          <div className={`relative w-64 h-64 mb-10 group cursor-pointer ${isVintageTheme ? '' : ''}`} onClick={() => fileInputRef.current?.click()}>
+          
+          {/* 1. 原本的大型拍照按鈕 */}
+          <div className={`relative w-64 h-64 mb-6 group cursor-pointer ${isVintageTheme ? '' : ''}`} onClick={() => fileInputRef.current?.click()}>
              <div className={`absolute inset-0 rounded-full animate-spin-slow opacity-20 ${isVintageTheme ? 'border-4 border-dashed border-vintage-ink' : 'bg-gradient-to-r from-brand-200 to-accent-200 blur-2xl'}`} />
              <div className={`absolute inset-4 rounded-full flex items-center justify-center transition-transform group-hover:scale-105 duration-500 ${isVintageTheme ? 'bg-vintage-card border-4 border-vintage-ink shadow-[4px_4px_0px_rgba(44,36,27,1)]' : 'bg-white shadow-soft'}`}>
                 <div className={`text-center ${isVintageTheme ? 'text-vintage-ink' : 'text-gray-900'}`}>
@@ -385,13 +396,27 @@ const AddEntry = () => {
                 </div>
              </div>
           </div>
-          <div className={`text-center max-w-xs ${isVintageTheme ? 'font-handwriting text-xl text-vintage-ink/70' : 'text-gray-500'}`}>
+          
+          <div className={`text-center max-w-xs mb-8 ${isVintageTheme ? 'font-handwriting text-xl text-vintage-ink/70' : 'text-gray-500'}`}>
              <p>{t.addEntry.subtitle}</p>
           </div>
+
+          {/* 2. 新增的「一行文字」手動輸入連結 */}
+          <button 
+             onClick={startManualEntry}
+             className={`px-4 py-2 text-sm font-bold transition-all flex items-center gap-2 ${
+                isVintageTheme 
+                ? 'text-vintage-ink font-typewriter border-b border-vintage-ink border-dashed hover:border-solid' 
+                : 'text-gray-400 hover:text-brand-600 bg-white/50 hover:bg-white rounded-full px-6 shadow-sm'
+             }`}
+          >
+             {isVintageTheme ? '✎' : <Icon name="pencil" className="w-4 h-4" />}
+             {t.addEntry?.manualMode || "手動輸入紀錄"}
+          </button>
+
        </div>
        <input type="file" accept="image/*" capture="environment" className="hidden" ref={fileInputRef} onChange={handleFileChange} />
        
-       {/* Decorative Background Elements */}
        {!isVintageTheme && (
          <>
            <div className="absolute top-0 left-0 w-full h-1/2 bg-gradient-to-b from-brand-50/50 to-transparent -z-0" />
