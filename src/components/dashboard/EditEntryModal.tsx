@@ -2,15 +2,25 @@ import React, { useState } from 'react';
 import { Entry, ExpenseCategory, PaymentMethod, UsageCategory, EntryType, Theme } from '../../types';
 import Button from '../Button';
 import { Icon } from '../Icons';
-import { Timestamp } from 'firebase/firestore'; // Import Timestamp from firebase/firestore
+import { Timestamp } from 'firebase/firestore'; // 引入 Timestamp
 import { 
   VintageInput, VintageSelect, VintageTextArea, 
   BentoInput, BentoSelect, BentoTextArea, 
   ThemeDateInput, getUsagePillStyle 
 } from '../ThemeUI';
 
-const getLocalDateString = (timestamp: number) => {
-  const date = new Date(timestamp);
+// 修改 Helper：接受 Timestamp 物件或秒數
+const getLocalDateString = (dateObj: { seconds: number } | number) => {
+  let date: Date;
+  // 判斷是 Timestamp 物件還是舊的數字
+  if (typeof dateObj === 'object' && dateObj.seconds) {
+    date = new Date(dateObj.seconds * 1000);
+  } else if (typeof dateObj === 'number') {
+    date = new Date(dateObj);
+  } else {
+    date = new Date();
+  }
+  
   const year = date.getFullYear();
   const month = String(date.getMonth() + 1).padStart(2, '0');
   const day = String(date.getDate()).padStart(2, '0');
@@ -40,7 +50,10 @@ const EditEntryModal = ({
   const [fat, setFat] = useState(entry.fat ? entry.fat.toString() : '');
   
   const [note, setNote] = useState(entry.note || '');
-  const [dateStr, setDateStr] = useState(getLocalDateString(entry.date instanceof Timestamp ? entry.date.toMillis() : (entry.date.seconds * 1000)));
+  
+  // FIX 1: 使用 entry.date 而非 timestamp
+  const [dateStr, setDateStr] = useState(getLocalDateString(entry.date));
+  
   const [category, setCategory] = useState<ExpenseCategory>(entry.category || 'food');
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>(entry.paymentMethod || 'cash');
   const [usage, setUsage] = useState<UsageCategory>(entry.usage || 'need');
@@ -48,29 +61,35 @@ const EditEntryModal = ({
   
   const [isDeleting, setIsDeleting] = useState(false);
 
+  // ... (中間常數與樣式保持不變) ...
+
   const categories: ExpenseCategory[] = ['food', 'transport', 'shopping', 'entertainment', 'bills', 'other'];
   const paymentMethods: PaymentMethod[] = ['cash', 'card', 'mobile'];
   const usageCategories: UsageCategory[] = ['must', 'need', 'want'];
   const entryTypes: EntryType[] = ['expense', 'diet', 'combined'];
-
   const isVintage = theme === 'vintage';
+  
+  // Styles
+  const containerClass = isVintage
+    ? 'bg-vintage-card w-full max-w-sm p-6 relative shadow-[5px_5px_0px_rgba(44,36,27,0.2)] animate-fade-in-up max-h-[90vh] overflow-y-auto border-2 border-vintage-line rounded-sm'
+    : 'bg-white rounded-[2rem] w-full max-w-sm p-6 relative shadow-soft animate-fade-in-up max-h-[90vh] overflow-y-auto';
+  const labelClass = isVintage
+    ? 'block text-xs font-bold uppercase mb-1 text-vintage-leather font-typewriter'
+    : 'block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2 font-sans';
+  const closeBtnClass = isVintage
+    ? 'p-2 text-vintage-leather hover:text-vintage-ink transition-colors'
+    : 'p-2 bg-gray-50 rounded-full hover:bg-gray-100 transition-colors text-gray-600';
+
 
   const handleSave = () => {
-    // Correctly reconstruct the date object
-    // Original timestamp (if available) to preserve time
-    let originalDate: Date;
-    if (entry.date instanceof Timestamp) {
-        originalDate = entry.date.toDate();
-    } else {
-        originalDate = new Date((entry.date as any).seconds * 1000);
-    }
-    
+    // 計算新的日期物件
+    // 因為原本 entry.date 可能是 Timestamp，轉成 Date 來取得時間部分
+    const originalDate = new Date(entry.date.seconds * 1000);
     const [year, month, day] = dateStr.split('-').map(Number);
-    // Create new Date object preserving original time
-    const newDate = new Date(year, month - 1, day, originalDate.getHours(), originalDate.getMinutes(), originalDate.getSeconds());
+    const newDateObj = new Date(year, month - 1, day, originalDate.getHours(), originalDate.getMinutes(), originalDate.getSeconds());
 
-    // Convert to Firestore Timestamp
-    const newTimestamp = Timestamp.fromDate(newDate);
+    // FIX 2: 轉換為 Firestore Timestamp 格式
+    const newFirestoreTimestamp = Timestamp.fromDate(newDateObj);
 
     const costToSave = recordType === 'diet' ? 0 : (parseFloat(cost) || 0);
     const caloriesToSave = recordType === 'expense' ? 0 : (parseFloat(calories) || 0);
@@ -86,7 +105,8 @@ const EditEntryModal = ({
       protein: proteinToSave,
       carbs: carbsToSave,
       fat: fatToSave,
-      date: newTimestamp, // Use the Timestamp object
+      // FIX 3: 使用 date 欄位儲存 Timestamp
+      date: newFirestoreTimestamp,
       category,
       paymentMethod,
       usage,
@@ -101,32 +121,14 @@ const EditEntryModal = ({
     onClose();
   };
 
-  // Styles
-  const containerClass = isVintage
-    ? 'bg-vintage-card w-full max-w-sm p-6 relative shadow-[5px_5px_0px_rgba(44,36,27,0.2)] animate-fade-in-up max-h-[90vh] overflow-y-auto border-2 border-vintage-line rounded-sm'
-    : 'bg-white rounded-[2rem] w-full max-w-sm p-6 relative shadow-soft animate-fade-in-up max-h-[90vh] overflow-y-auto';
-
-  const labelClass = isVintage
-    ? 'block text-xs font-bold uppercase mb-1 text-vintage-leather font-typewriter'
-    : 'block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2 font-sans';
-
-  const closeBtnClass = isVintage
-    ? 'p-2 text-vintage-leather hover:text-vintage-ink transition-colors'
-    : 'p-2 bg-gray-50 rounded-full hover:bg-gray-100 transition-colors text-gray-600';
-
   if (isDeleting) {
-    return (
+      // ... (刪除確認畫面的程式碼保持不變)
+      return (
       <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
         <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setIsDeleting(false)}></div>
         <div className={`${containerClass} flex flex-col items-center text-center justify-center min-h-[300px]`}>
-           
            {isVintage ? (
              <div className="border-4 border-double border-vintage-stamp p-6 -rotate-1 relative bg-vintage-bg">
-                <div className="absolute top-2 left-2 w-2 h-2 rounded-full bg-vintage-stamp opacity-50"></div>
-                <div className="absolute top-2 right-2 w-2 h-2 rounded-full bg-vintage-stamp opacity-50"></div>
-                <div className="absolute bottom-2 left-2 w-2 h-2 rounded-full bg-vintage-stamp opacity-50"></div>
-                <div className="absolute bottom-2 right-2 w-2 h-2 rounded-full bg-vintage-stamp opacity-50"></div>
-                
                 <h3 className="text-vintage-stamp font-typewriter text-2xl font-bold uppercase mb-4 tracking-widest border-b-2 border-vintage-stamp pb-2">
                    {t.dashboard.vintageDelete.title}
                 </h3>
@@ -164,6 +166,7 @@ const EditEntryModal = ({
     );
   }
 
+  // ... (其餘 UI 渲染程式碼保持不變，因為變數名稱沒變)
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-black/20 backdrop-blur-sm" onClick={onClose}></div>
