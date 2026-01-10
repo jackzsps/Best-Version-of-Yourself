@@ -264,12 +264,12 @@ const AddEntry = () => {
              <div className={`absolute inset-4 rounded-full flex items-center justify-center transition-transform group-hover:scale-105 duration-500 ${isVintageTheme ? 'bg-vintage-card border-4 border-vintage-ink shadow-[4px_4px_0px_rgba(44,36,27,1)]' : 'bg-white shadow-soft'}`}>
                 <div className={`text-center ${isVintageTheme ? 'text-vintage-ink' : 'text-gray-900'}`}>
                    <Icon name="camera" className="w-16 h-16 mx-auto mb-2 opacity-80" />
-                   <span className={`font-bold text-lg tracking-wide ${isVintageTheme ? 'font-typewriter' : ''}`}>{t.addEntry.tapToScan}</span>
+                   <span className={`font-bold text-lg tracking-wide ${isVintageTheme ? 'font-typewriter' : ''}`}>{t.addEntry.tapToCapture}</span>
                 </div>
              </div>
           </div>
           <div className={`text-center max-w-xs ${isVintageTheme ? 'font-handwriting text-xl text-vintage-ink/70' : 'text-gray-500'}`}>
-             <p>{t.addEntry.uploadDesc}</p>
+             <p>{t.addEntry.subtitle}</p>
           </div>
        </div>
        <input type="file" accept="image/*" capture="environment" className="hidden" ref={fileInputRef} onChange={handleFileChange} />
