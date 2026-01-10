@@ -106,12 +106,12 @@ exports.analyzeImage = (0, https_1.onCall)({ secrets: ["GEMINI_API_KEY"] }, asyn
     const lang = language === 'zh-TW' ? "Traditional Chinese (繁體中文)" : "English";
     const base64Data = base64Image.split(',')[1] || base64Image;
     const prompt = `Analyze this image for a tracker app.
-    CRITICAL RULES:
-    1. If the item is NOT food/drink (e.g. receipt for gas, clothing, tools), set "isFood" to false AND "recordType" to "expense".
-    2. For "expense" type, set all calorie and macro values (min and max) to 0.
-    3. Categorize non-food items into transport, shopping, entertainment, bills, or other.
-    4. If it's a receipt, try to identify the payment method (cash, card, mobile).
-    5. Language for text fields: ${lang}.`;
+  CRITICAL RULES:
+  1. If the item is NOT food/drink (e.g. receipt for gas, clothing, tools), set "isFood" to false AND "recordType" to "expense".
+  2. For "expense" type, set all calorie and macro values (min and max) to 0.
+  3. Categorize non-food items into transport, shopping, entertainment, bills, or other.
+  4. Language for text: ${lang}.
+  5. Set "reasoning" to a short, friendly, and helpful comment about the item (e.g. nutritional advice for food, or a brief description).`; // ★ 新增這行指令 ★
     const requestParts = [
         { text: prompt },
         { inlineData: { data: base64Data, mimeType: "image/jpeg" } }
