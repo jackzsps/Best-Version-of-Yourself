@@ -94,10 +94,15 @@ export const analyzeImage = onCall({ secrets: ["GEMINI_API_KEY"] }, async (reque
     3. DATA CLEANUP:
        - If 'recordType' is 'expense' (and not food ingredients), set all calorie and macro values (min/max) to 0.
 
-    4. LANGUAGE:
+    4. [CRITICAL] DATA CONSISTENCY (MATH CHECK):
+       - Estimate macros (Protein, Carbs, Fat) first.
+       - Then, CALCULATE calories based on macros: Calories ≈ (Protein * 4) + (Carbs * 4) + (Fat * 9).
+       - Ensure the returned 'calories' range matches this calculation. Do not output conflicting numbers.
+
+    5. LANGUAGE:
        - Language for text: ${lang}.
 
-    5. [CRITICAL] FILL THE "reasoning" FIELD:
+    6. [CRITICAL] FILL THE "reasoning" FIELD:
        - You MUST provide comment (max 30 words) in ${lang}.
        - Tone: Warm, encouraging, and helpful .Use Emojis if appropriate.
        - If it's food/diet: Give a quick nutritional tip or a positive comment (e.g., "Great protein source!", "Looks tasty!").
