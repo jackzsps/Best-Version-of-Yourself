@@ -47,6 +47,18 @@ const AddEntry = () => {
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [analysis, setAnalysis] = useState<AnalysisResult | null>(null);
   const [error, setError] = useState<string | null>(null);
+  // --- [新增] Loading 動畫相關狀態 ---
+  const [loadingTip, setLoadingTip] = useState(0);
+  
+  // 定義符合 App 邏輯 (Food + Expense) 的提示語
+  const loadingMessages = [
+    "Analyzing image content...",   // 通用分析
+    "Detecting items & receipts...", // 呼應 Prompt: 判斷是物品還是收據
+    "Reading prices & text...",      // 呼應 OCR 與 Data Cleanup
+    "Calculating cost & macros...",  // 呼應 Schema 的核心欄位
+    //"Generating insights..."         // 呼應 reasoning 建議
+  ];
+
   
   // [修改 1] 新增 galleryInputRef 用於控制相簿上傳
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -153,6 +165,18 @@ const AddEntry = () => {
   };
   
   useEffect(() => {
+    let interval: NodeJS.Timeout;
+    if (step === 'analyzing') {
+      setLoadingTip(0); 
+      interval = setInterval(() => {
+        setLoadingTip((prev) => (prev + 1) % loadingMessages.length);
+      }, 2000);
+    }
+    return () => clearInterval(interval);
+  }, [step]);
+
+
+  useEffect(() => {
     updateStateWithAnalysis(analysis, activeMode);
   }, [activeMode, analysis, updateStateWithAnalysis]);
 
@@ -200,10 +224,50 @@ const AddEntry = () => {
 
   if (step === 'analyzing') {
     return (
-      <div className={`flex-1 flex flex-col items-center justify-center p-8 text-center ${isVintageTheme ? 'bg-vintage-bg text-vintage-ink' : ''}`}>
-        <div className="w-24 h-24 bg-brand-50 rounded-full flex items-center justify-center animate-pulse mb-6"><div className="w-16 h-16 bg-brand-500 rounded-full animate-bounce" /></div>
-        <h2 className="text-xl font-bold mb-2">{t.addEntry.analyzingTitle}</h2>
-        <p className="text-gray-400 text-sm">{t.addEntry.analyzingDesc}</p>
+      <div className={`flex-1 flex flex-col items-center justify-center p-8 text-center relative overflow-hidden ${isVintageTheme ? 'bg-vintage-bg text-vintage-ink' : ''}`}>
+        
+        {/* 1. 背景特效：模糊預覽圖 */}
+        {imagePreview && (
+          <div className="absolute inset-0 opacity-20 blur-sm z-0">
+             <img src={imagePreview} className="w-full h-full object-cover" alt="background" />
+          </div>
+        )}
+
+        {/* 2. 主要內容卡片 */}
+        <div className="z-10 flex flex-col items-center bg-white/90 p-8 rounded-[2rem] shadow-xl backdrop-blur-md max-w-xs w-full transition-all">
+           
+           {/* 圖片掃描動畫區塊 */}
+           <div className="relative w-32 h-32 rounded-2xl overflow-hidden mb-6 shadow-inner bg-gray-100 border-4 border-white">
+              {imagePreview ? (
+                <img src={imagePreview} className="w-full h-full object-cover" alt="analyzing" />
+              ) : (
+                <div className="w-full h-full bg-gray-200" />
+              )}
+              
+              {/* 掃描線動畫 */}
+              <div className="absolute inset-0 bg-gradient-to-b from-transparent via-brand-500/50 to-transparent w-full h-1/2 animate-scan" style={{ top: '-50%' }} />
+           </div>
+
+           {/* 動態提示文字 */}
+           <div className="h-8 flex items-center justify-center mb-2">
+             <h2 className="text-xl font-bold animate-pulse text-gray-800 whitespace-nowrap">
+               {loadingMessages[loadingTip]}
+             </h2>
+           </div>
+           
+           <p className="text-gray-500 text-sm font-medium">{t.addEntry.analyzingDesc}</p>
+        </div>
+        
+        {/* 3. 內嵌樣式 (掃描動畫) */}
+        <style>{`
+          @keyframes scan {
+            0% { transform: translateY(-100%); }
+            100% { transform: translateY(250%); }
+          }
+          .animate-scan {
+            animation: scan 2s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+          }
+        `}</style>
       </div>
     );
   }
