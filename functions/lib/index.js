@@ -119,22 +119,25 @@ exports.analyzeImage = (0, https_1.onCall)({ secrets: ["GEMINI_API_KEY"] }, asyn
        
 
     3. DATA CLEANUP:
-       - If 'recordType' is 'expense' (and not food ingredients), set all calorie and macro values (min/max) to 0.
+      - If 'recordType' is 'expense' (and not food ingredients), set all calorie and macro values (min/max) to 0.
 
-    4. [CRITICAL] DATA CONSISTENCY (MATH CHECK):
-       - Estimate macros (Protein, Carbs, Fat) first.
-       - Then, CALCULATE calories based on macros: Calories ≈ (Protein * 4) + (Carbs * 4) + (Fat * 9).
-       - Ensure the returned 'calories' range matches this calculation. Do not output conflicting numbers.
+    4. [CRITICAL] DATA CONSISTENCY & ACCURACY:
+      - **Estimation Strategy:** Look at portion size relative to the plate and visible cooking oils/sauces.
+      - **Calculation Flow:** 
+        1. Estimate macros (Protein, Carbs, Fat) in grams first.
+        2. CALCULATE calories: Calories ≈ (Protein * 4) + (Carbs * 4) + (Fat * 9).
+      - **Validation:** The returned 'calories' range MUST strictly match this formula. Do not guess calories separately.
 
     5. LANGUAGE:
        - Language for text: ${lang}.
 
     6. [CRITICAL] FILL THE "reasoning" FIELD:
-       - You MUST provide comment (max 30 words) in ${lang}.
-       - Tone: Warm, encouraging, and helpful .Use Emojis if appropriate.
-       - If it's food/diet: Give a quick nutritional tip or a positive comment (e.g., "Great protein source!", "Looks tasty!").
-       - If it's an expense: Briefly state the item's purpose (e.g., "Monthly utility bill", "Grocery run").
-       - If unsure: Describe what you see.`;
+      - You MUST provide comment (max 30 words) in ${lang}.
+      - Tone: Warm, encouraging, and helpful. Use Emojis.
+      - **UX Requirement:**
+        - If 'diet'/'combined': Mention the key ingredient or portion (e.g., "Rich in healthy fats!", "Looks like a heavy sauce, adjusted calories up!"). 
+        - If 'expense': Briefly state the item's purpose.
+      - If unsure: Describe what you see.`;
     const requestParts = [
         { text: prompt },
         { inlineData: { data: base64Data, mimeType: "image/jpeg" } }
