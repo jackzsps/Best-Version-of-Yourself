@@ -57,7 +57,7 @@ const generative_ai_1 = require("@google/generative-ai");
 admin.initializeApp();
 const db = admin.firestore();
 // 設定 v2 全域選項 (主要影響 analyzeImage)
-(0, v2_1.setGlobalOptions)({ region: "us-central1" });
+(0, v2_1.setGlobalOptions)({ region: "asia-east1" });
 // --- 區塊 3: 定義 AI 分析用的 Schema ---
 const analysisSchema = {
     type: generative_ai_1.SchemaType.OBJECT,
@@ -109,13 +109,14 @@ exports.analyzeImage = (0, https_1.onCall)({ secrets: ["GEMINI_API_KEY"] }, asyn
     CRITICAL RULES:
     
     1. DETERMINE RECORD TYPE ('recordType'):
-       - 'expense': Raw ingredients (groceries), receipts, non-food items, bills. (User bought it but might not eat it now).
-       - 'diet': Plated food without prices, home-cooked meals, leftovers. (User is eating but paid earlier).
-       - 'combined': Restaurant meals, cafe items, food with visible price tags. (User is paying and eating).
+      - 'expense': Non-food items, receipts (groceries/goods), bills. (User bought it but not eating it now).
+      - 'diet': Plated food without prices, home-cooked meals, leftovers. (User is eating but paid earlier).
+      - 'combined': Restaurant meals, cafe items, food with visible price tags. (User is paying and eating).
 
     2. CATEGORIZE:
-       - If not food/drink, categorize into transport, shopping, entertainment, bills, or other.
-       - If food, categorize as 'food'.
+      - If food/drink, categorize as 'food'.
+      - If not food/drink, categorize into transport, shopping, entertainment, bills, or other.
+       
 
     3. DATA CLEANUP:
        - If 'recordType' is 'expense' (and not food ingredients), set all calorie and macro values (min/max) to 0.
@@ -124,7 +125,8 @@ exports.analyzeImage = (0, https_1.onCall)({ secrets: ["GEMINI_API_KEY"] }, asyn
        - Language for text: ${lang}.
 
     5. [CRITICAL] FILL THE "reasoning" FIELD:
-       - You MUST provide a short, warm, and helpful comment (max 30 words) in ${lang}.
+       - You MUST provide comment (max 30 words) in ${lang}.
+       - Tone: Warm, encouraging, and helpful .Use Emojis if appropriate.
        - If it's food/diet: Give a quick nutritional tip or a positive comment (e.g., "Great protein source!", "Looks tasty!").
        - If it's an expense: Briefly state the item's purpose (e.g., "Monthly utility bill", "Grocery run").
        - If unsure: Describe what you see.`;
