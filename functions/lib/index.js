@@ -123,6 +123,7 @@ exports.analyzeImage = (0, https_1.onCall)({ secrets: ["GEMINI_API_KEY"] }, asyn
 
     4. [CRITICAL] DATA CONSISTENCY & ACCURACY:
       - **Estimation Strategy:** Look at portion size relative to the plate and visible cooking oils/sauces.
+
       - **Calculation Flow:** 
         1. Estimate macros (Protein, Carbs, Fat) in grams first.
         2. CALCULATE calories: Calories ≈ (Protein * 4) + (Carbs * 4) + (Fat * 9).
@@ -135,6 +136,8 @@ exports.analyzeImage = (0, https_1.onCall)({ secrets: ["GEMINI_API_KEY"] }, asyn
       - You MUST provide comment (max 30 words) in ${lang}.
       - Tone: Warm, encouraging, and helpful. Use Emojis.
       - **UX Requirement:**
+        - If the item is hard to identify (like heavy sauce), ADMIT IT politely.
+        -Example: "Sauce makes it tricky! 🤔 Looks like Chicken, but could be Fish."
         - If 'diet'/'combined': Mention the key ingredient or portion (e.g., "Rich in healthy fats!", "Looks like a heavy sauce, adjusted calories up!"). 
         - If 'expense': Briefly state the item's purpose.
       - If unsure: Describe what you see.`;

@@ -42,8 +42,10 @@ export const TRANSLATIONS = {
         destroy: "DESTROY"
       },
       timeRange: {
+        today: "Today",    // 新增
         week: "7 Days",
         month: "Month",
+        quarter: "Quarter", // 新增
         year: "Year"
       },
       insights: {
@@ -203,8 +205,10 @@ export const TRANSLATIONS = {
         destroy: "銷毀"
       },
       timeRange: {
+        today: "本日",      // 新增
         week: "近7日",
         month: "本月",
+        quarter: "本季",    // 新增
         year: "今年"
       },
       insights: {

@@ -13,7 +13,7 @@ const MACRO_COLORS = {
 };
 
 type ReportTab = 'trends' | 'spending' | 'nutrition';
-type TimeRange = 'week' | 'month';
+type TimeRange = 'today' |'week' | 'month' | 'quarter' | 'year';
 
 interface ChartSectionProps {
   t: any;
@@ -67,14 +67,23 @@ const ChartSection: React.FC<ChartSectionProps> = ({
 
        <div className="p-4 min-h-[300px] flex flex-col">
           <div className="flex justify-end mb-4">
-             <div className={`flex p-0.5 rounded-lg ${isVintage ? 'border border-vintage-line' : 'bg-gray-100'}`}>
-                <button onClick={() => setTimeRange('week')} className={`px-3 py-1 text-[10px] font-bold rounded-md ${timeRange === 'week' ? (isVintage ? 'bg-vintage-ink text-vintage-bg' : 'bg-white shadow-sm') : 'text-gray-400'}`}>
-                   {t.dashboard.timeRange.week}
-                </button>
-                <button onClick={() => setTimeRange('month')} className={`px-3 py-1 text-[10px] font-bold rounded-md ${timeRange === 'month' ? (isVintage ? 'bg-vintage-ink text-vintage-bg' : 'bg-white shadow-sm') : 'text-gray-400'}`}>
-                   {t.dashboard.timeRange.month}
-                </button>
-             </div>
+          <div className={`flex p-0.5 rounded-lg ${isVintage ? 'border border-vintage-line' : 'bg-gray-100'}`}>
+   {/* 建議使用一個 helper array 來生成按鈕，避免重複代碼 */}
+   {(['today','week', 'month', 'quarter', 'year'] as const).map((range) => (
+      <button
+         key={range}
+         onClick={() => setTimeRange(range)}
+         className={`px-3 py-1 text-[10px] font-bold rounded-md transition-all ${
+            timeRange === range
+            ? (isVintage ? 'bg-vintage-ink text-vintage-bg' : 'bg-white shadow-sm text-gray-900')
+            : 'text-gray-400 hover:text-gray-600'
+         }`}
+      >
+         {/* 注意：你需要在 translations 檔案中增加對應的翻譯，這裡先用英文 fallback */}
+         {t.dashboard.timeRange[range] || range.toUpperCase()}
+      </button>
+   ))}
+</div>
           </div>
 
           <div className="flex-1">
