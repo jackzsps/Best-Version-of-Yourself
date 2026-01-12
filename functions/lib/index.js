@@ -196,9 +196,9 @@ exports.analyzeImage = (0, https_1.onCall)({ secrets: ["GEMINI_API_KEY"] }, asyn
     }
 });
 // --- 區塊 5: 定期封存函式 (舊版架構 - 保留原樣) ---
-// 使用 functions.pubsub (v1) 在 asia-east2 運行
+// 使用 functions.pubsub (v1) 在 asia-east1 運行
 exports.scheduledArchiveEntries = functions
-    .region("asia-east2")
+    .region("asia-east1")
     .pubsub.schedule("0 0 1 * *")
     .timeZone("UTC")
     .onRun(async (context) => {

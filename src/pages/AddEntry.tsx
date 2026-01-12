@@ -47,7 +47,10 @@ const AddEntry = () => {
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [analysis, setAnalysis] = useState<AnalysisResult | null>(null);
   const [error, setError] = useState<string | null>(null);
+  
+  // [修改 1] 新增 galleryInputRef 用於控制相簿上傳
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const galleryInputRef = useRef<HTMLInputElement>(null);
 
   // Form State
   const [recordType, setRecordType] = useState<EntryType>('combined');
@@ -145,6 +148,8 @@ const AddEntry = () => {
         setStep('upload');
       }
     }
+    // [修改] 重置 input 值，確保重複選擇相同圖片也能觸發
+    e.target.value = '';
   };
   
   useEffect(() => {
@@ -381,12 +386,12 @@ const AddEntry = () => {
     );
   }
 
-  // Step === 'upload' (極簡模式：大按鈕 + 一行文字)
+  // Step === 'upload' (極簡模式：大按鈕 + 雙按鈕)
   return (
     <div className={`flex-1 flex flex-col p-6 relative overflow-hidden ${isVintageTheme ? 'bg-vintage-bg' : 'bg-pastel-bg'}`}>
        <div className="flex-1 flex flex-col items-center justify-center z-10">
           
-          {/* 1. 原本的大型拍照按鈕 */}
+          {/* 1. 原本的大型拍照按鈕 (只開相機) */}
           <div className={`relative w-64 h-64 mb-6 group cursor-pointer ${isVintageTheme ? '' : ''}`} onClick={() => fileInputRef.current?.click()}>
              <div className={`absolute inset-0 rounded-full animate-spin-slow opacity-20 ${isVintageTheme ? 'border-4 border-dashed border-vintage-ink' : 'bg-gradient-to-r from-brand-200 to-accent-200 blur-2xl'}`} />
              <div className={`absolute inset-4 rounded-full flex items-center justify-center transition-transform group-hover:scale-105 duration-500 ${isVintageTheme ? 'bg-vintage-card border-4 border-vintage-ink shadow-[4px_4px_0px_rgba(44,36,27,1)]' : 'bg-white shadow-soft'}`}>
@@ -401,21 +406,44 @@ const AddEntry = () => {
              <p>{t.addEntry.subtitle}</p>
           </div>
 
-          {/* 2. 新增的「一行文字」手動輸入連結 */}
-          <button 
-             onClick={startManualEntry}
-             className={`px-4 py-2 text-sm font-bold transition-all flex items-center gap-2 ${
-                isVintageTheme 
-                ? 'text-vintage-ink font-typewriter border-b border-vintage-ink border-dashed hover:border-solid' 
-                : 'text-gray-400 hover:text-brand-600 bg-white/50 hover:bg-white rounded-full px-6 shadow-sm'
-             }`}
-          >
-             {isVintageTheme ? '✎' : <Icon name="pencil" className="w-4 h-4" />}
-             {t.addEntry?.manual || "手動輸入紀錄"}
-          </button>
+          {/* 2. [修改] 底部按鈕區：相簿上傳 & 手動輸入 */}
+          <div className="flex items-center gap-4">
+            
+            {/* 相簿按鈕 */}
+            <button 
+               onClick={() => galleryInputRef.current?.click()}
+               className={`px-4 py-2 text-sm font-bold transition-all flex items-center gap-2 ${
+                  isVintageTheme 
+                  ? 'text-vintage-ink font-typewriter border-b border-vintage-ink border-dashed hover:border-solid' 
+                  : 'text-gray-400 hover:text-brand-600 bg-white/50 hover:bg-white rounded-full px-6 shadow-sm'
+               }`}
+            >
+               {/* Gallery Icon */}
+               <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-4 h-4">
+                 <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.409a2.25 2.25 0 013.182 0l2.909 2.909m-18 3.75h16.5a1.5 1.5 0 001.5-1.5V6a1.5 1.5 0 00-1.5-1.5H3.75A1.5 1.5 0 002.25 6v12a1.5 1.5 0 001.5 1.5zm10.5-11.25h.008v.008h-.008V8.25zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0z" />
+               </svg>
+               {isVintageTheme ? '相簿' : '相簿'}
+            </button>
+
+            {/* 手動輸入按鈕 */}
+            <button 
+               onClick={startManualEntry}
+               className={`px-4 py-2 text-sm font-bold transition-all flex items-center gap-2 ${
+                  isVintageTheme 
+                  ? 'text-vintage-ink font-typewriter border-b border-vintage-ink border-dashed hover:border-solid' 
+                  : 'text-gray-400 hover:text-brand-600 bg-white/50 hover:bg-white rounded-full px-6 shadow-sm'
+               }`}
+            >
+               {isVintageTheme ? '✎' : <Icon name="pencil" className="w-4 h-4" />}
+               {t.addEntry?.manual || "手動輸入"}
+            </button>
+          </div>
 
        </div>
+       
+       {/* 3. [修改] 兩個 Input，分別負責 相機 與 相簿 */}
        <input type="file" accept="image/*" capture="environment" className="hidden" ref={fileInputRef} onChange={handleFileChange} />
+       <input type="file" accept="image/*" className="hidden" ref={galleryInputRef} onChange={handleFileChange} />
        
        {!isVintageTheme && (
          <>

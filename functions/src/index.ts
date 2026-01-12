@@ -27,7 +27,7 @@ admin.initializeApp();
 const db = admin.firestore();
 
 // 設定 v2 全域選項 (主要影響 analyzeImage)
-setGlobalOptions({ region: "us-central1" });
+setGlobalOptions({ region: "asia-east1" });
 
 // --- 區塊 3: 定義 AI 分析用的 Schema ---
 const analysisSchema = {
@@ -184,9 +184,9 @@ export const analyzeImage = onCall({ secrets: ["GEMINI_API_KEY"] }, async (reque
 
 
 // --- 區塊 5: 定期封存函式 (舊版架構 - 保留原樣) ---
-// 使用 functions.pubsub (v1) 在 asia-east2 運行
+// 使用 functions.pubsub (v1) 在 asia-east1 運行
 export const scheduledArchiveEntries = functions
-  .region("asia-east2")
+  .region("asia-east1")
   .pubsub.schedule("0 0 1 * *")
   .timeZone("UTC")
   .onRun(async (context) => {
