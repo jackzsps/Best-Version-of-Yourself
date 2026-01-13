@@ -37,6 +37,18 @@ const iconPaths = {
   ),
   google: (
     <><path d="M12.48 10.92v3.28h7.84c-.24 1.84-.853 3.187-1.787 4.133-1.147 1.147-2.933 2.4-6.053 2.4-4.827 0-8.6-3.893-8.6-8.72s3.773-8.72 8.6-8.72c2.6 0 4.507 1.027 5.907 2.347l2.307-2.307C18.747 1.44 16.133 0 12.48 0 5.867 0 .533 5.347.533 12S5.867 24 12.48 24c3.44 0 6.053-1.147 8.213-3.293 2.187-2.187 2.853-5.267 2.853-7.773 0-.773-.067-1.52-.2-2.267H12.48z" /></>
+  ),
+  dollar: (
+    <><line x1="12" y1="1" x2="12" y2="23" /><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" /></>
+  ),
+  flame: (
+    <><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.1.2-2.2.6-3.3.7 1.1 1.9 2.1 2.9 2.8z" /></>
+  ),
+  pieChart: (
+    <><path d="M21.21 15.89A10 10 0 1 1 8 2.83" /><path d="M22 12A10 10 0 0 0 12 2v10z" /></>
+  ),
+  barChart: (
+    <><line x1="12" y1="20" x2="12" y2="10" /><line x1="18" y1="20" x2="18" y2="4" /><line x1="6" y1="20" x2="6" y2="16" /></>
   )
 };
 
@@ -47,18 +59,19 @@ export type IconName = keyof typeof iconPaths;
 
 interface IconProps extends React.SVGProps<SVGSVGElement> {
   name: IconName;
+  size?: number | string;
 }
 
-export const Icon: React.FC<IconProps> = ({ name, className, ...props }) => {
+export const Icon: React.FC<IconProps> = ({ name, className, size = 24, ...props }) => {
   const path = iconPaths[name];
 
   return (
     <svg
       xmlns="http://www.w3.org/2000/svg"
-      width="24"
-      height="24"
+      width={size}
+      height={size}
       viewBox="0 0 24 24"
-      fill="currentColor"
+      fill="none"
       stroke="currentColor"
       strokeWidth="2"
       strokeLinecap="round"
