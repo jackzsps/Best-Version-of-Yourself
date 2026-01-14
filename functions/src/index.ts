@@ -82,38 +82,34 @@ export const analyzeImage = onCall({ secrets: ["GEMINI_API_KEY"] }, async (reque
     CRITICAL RULES:
     
     1. DETERMINE RECORD TYPE ('recordType'):
-      - 'expense': Non-food items, receipts (groceries/goods), bills. (User bought it but not eating it now).
-      - 'diet': Plated food without prices, home-cooked meals, leftovers. (User is eating but paid earlier).
-      - 'combined': Restaurant meals, cafe items, food with visible price tags. (User is paying and eating).
+  - 'expense': Receipts, bills, or non-food items. (Context: User bought it, focusing on cost. NOT eating it right now).
+  - 'diet': Plated food, home-cooked meals, leftovers without prices. (Context: User is eating. Cost is irrelevant or paid earlier).
+  - 'combined': Restaurant meals, cafe items, or food with visible price tags/menus. (Context: User is paying AND eating).
 
-    2. CATEGORIZE:
-      - If food/drink, categorize as 'food'.
-      - If not food/drink, categorize into transport, shopping, entertainment, bills, or other.
-       
+2. CATEGORIZE:
+  - If the item is ediable food/drink, categorize as 'food'.
+  - If NOT food/drink, categorize into: transport, shopping, entertainment, bills, or other.
 
-    3. DATA CLEANUP:
-      - If 'recordType' is 'expense' (and not food ingredients), set all calorie and macro values (min/max) to 0.
+3. DATA CLEANUP (Prevent Hallucinations):
+  - If 'recordType' is 'expense': Force all calorie and macro values (min/max) to 0, UNLESS the image clearly shows raw food ingredients intended for inventory tracking.
 
-    4. [CRITICAL] DATA CONSISTENCY & ACCURACY:
-      - **Estimation Strategy:** Look at portion size relative to the plate and visible cooking oils/sauces.
+4. [CRITICAL] DATA CONSISTENCY & ACCURACY:
+  - **Estimation Strategy:** Analyze portion size relative to the plate/container and identify visible oils/sauces.
+  - **Calculation Flow (Step-by-Step):** 1. FIRST, estimate macros (Protein, Carbs, Fat) in grams.
+    2. SECOND, calculate calories using this EXACT formula: Calories = (Protein * 4) + (Carbs * 4) + (Fat * 9).
+  - **Validation:** The returned 'calories' field MUST be the mathematical result of your macro estimation. Do not generate calories independently.
 
-      - **Calculation Flow:** 
-        1. Estimate macros (Protein, Carbs, Fat) in grams first.
-        2. CALCULATE calories: Calories ≈ (Protein * 4) + (Carbs * 4) + (Fat * 9).
-      - **Validation:** The returned 'calories' range MUST strictly match this formula. Do not guess calories separately.
+5. LANGUAGE:
+   - Language for text output: ${lang}.
 
-    5. LANGUAGE:
-       - Language for text: ${lang}.
-
-    6. [CRITICAL] FILL THE "reasoning" FIELD:
-      - You MUST provide comment (max 30 words) in ${lang}.
-      - Tone: Warm, encouraging, and helpful. Use Emojis.
-      - **UX Requirement:**
-        - If the item is hard to identify (like heavy sauce), ADMIT IT politely.
-        -Example: "Sauce makes it tricky! 🤔 Looks like Chicken, but could be Fish."
-        - If 'diet'/'combined': Mention the key ingredient or portion (e.g., "Rich in healthy fats!", "Looks like a heavy sauce, adjusted calories up!"). 
-        - If 'expense': Briefly state the item's purpose.
-      - If unsure: Describe what you see.`
+6. [CRITICAL] FILL THE "reasoning" FIELD:
+  - You MUST provide a short comment (max 30 words) in ${lang}.
+  - Tone: Warm, encouraging, and helpful. Use Emojis.
+  - **UX Requirement:**
+    - **Uncertainty:** If the item is ambiguous (e.g., hidden by sauce), ADMIT IT politely. (e.g., "Sauce makes it tricky! 🤔 Estimating based on average portion.")
+    - **'diet'/'combined':** Highlight key nutrients or portion adjustments (e.g., "Rich in healthy fats!", "Looks like a heavy sauce, adjusted calories up!"). 
+    - **'expense':** Briefly confirm the item type (e.g., "Got it! Tracking your grocery receipt." or "Utility bill recorded.").
+  - If unsure: Describe exactly what you see visually.`
        ;
        
   const requestParts = [
