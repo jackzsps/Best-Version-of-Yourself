@@ -119,8 +119,16 @@ export const AppProvider = ({ children }: React.PropsWithChildren<{}>) => {
         // B. Start real-time listener to sync with Cloud
         unsubscribe = listenToEntries(currentUser.uid, (cloudEntries) => {
             console.log("Received real-time update from Firestore.");
-            // Sort by date descending (safeguard against missing dates)
-            const sortedEntries = cloudEntries.sort((a, b) => (b.date?.seconds || 0) - (a.date?.seconds || 0));
+            
+            // [FIX START] 修正排序邏輯：
+            // 1. 先比日期 (date.seconds)
+            // 2. 日期相同 (都是中午 12:00) 時，比對 ID (建立時間)，確保最新建立的在上面
+            const sortedEntries = cloudEntries.sort((a, b) => {
+                const dateDiff = (b.date?.seconds || 0) - (a.date?.seconds || 0);
+                if (dateDiff !== 0) return dateDiff;
+                return b.id.localeCompare(a.id);
+            });
+            // [FIX END]
             
             setEntries(sortedEntries);
             
@@ -164,7 +172,14 @@ export const AppProvider = ({ children }: React.PropsWithChildren<{}>) => {
   };
 
   const addEntry = async (entry: Entry) => {
-    const newEntries = [entry, ...entries].sort((a, b) => (b.date?.seconds || 0) - (a.date?.seconds || 0));
+    // [FIX START] 新增本地資料時，同樣應用 ID 排序補償
+    const newEntries = [entry, ...entries].sort((a, b) => {
+        const dateDiff = (b.date?.seconds || 0) - (a.date?.seconds || 0);
+        if (dateDiff !== 0) return dateDiff;
+        return b.id.localeCompare(a.id);
+    });
+    // [FIX END]
+
     setEntries(newEntries);
     
     // Save to current user's (or guest's) specific storage key

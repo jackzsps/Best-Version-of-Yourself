@@ -185,13 +185,17 @@ const AddEntry = () => {
   }, [activeMode, analysis, updateStateWithAnalysis]);
 
   const handleSave = () => {
-    const now = new Date();
+    // [FIX START] 日期修正邏輯：統一設定為中午 12:00:00
+    // 移除了原本的 const now = new Date()，避免時區造成日期偏移
     const [year, month, day] = entryDate.split('-').map(Number);
-    const saveDate = new Date(year, month - 1, day, now.getHours(), now.getMinutes(), now.getSeconds());
+    const saveDate = new Date(year, month - 1, day, 12, 0, 0); 
+    
+    // 使用 Firestore Timestamp 轉換
     const firestoreTimestamp = Timestamp.fromDate(saveDate);
+    // [FIX END]
 
     addEntry({
-      id: Date.now().toString(),
+      id: Date.now().toString(), // ID 由此處的 Date.now() 產生，作為第二排序依據
       date: firestoreTimestamp,
       imageUrl: imagePreview || null,
       itemName: finalName || t.common.untitled,

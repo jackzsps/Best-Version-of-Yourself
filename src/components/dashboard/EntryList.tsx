@@ -20,8 +20,17 @@ const formatDate = (dateObj: { seconds: number; nanoseconds: number } | undefine
 const EntryList: React.FC<EntryListProps> = ({ entries, onSelectEntry, t, theme }) => {
   const isVintage = theme === 'vintage';
 
-  // Sort entries using the new `date` field, which is an object with seconds.
-  const sortedEntries = [...entries].sort((a, b) => b.date.seconds - a.date.seconds);
+  // [FIX START] 修改排序邏輯：
+  // 1. 先比日期 (date.seconds)
+  // 2. 日期相同 (都是中午 12:00) 時，比對 ID (建立時間戳記)，確保最新輸入的在最上面
+  const sortedEntries = [...entries].sort((a, b) => {
+    const dateDiff = b.date.seconds - a.date.seconds;
+    if (dateDiff !== 0) return dateDiff;
+    
+    // ID 是 Date.now() 字串，越大代表越晚建立
+    return b.id.localeCompare(a.id);
+  });
+  // [FIX END]
 
   return (
     <div>
