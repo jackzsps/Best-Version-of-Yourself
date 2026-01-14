@@ -391,12 +391,29 @@ const AddEntry = () => {
 
              {(recordType === 'diet' || recordType === 'combined') && (
                 <div className={`${isVintageTheme ? 'mt-4 border-t border-vintage-line pt-4 border-dashed' : 'bg-pastel-bg p-4 rounded-2xl shadow-sm border border-gray-100 mt-2'}`}>
-                   {!isVintageTheme && (
-                     <div className="flex bg-white/50 p-1 rounded-xl mb-4 border border-white/50">
-                        <button onClick={() => setActiveMode(RecordMode.STRICT)} className={`flex-1 py-1.5 text-xs font-bold rounded-lg ${activeMode === RecordMode.STRICT ? 'bg-brand-500 text-white shadow' : 'text-gray-400'}`}>{t.addEntry.modeStrict}</button>
-                        <button onClick={() => setActiveMode(RecordMode.CONSERVATIVE)} className={`flex-1 py-1.5 text-xs font-bold rounded-lg ${activeMode === RecordMode.CONSERVATIVE ? 'bg-emerald-500 text-white shadow' : 'text-gray-400'}`}>{t.addEntry.modeConservative}</button>
-                     </div>
-                   )}
+                   <div className={`flex p-1 mb-4 ${isVintageTheme ? 'border border-vintage-line border-dashed rounded-sm' : 'bg-white/50 rounded-xl border border-white/50'}`}>
+                      <button 
+                        onClick={() => setActiveMode(RecordMode.STRICT)} 
+                        className={`flex-1 py-1.5 text-xs font-bold transition-all ${
+                          activeMode === RecordMode.STRICT 
+                            ? (isVintageTheme ? 'bg-vintage-ink text-vintage-bg font-typewriter' : 'bg-brand-500 text-white shadow rounded-lg') 
+                            : (isVintageTheme ? 'text-vintage-ink font-typewriter hover:bg-vintage-line/20' : 'text-gray-400 rounded-lg')
+                        }`}
+                      >
+                        {t.addEntry.modeStrict}
+                      </button>
+                      <div className={isVintageTheme ? "w-px bg-vintage-line border-dashed" : "hidden"}></div>
+                      <button 
+                        onClick={() => setActiveMode(RecordMode.CONSERVATIVE)} 
+                        className={`flex-1 py-1.5 text-xs font-bold transition-all ${
+                          activeMode === RecordMode.CONSERVATIVE 
+                            ? (isVintageTheme ? 'bg-vintage-leather text-vintage-bg font-typewriter' : 'bg-emerald-500 text-white shadow rounded-lg') 
+                            : (isVintageTheme ? 'text-vintage-ink font-typewriter hover:bg-vintage-line/20' : 'text-gray-400 rounded-lg')
+                        }`}
+                      >
+                        {t.addEntry.modeConservative}
+                      </button>
+                   </div>
                    
                    <div>
                       <label className={labelClass}>{t.addEntry.calories}</label>

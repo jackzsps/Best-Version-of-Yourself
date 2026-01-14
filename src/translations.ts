@@ -191,8 +191,8 @@ export const TRANSLATIONS = {
       recent: "最近紀錄",
       noEntries: "尚無紀錄",
       tapToStart: "點擊 + 按鈕開始紀錄",
-      strict: "嚴格",
-      conservative: "保守",
+      strict: "偏重口",
+      conservative: "偏清淡",
       unitCal: "大卡",
       unitCurrency: "$",
       editEntry: "編輯紀錄",
@@ -256,8 +256,8 @@ export const TRANSLATIONS = {
       saveEntry: "儲存紀錄",
       analysisFailed: "分析失敗，請重試或手動輸入。",
       entrySaved: "紀錄已儲存！",
-      modeStrict: "嚴格 (最大值)",
-      modeConservative: "保守 (最小值)"
+      modeStrict: "偏重口 (最大值)",
+      modeConservative: "偏清淡 (最小值)"
     },
     entryTypes: {
       combined: "完整紀錄",
@@ -300,10 +300,10 @@ export const TRANSLATIONS = {
       themeVintage: "復古手帳風",
       standard: "紀錄標準",
       standardDesc: "當 AI 偵測到數值區間（例如 500-600 大卡）時，自動紀錄的標準。",
-      strict: "嚴格（推薦）",
-      strictDesc: "紀錄偵測到的最大值。適合不想低估熱量攝取的你。",
-      conservative: "保守",
-      conservativeDesc: "紀錄偵測到的最小值。",
+      strict: "偏重口（推薦）",
+      strictDesc: "紀錄偵測到的最大值。適合重口味、或不想低估熱量攝取的你。",
+      conservative: "偏清淡",
+      conservativeDesc: "紀錄偵測到的最小值。適合清淡飲食者。",
       about: "關於",
       poweredBy: "Powered by Google Gemini",
       privacyPolicy: "隱私權政策"
@@ -320,7 +320,7 @@ export const TRANSLATIONS = {
       toLogin: "已有帳號？點此登入",
       errorEmail: "Email 格式錯誤",
       errorCredential: "帳號或密碼錯誤",
-      errorInUse: "此 Email 已被註冊",
+      errorInUse: "Email 已被註冊",
       errorWeak: "密碼強度不足 (至少6字)",
       errorNetwork: "網路連線失敗"
     }
