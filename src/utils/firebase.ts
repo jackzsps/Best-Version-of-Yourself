@@ -16,7 +16,7 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 
 // 現代 Modular 匯出
-export const db = getFirestore(app);
+export const db = getFirestore(app,"bvoy");
 export const storage = getStorage(app);
 export const auth = getAuth(app);
 export const functions = getFunctions(app, "asia-east1");
