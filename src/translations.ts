@@ -94,7 +94,8 @@ export const TRANSLATIONS = {
       analysisFailed: "Analysis failed. Please try again or enter manually.",
       entrySaved: "Entry saved!",
       modeStrict: "Strict (Max)",
-      modeConservative: "Conservative (Min)"
+      modeConservative: "Conservative (Min)",
+      disclaimer: "AI analysis results are for reference only and should not be considered professional medical advice."
     },
     entryTypes: {
       combined: "Both",
@@ -257,7 +258,8 @@ export const TRANSLATIONS = {
       analysisFailed: "分析失敗，請重試或手動輸入。",
       entrySaved: "紀錄已儲存！",
       modeStrict: "偏重口 (最大值)",
-      modeConservative: "偏清淡 (最小值)"
+      modeConservative: "偏清淡 (最小值)",
+      disclaimer: "AI 分析結果僅供參考，不應視為專業醫療建議。"
     },
     entryTypes: {
       combined: "完整紀錄",

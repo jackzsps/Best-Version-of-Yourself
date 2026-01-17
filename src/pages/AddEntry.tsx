@@ -354,6 +354,14 @@ const AddEntry = () => {
               </div>
            )}
 
+            {/* Disclaimer for AI Analysis */}
+            {imagePreview && (
+             <div className="mb-4 p-3 bg-blue-50 text-blue-700 rounded-lg text-xs border border-blue-100 flex items-start gap-2">
+               <span className="mt-0.5">ℹ️</span>
+               <span>{t.addEntry.disclaimer}</span>
+             </div>
+            )}
+
            <div className={`flex p-1 ${isVintageTheme ? 'border-b border-vintage-line pb-4 mb-2' : 'bg-white rounded-2xl shadow-sm'}`}>
               {ALL_ENTRY_TYPES.map(type => (
                 <button

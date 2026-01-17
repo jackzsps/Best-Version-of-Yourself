@@ -28,19 +28,29 @@ const InsightCard: React.FC<InsightCardProps> = ({ t, theme, insightText }) => {
          <p className="font-handwriting text-xl text-vintage-ink leading-relaxed pl-2 border-l-2 border-vintage-line/30">
             {insightText}
          </p>
+         <p className="mt-3 text-[10px] text-vintage-ink/50 font-typewriter border-t border-vintage-line/20 pt-2">
+            {t.addEntry.disclaimer}
+         </p>
       </div>
     );
   }
 
   return (
-    <div className="mt-2 bg-gradient-to-br from-brand-50 to-white p-5 rounded-2xl border border-brand-100 shadow-sm flex items-start gap-4">
-       <div className="p-2 bg-brand-100 text-brand-600 rounded-xl shrink-0">
-          <Icon name="sparkles" className="w-5 h-5" />
-       </div>
-       <div>
-          <h4 className="text-sm font-bold text-gray-900 mb-1">{t.dashboard.insights.title}</h4>
-          <p className="text-sm text-gray-600 leading-relaxed font-medium">{insightText}</p>
-       </div>
+    <div className="mt-2 bg-gradient-to-br from-brand-50 to-white p-5 rounded-2xl border border-brand-100 shadow-sm flex flex-col gap-2">
+      <div className="flex items-start gap-4">
+        <div className="p-2 bg-brand-100 text-brand-600 rounded-xl shrink-0">
+            <Icon name="sparkles" className="w-5 h-5" />
+        </div>
+        <div>
+            <h4 className="text-sm font-bold text-gray-900 mb-1">{t.dashboard.insights.title}</h4>
+            <p className="text-sm text-gray-600 leading-relaxed font-medium">{insightText}</p>
+        </div>
+      </div>
+       <div className="pl-[3.25rem]">
+        <p className="text-[10px] text-gray-400">
+           {t.addEntry.disclaimer}
+        </p>
+      </div>
     </div>
   );
 };
