@@ -52,6 +52,7 @@ const functions = __importStar(require("firebase-functions/v1"));
 const admin = __importStar(require("firebase-admin"));
 // Google AI SDK - 用於呼叫 Gemini
 const generative_ai_1 = require("@google/generative-ai");
+const analysisPrompt_1 = require("./prompts/analysisPrompt");
 // --- 區塊 2: 初始化 ---
 // 初始化 Firebase Admin
 admin.initializeApp();
@@ -103,40 +104,16 @@ exports.analyzeImage = (0, https_1.onCall)({ secrets: ["GEMINI_API_KEY"] }, asyn
         throw new https_1.HttpsError('invalid-argument', 'Image missing.');
     // 2. 準備 AI 參數
     const genAI = new generative_ai_1.GoogleGenerativeAI(apiKey);
-    const lang = language === 'zh-TW' ? "Traditional Chinese (繁體中文)" : "English";
+    // --- [SECURITY] Language Whitelisting ---
+    const allowedLanguages = {
+        'en': 'English',
+        'zh-TW': 'Traditional Chinese (繁體中文)'
+    };
+    // Default to English if the language is not in the whitelist
+    const lang = allowedLanguages[language] || 'English';
+    // ---
     const base64Data = base64Image.split(',')[1] || base64Image;
-    const prompt = `Analyze this image for a combined finance and fitness tracking app.
-    CRITICAL RULES:
-    
-    1. DETERMINE RECORD TYPE ('recordType'):
-  - 'expense': Receipts, bills, or non-food items. (Context: User bought it, focusing on cost. NOT eating it right now).
-  - 'diet': Plated food, home-cooked meals, leftovers without prices. (Context: User is eating. Cost is irrelevant or paid earlier).
-  - 'combined': Restaurant meals, cafe items, or food with visible price tags/menus. (Context: User is paying AND eating).
-
-2. CATEGORIZE:
-  - If the item is ediable food/drink, categorize as 'food'.
-  - If NOT food/drink, categorize into: transport, shopping, entertainment, bills, or other.
-
-3. DATA CLEANUP (Prevent Hallucinations):
-  - If 'recordType' is 'expense': Force all calorie and macro values (min/max) to 0, UNLESS the image clearly shows raw food ingredients intended for inventory tracking.
-
-4. [CRITICAL] DATA CONSISTENCY & ACCURACY:
-  - **Estimation Strategy:** Analyze portion size relative to the plate/container and identify visible oils/sauces.
-  - **Calculation Flow (Step-by-Step):** 1. FIRST, estimate macros (Protein, Carbs, Fat) in grams.
-    2. SECOND, calculate calories using this EXACT formula: Calories = (Protein * 4) + (Carbs * 4) + (Fat * 9).
-  - **Validation:** The returned 'calories' field MUST be the mathematical result of your macro estimation. Do not generate calories independently.
-
-5. LANGUAGE:
-   - Language for text output: ${lang}.
-
-6. [CRITICAL] FILL THE "reasoning" FIELD:
-  - You MUST provide a short comment (max 30 words) in ${lang}.
-  - Tone: Warm, encouraging, and helpful. Use Emojis.
-  - **UX Requirement:**
-    - **Uncertainty:** If the item is ambiguous (e.g., hidden by sauce), ADMIT IT politely. (e.g., "Sauce makes it tricky! 🤔 Estimating based on average portion.")
-    - **'diet'/'combined':** Highlight key nutrients or portion adjustments (e.g., "Rich in healthy fats!", "Looks like a heavy sauce, adjusted calories up!"). 
-    - **'expense':** Briefly confirm the item type (e.g., "Got it! Tracking your grocery receipt." or "Utility bill recorded.").
-  - If unsure: Describe exactly what you see visually.`;
+    const prompt = (0, analysisPrompt_1.getAnalysisPrompt)(lang);
     const requestParts = [
         { text: prompt },
         { inlineData: { data: base64Data, mimeType: "image/jpeg" } }
@@ -225,30 +202,39 @@ exports.scheduledArchiveEntries = functions
             const userId = userDoc.id;
             const entriesRef = db.collection("users").doc(userId).collection("entries");
             const q = entriesRef.where("date", "<", thresholdTimestamp);
-            const entriesToArchive = await q.get();
-            if (entriesToArchive.empty) {
+            const snapshot = await q.get();
+            if (snapshot.empty) {
                 functions.logger.info(`User ${userId} has no entries to archive.`);
                 return;
             }
-            functions.logger.info(`Found ${entriesToArchive.size} entries to archive for user ${userId}.`);
-            const batch = db.batch();
-            const storageUploadPromises = [];
-            entriesToArchive.forEach((doc) => {
-                const entry = doc.data();
-                const entryId = doc.id;
-                // 檢查時間戳格式
-                if (!entry.date || !(entry.date instanceof admin.firestore.Timestamp)) {
-                    functions.logger.warn(`Entry ${entryId} for user ${userId} has invalid date, skipping.`);
-                    return;
-                }
-                const archivePath = `archive/${userId}/${entryId}.json`;
-                const file = admin.storage().bucket().file(archivePath);
-                storageUploadPromises.push(file.save(JSON.stringify(entry), { contentType: "application/json" }));
-                batch.delete(doc.ref);
-            });
-            await Promise.all(storageUploadPromises);
-            await batch.commit();
-            functions.logger.info(`Successfully archived ${storageUploadPromises.length} entries for user ${userId}.`);
+            functions.logger.info(`Found ${snapshot.size} entries to archive for user ${userId}.`);
+            const CHUNK_SIZE = 400; // 保守設定 < 500
+            const chunks = [];
+            // 將資料切成小塊
+            for (let i = 0; i < snapshot.docs.length; i += CHUNK_SIZE) {
+                chunks.push(snapshot.docs.slice(i, i + CHUNK_SIZE));
+            }
+            // 逐塊執行
+            for (const chunk of chunks) {
+                const batch = db.batch();
+                const storageUploadPromises = [];
+                chunk.forEach((doc) => {
+                    const entry = doc.data();
+                    const entryId = doc.id;
+                    // 檢查時間戳格式
+                    if (!entry.date || !(entry.date instanceof admin.firestore.Timestamp)) {
+                        functions.logger.warn(`Entry ${entryId} for user ${userId} has invalid date, skipping.`);
+                        return;
+                    }
+                    const archivePath = `archive/${userId}/${entryId}.json`;
+                    const file = admin.storage().bucket().file(archivePath);
+                    storageUploadPromises.push(file.save(JSON.stringify(entry), { contentType: "application/json" }));
+                    batch.delete(doc.ref);
+                });
+                await Promise.all(storageUploadPromises);
+                await batch.commit(); // 每 400 筆提交一次，不會爆掉
+            }
+            functions.logger.info(`Successfully archived entries for user ${userId}.`);
         });
         await Promise.all(archivePromises);
         functions.logger.info("Scheduled archive job completed successfully.");
