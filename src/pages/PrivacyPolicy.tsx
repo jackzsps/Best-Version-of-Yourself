@@ -67,13 +67,20 @@ const PrivacyPolicy = () => {
 
 我們可能會不時更新本隱私權政策。我們將通過應用程式或電子郵件通知您任何重大變更。建議您定期查看本頁面以獲取最新資訊。
 
-## 8. 聯絡我們
+## 8. 應用程式權限說明
+
+為了讓您能順利使用 AI 分析功能，本應用程式需要存取您的裝置權限。我們僅在必要時請求以下權限，並明確說明用途：
+
+*   **相機 (Camera)：** App 需要存取相機以拍攝食物或收據照片，進行 AI 熱量分析與開支辨識。
+*   **相簿 (Photo Library)：** App 需要存取相簿以選取食物或收據照片，進行 AI 熱量分析與開支辨識。
+
+## 9. 聯絡我們
 
 如果您對本隱私權政策有任何疑問，請通過以下方式聯繫我們：
 
 *   Email: support@bestversion.app
 
-## 9. 帳號刪除
+## 10. 帳號刪除
 
 您可以隨時在「設定」頁面中選擇「刪除帳號」功能。該功能會永久刪除您的帳號資訊，包括但不限於：
 *   所有個人資料 (Firestore)
@@ -136,13 +143,20 @@ The App is not intended for children under the age of 13. We do not knowingly co
 
 We may update this Privacy Policy from time to time. We will notify you of any significant changes via the App or email. We recommend that you review this page periodically for the latest information.
 
-## 8. Contact Us
+## 8. App Permissions
+
+To enable AI analysis features, the App requires access to certain device permissions. We request these permissions only when necessary and for the following specific purposes:
+
+*   **Camera:** The App needs access to the camera to take photos of food or receipts for AI calorie analysis and expense recognition.
+*   **Photo Library:** The App needs access to the photo library to select photos of food or receipts for AI calorie analysis and expense recognition.
+
+## 9. Contact Us
 
 If you have any questions about this Privacy Policy, please contact us at:
 
 *   Email: support@bestversion.app
 
-## 9. Account Deletion
+## 10. Account Deletion
 
 You may choose to "Delete Account" at any time from the Settings page. This action will permanently remove your account information, including but not limited to:
 *   All personal data (Firestore)

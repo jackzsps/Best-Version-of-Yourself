@@ -31,6 +31,13 @@ We have prepared specific files for the React Native implementation to address p
 
 ## 3. UX/UI Guidelines for App Store
 
+### **Permissions (iOS Info.plist)**
+**Important:** When requesting camera or photo library access, you must provide a specific usage description in `Info.plist`. Generic descriptions like "We need access" will be rejected.
+
+**Required Keys:**
+- `NSCameraUsageDescription`: "The app needs access to the camera to take photos of your food for AI calorie analysis and expense tracking."
+- `NSPhotoLibraryUsageDescription`: "The app needs access to your photo library to select food photos for AI calorie analysis and expense tracking."
+
 ### **SafeArea (Crucial for iOS)**
 Wrap your main screen content in `SafeAreaView` to avoid overlapping with the notch or Dynamic Island.
 

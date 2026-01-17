@@ -6,6 +6,7 @@ import { getArchivedEntries } from '../services/storageService';
 import { Link } from 'react-router-dom';
 import { httpsCallable } from 'firebase/functions';
 import { functions } from '../utils/firebase';
+import { useToast } from '../store/ToastContext';
 
 // --- Theme Configuration ---
 // This extracts the styling logic out of the component render cycle.
@@ -81,20 +82,100 @@ const THEME_STYLES: Record<Theme, ThemeClasses> = {
   },
 };
 
+const ConfirmationModal = ({ 
+  isOpen, 
+  onClose, 
+  onConfirm, 
+  title, 
+  message, 
+  confirmText, 
+  confirmButtonClass,
+  isInput = false,
+  inputPlaceholder = '',
+  expectedInput = ''
+}: { 
+  isOpen: boolean; 
+  onClose: () => void; 
+  onConfirm: (input?: string) => void; 
+  title: string; 
+  message: string; 
+  confirmText: string;
+  confirmButtonClass?: string;
+  isInput?: boolean;
+  inputPlaceholder?: string;
+  expectedInput?: string;
+}) => {
+  const [inputValue, setInputValue] = useState('');
+
+  if (!isOpen) return null;
+
+  const handleConfirm = () => {
+    if (isInput && expectedInput && inputValue !== expectedInput) {
+       // Ideally show inline error, but for minimal change we rely on the parent or just prevent close
+       // But to match the previous behavior, let's just close and let parent handle validation or pass input back
+       onConfirm(inputValue);
+       return;
+    }
+    onConfirm(inputValue);
+    setInputValue('');
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+      <div className="bg-white rounded-lg p-6 max-w-sm w-full shadow-xl">
+        <h3 className="text-lg font-bold mb-2 text-gray-900">{title}</h3>
+        <p className="text-gray-600 mb-4 text-sm">{message}</p>
+        
+        {isInput && (
+          <input 
+            type="text" 
+            className="w-full border border-gray-300 rounded p-2 mb-4 focus:ring-2 focus:ring-blue-500 outline-none"
+            value={inputValue}
+            onChange={(e) => setInputValue(e.target.value)}
+            placeholder={inputPlaceholder}
+          />
+        )}
+
+        <div className="flex justify-end gap-3">
+          <button 
+            onClick={() => {
+                setInputValue('');
+                onClose();
+            }}
+            className="px-4 py-2 rounded-lg text-gray-600 hover:bg-gray-100 font-medium text-sm"
+          >
+            Cancel
+          </button>
+          <button 
+            onClick={handleConfirm}
+            className={`px-4 py-2 rounded-lg text-white font-medium text-sm ${confirmButtonClass || 'bg-blue-600 hover:bg-blue-700'}`}
+          >
+            {confirmText}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
 
 const Settings = () => {
   const { mode, setMode, language, setLanguage, theme, setTheme, t, user, logout, isWriting } = useApp();
+  const { showToast } = useToast();
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [archivedEntries, setArchivedEntries] = useState<Entry[] | null>(null);
   const [isLoadingArchive, setIsLoadingArchive] = useState(false);
   const [isDeletingAccount, setIsDeletingAccount] = useState(false);
+  
+  // Modals state
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
 
   // Use the extracted styles based on current theme
   const styles = THEME_STYLES[theme] || THEME_STYLES.default;
 
   const handleLogout = () => {
     if (isWriting) {
-      alert(t.settings.logoutWarning);
+      setShowLogoutConfirm(true);
     } else {
       logout();
     }
@@ -108,51 +189,39 @@ const Settings = () => {
       setArchivedEntries(entries);
     } catch (error) {
       console.error("Failed to load archived entries:", error);
-      // You might want to show an error message to the user
+      showToast("Failed to load archived entries.", 'error');
     } finally {
       setIsLoadingArchive(false);
     }
   };
 
-  const handleDeleteAccount = async () => {
+  const confirmDeleteAccount = async (input?: string) => {
     if (!user) return;
     
-    // 1. Confirm with user
-    const confirmDelete = window.confirm(
-      language === 'zh-TW' 
-        ? "您確定要刪除帳號嗎？此操作將永久刪除所有資料且無法復原。" 
-        : "Are you sure you want to delete your account? This action will permanently delete all your data and cannot be undone."
-    );
-
-    if (!confirmDelete) return;
-
-    // 2. Double confirm for safety
-    const doubleConfirm = window.prompt(
-      language === 'zh-TW'
-        ? "請輸入 'DELETE' 以確認刪除帳號："
-        : "Please type 'DELETE' to confirm account deletion:"
-    );
-
-    if (doubleConfirm !== 'DELETE') {
-      alert(language === 'zh-TW' ? "輸入不正確，已取消刪除。" : "Incorrect input, deletion cancelled.");
+    // Check input if provided
+    if (input !== 'DELETE') {
+      showToast(language === 'zh-TW' ? "輸入不正確，已取消刪除。" : "Incorrect input, deletion cancelled.", 'error');
+      setShowDeleteConfirm(false);
       return;
     }
 
+    setShowDeleteConfirm(false);
     setIsDeletingAccount(true);
 
     try {
       const deleteAccountFn = httpsCallable(functions, 'deleteAccount');
       await deleteAccountFn();
       
-      alert(language === 'zh-TW' ? "帳號已成功刪除。" : "Account successfully deleted.");
+      showToast(language === 'zh-TW' ? "帳號已成功刪除。" : "Account successfully deleted.", 'success');
       logout(); // Logout and clear local state
 
     } catch (error: any) {
       console.error("Delete account failed:", error);
-      alert(
+      showToast(
         language === 'zh-TW' 
           ? `刪除帳號失敗: ${error.message || '請稍後再試'}` 
-          : `Failed to delete account: ${error.message || 'Please try again later'}`
+          : `Failed to delete account: ${error.message || 'Please try again later'}`,
+        'error'
       );
     } finally {
       setIsDeletingAccount(false);
@@ -197,7 +266,7 @@ const Settings = () => {
                  
                  {/* Delete Account Button */}
                  <button 
-                   onClick={handleDeleteAccount} 
+                   onClick={() => setShowDeleteConfirm(true)} 
                    disabled={isDeletingAccount}
                    className={`w-full py-3 px-4 rounded-xl text-sm font-bold transition-all bg-red-600 text-white hover:bg-red-700 shadow-sm mt-2`}
                  >
@@ -298,6 +367,33 @@ const Settings = () => {
       </div>
       
       <AuthModal isOpen={showAuthModal} onClose={() => setShowAuthModal(false)} />
+      
+      {/* Logout Confirmation Modal */}
+      <ConfirmationModal
+        isOpen={showLogoutConfirm}
+        onClose={() => setShowLogoutConfirm(false)}
+        onConfirm={logout}
+        title={t.settings.signOut}
+        message={t.settings.logoutWarning}
+        confirmText={t.settings.signOut}
+        confirmButtonClass="bg-red-600 hover:bg-red-700"
+      />
+
+      {/* Delete Account Modal */}
+      <ConfirmationModal
+        isOpen={showDeleteConfirm}
+        onClose={() => setShowDeleteConfirm(false)}
+        onConfirm={confirmDeleteAccount}
+        title={language === 'zh-TW' ? "確定要刪除帳號？" : "Are you sure?"}
+        message={language === 'zh-TW' 
+          ? "此操作將永久刪除所有資料且無法復原。請輸入 'DELETE' 以確認。" 
+          : "This action cannot be undone. Please type 'DELETE' to confirm."}
+        confirmText={language === 'zh-TW' ? "刪除帳號" : "Delete Account"}
+        confirmButtonClass="bg-red-600 hover:bg-red-700"
+        isInput={true}
+        inputPlaceholder="DELETE"
+        expectedInput="DELETE"
+      />
     </div>
   );
 };
