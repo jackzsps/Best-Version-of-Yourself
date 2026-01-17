@@ -12,10 +12,14 @@
   "dependencies": {
     "@google/generative-ai": "^0.21.0",
     "firebase": "^11.1.0",
+    "firebase-admin": "^13.6.0",
+    "firebase-functions": "^7.0.3",
+    "moti": "^0.30.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "react-error-boundary": "^6.0.3",
     "react-markdown": "^10.1.0",
+    "react-native-skeleton-placeholder": "^5.2.4",
     "react-router-dom": "^6.28.1",
     "recharts": "^2.15.0"
   },

@@ -216,41 +216,52 @@ export const scheduledArchiveEntries = functions
         const userId = userDoc.id;
         const entriesRef = db.collection("users").doc(userId).collection("entries");
         const q = entriesRef.where("date", "<", thresholdTimestamp);
-        const entriesToArchive = await q.get();
+        const snapshot = await q.get();
 
-        if (entriesToArchive.empty) {
+        if (snapshot.empty) {
           functions.logger.info(`User ${userId} has no entries to archive.`);
           return;
         }
 
-        functions.logger.info(`Found ${entriesToArchive.size} entries to archive for user ${userId}.`);
+        functions.logger.info(`Found ${snapshot.size} entries to archive for user ${userId}.`);
 
-        const batch = db.batch();
-        const storageUploadPromises: Promise<any>[] = [];
+        const CHUNK_SIZE = 400; // 保守設定 < 500
+        const chunks = [];
+        
+        // 將資料切成小塊
+        for (let i = 0; i < snapshot.docs.length; i += CHUNK_SIZE) {
+          chunks.push(snapshot.docs.slice(i, i + CHUNK_SIZE));
+        }
 
-        entriesToArchive.forEach((doc) => {
-          const entry = doc.data();
-          const entryId = doc.id;
+        // 逐塊執行
+        for (const chunk of chunks) {
+            const batch = db.batch();
+            const storageUploadPromises: Promise<any>[] = [];
 
-          // 檢查時間戳格式
-          if (!entry.date || !(entry.date instanceof admin.firestore.Timestamp)) {
-            functions.logger.warn(`Entry ${entryId} for user ${userId} has invalid date, skipping.`);
-            return;
-          }
+            chunk.forEach((doc) => {
+            const entry = doc.data();
+            const entryId = doc.id;
 
-          const archivePath = `archive/${userId}/${entryId}.json`;
-          const file = admin.storage().bucket().file(archivePath);
-          storageUploadPromises.push(
-            file.save(JSON.stringify(entry), {contentType: "application/json"})
-          );
+            // 檢查時間戳格式
+            if (!entry.date || !(entry.date instanceof admin.firestore.Timestamp)) {
+                functions.logger.warn(`Entry ${entryId} for user ${userId} has invalid date, skipping.`);
+                return;
+            }
 
-          batch.delete(doc.ref);
-        });
+            const archivePath = `archive/${userId}/${entryId}.json`;
+            const file = admin.storage().bucket().file(archivePath);
+            storageUploadPromises.push(
+                file.save(JSON.stringify(entry), {contentType: "application/json"})
+            );
 
-        await Promise.all(storageUploadPromises);
-        await batch.commit();
+            batch.delete(doc.ref);
+            });
 
-        functions.logger.info(`Successfully archived ${storageUploadPromises.length} entries for user ${userId}.`);
+            await Promise.all(storageUploadPromises);
+            await batch.commit(); // 每 400 筆提交一次，不會爆掉
+        }
+
+        functions.logger.info(`Successfully archived entries for user ${userId}.`);
       });
 
       await Promise.all(archivePromises);
