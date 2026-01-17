@@ -62,7 +62,7 @@ const EntryList: React.FC<EntryListProps> = ({ entries, onSelectEntry, t, theme 
                      isVintage ? 'bg-vintage-line text-vintage-ink border border-vintage-ink' : 'bg-gray-100 text-gray-500'
                   }`}>
                      {entry.imageUrl ? (
-                        <img src={entry.imageUrl} alt="" className="w-full h-full object-cover" />
+                        <img src={entry.imageUrl} alt="" className="w-full h-full object-cover" loading="lazy" decoding="async"  />
                      ) : (
                         <span className="text-xl font-bold">{entry.itemName ? entry.itemName[0].toUpperCase() : '?'}</span>
                      )}
