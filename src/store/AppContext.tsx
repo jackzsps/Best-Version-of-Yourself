@@ -2,6 +2,7 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 import { Entry, RecordMode, Language, Theme } from '../types';
 import { DEFAULT_MODE, DEFAULT_LANGUAGE } from '../constants';
 import { TRANSLATIONS } from '../translations';
+import { toast } from './ToastContext';
 
 // Firebase Imports
 import { 
@@ -30,9 +31,9 @@ interface AppState {
   theme: Theme;
   user: User | null;
   t: typeof TRANSLATIONS['en'];
-  addEntry: (entry: Entry) => void;
-  updateEntry: (entry: Entry) => void;
-  deleteEntry: (id: string) => void;
+  addEntry: (entry: Entry) => Promise<void>;
+  updateEntry: (entry: Entry) => Promise<void>;
+  deleteEntry: (id: string) => Promise<void>;
   setMode: (mode: RecordMode) => void;
   setLanguage: (lang: Language) => void;
   setTheme: (theme: Theme) => void;
@@ -63,11 +64,13 @@ export const AppProvider = ({ children }: React.PropsWithChildren<{}>) => {
       localStorage.setItem(key, JSON.stringify(data));
     } catch (e) {
       console.error("Failed to save to local storage", e);
+      // We don't throw here because local storage failure shouldn't block the app, 
+      // but we could toast.
+      toast.error("Failed to save data locally.");
     }
   };
 
   // 1. Initial Load for Settings (Global/Device specific)
-  // Settings like Theme/Language often remain device-specific, so we keep using static keys for them.
   useEffect(() => {
     try {
       console.log("Loading initial settings...");
@@ -115,31 +118,26 @@ export const AppProvider = ({ children }: React.PropsWithChildren<{}>) => {
       if (currentUser) {
         // --- User is LOGGED IN ---
         console.log(`User ${currentUser.uid} logged in. Setting up real-time listener.`);
+        toast.success(`Welcome back, ${currentUser.displayName || 'User'}!`);
         
         // B. Start real-time listener to sync with Cloud
         unsubscribe = listenToEntries(currentUser.uid, (cloudEntries) => {
             console.log("Received real-time update from Firestore.");
             
-            // [FIX START] 修正排序邏輯：
-            // 1. 先比日期 (date.seconds)
-            // 2. 日期相同 (都是中午 12:00) 時，比對 ID (建立時間)，確保最新建立的在上面
+            // [FIX] 排序邏輯
             const sortedEntries = cloudEntries.sort((a, b) => {
                 const dateDiff = (b.date?.seconds || 0) - (a.date?.seconds || 0);
                 if (dateDiff !== 0) return dateDiff;
                 return b.id.localeCompare(a.id);
             });
-            // [FIX END]
             
             setEntries(sortedEntries);
-            
-            // Update the SPECIFIC user's local cache
             localStorage.setItem(storageKey, JSON.stringify(sortedEntries));
         });
 
       } else {
         // --- User is LOGGED OUT / GUEST ---
         console.log("User is guest. Using guest local data only.");
-        // We already loaded guest cache in step A.
       }
     });
 
@@ -149,42 +147,65 @@ export const AppProvider = ({ children }: React.PropsWithChildren<{}>) => {
     };
   }, []);
 
-  const loginGoogle = async () => { await signInWithPopup(auth, googleProvider); };
-  const loginEmail = async (email: string, pass: string) => { await signInWithEmailAndPassword(auth, email, pass); };
+  const loginGoogle = async () => { 
+    try {
+      await signInWithPopup(auth, googleProvider); 
+    } catch (error: any) {
+      console.error("Login failed", error);
+      toast.error(`Login failed: ${error.message}`);
+    }
+  };
+
+  const loginEmail = async (email: string, pass: string) => { 
+    try {
+      await signInWithEmailAndPassword(auth, email, pass); 
+    } catch (error: any) {
+      console.error("Login failed", error);
+      toast.error(`Login failed: ${error.message}`);
+    }
+  };
+
   const registerEmail = async (email: string, pass: string, name: string) => {
-    const userCredential = await createUserWithEmailAndPassword(auth, email, pass);
-    if (userCredential.user) {
-      await updateProfile(userCredential.user, { displayName: name });
-      setUser({ ...userCredential.user, displayName: name } as User);
+    try {
+      const userCredential = await createUserWithEmailAndPassword(auth, email, pass);
+      if (userCredential.user) {
+        await updateProfile(userCredential.user, { displayName: name });
+        setUser({ ...userCredential.user, displayName: name } as User);
+        toast.success("Account created successfully!");
+      }
+    } catch (error: any) {
+      console.error("Registration failed", error);
+      toast.error(`Registration failed: ${error.message}`);
     }
   };
 
   const logout = async () => {
     console.log("Logout initiated.");
-    // FIX: DO NOT clear localStorage. Preserve cache for next login.
-    // Only reset in-memory state.
-    setEntries([]);
-    setMode(DEFAULT_MODE);
-    setLanguage(DEFAULT_LANGUAGE);
-    setTheme('default');
-    
-    await signOut(auth);
+    try {
+      await signOut(auth);
+      setEntries([]);
+      setMode(DEFAULT_MODE);
+      setLanguage(DEFAULT_LANGUAGE);
+      setTheme('default');
+      toast.info("Logged out successfully.");
+    } catch (error: any) {
+      console.error("Logout failed", error);
+      toast.error("Logout failed.");
+    }
   };
 
   const addEntry = async (entry: Entry) => {
-    // [FIX START] 新增本地資料時，同樣應用 ID 排序補償
+    // 1. 樂觀更新 (Optimistic Update)
     const newEntries = [entry, ...entries].sort((a, b) => {
         const dateDiff = (b.date?.seconds || 0) - (a.date?.seconds || 0);
         if (dateDiff !== 0) return dateDiff;
         return b.id.localeCompare(a.id);
     });
-    // [FIX END]
 
     setEntries(newEntries);
-    
-    // Save to current user's (or guest's) specific storage key
     saveToLocal(newEntries, user ? user.uid : null);
 
+    // 2. 雲端同步 (Cloud Sync)
     if (user) {
       console.log(`Syncing new entry ${entry.id} to the cloud.`);
       try {
@@ -197,33 +218,47 @@ export const AppProvider = ({ children }: React.PropsWithChildren<{}>) => {
           await syncEntryToCloud(entryToSync, user.uid);
         }
       } catch (error) {
-        console.error(`Failed to sync new entry ${entry.id} to cloud. It is saved locally.`, error);
+        console.error(`Failed to sync new entry ${entry.id} to cloud.`, error);
+        // [關鍵修改] 拋出錯誤，讓 UI 層可以捕捉並顯示 Toast
+        throw error; 
       }
     }
   };
 
   const updateEntry = async (updatedEntry: Entry) => {
+    // 1. 樂觀更新
     const newEntries = entries.map(e => e.id === updatedEntry.id ? updatedEntry : e);
     setEntries(newEntries);
-    
     saveToLocal(newEntries, user ? user.uid : null);
 
+    // 2. 雲端同步
     if (user) {
       console.log(`Syncing updated entry ${updatedEntry.id} to the cloud.`);
-      await syncEntryToCloud(updatedEntry, user.uid);
+      try {
+        await syncEntryToCloud(updatedEntry, user.uid);
+      } catch (error) {
+        console.error(`Failed to update entry ${updatedEntry.id} in cloud.`, error);
+        throw error;
+      }
     }
   };
 
   const deleteEntry = async (id: string) => {
+    // 1. 樂觀更新
     const target = entries.find(e => e.id === id);
     const newEntries = entries.filter(e => e.id !== id);
     setEntries(newEntries);
-    
     saveToLocal(newEntries, user ? user.uid : null);
 
+    // 2. 雲端同步
     if (user && target) {
       console.log(`Deleting entry ${id} from the cloud.`);
-      await deleteEntryFromCloud(id, !!target.imageUrl, user.uid);
+      try {
+        await deleteEntryFromCloud(id, !!target.imageUrl, user.uid);
+      } catch (error) {
+        console.error(`Failed to delete entry ${id} from cloud.`, error);
+        throw error;
+      }
     }
   };
 

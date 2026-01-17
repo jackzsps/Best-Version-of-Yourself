@@ -1,6 +1,7 @@
 import React, { lazy, Suspense } from 'react';
 import { HashRouter as Router, Routes, Route, NavLink } from 'react-router-dom';
 import { AppProvider, useApp } from './store/AppContext';
+import { ToastProvider } from './store/ToastContext';
 import { Icon } from './components/Icons';
 import ErrorBoundary from './components/ErrorBoundary';
 
@@ -10,12 +11,46 @@ const AddEntry = lazy(() => import('./pages/AddEntry'));
 const Settings = lazy(() => import('./pages/Settings'));
 const PrivacyPolicy = lazy(() => import('./pages/PrivacyPolicy'));
 
-const LoadingFallback = () => (
-  <div className="flex-1 flex flex-col items-center justify-center h-full min-h-[50vh] animate-fade-in">
-    <div className="w-10 h-10 border-4 border-gray-200 border-t-brand-600 rounded-full animate-spin mb-4"></div>
-    <span className="text-gray-400 text-sm font-medium tracking-wide">Loading...</span>
-  </div>
-);
+// --- 新增：Skeleton 組件 (取代原本的 LoadingFallback) ---
+const SkeletonPage = () => {
+  const { theme } = useApp(); // 獲取主題狀態
+  const isVintage = theme === 'vintage';
+
+  // 根據主題設定骨架顏色
+  const pulseClass = "animate-pulse";
+  const bgClass = isVintage ? "bg-vintage-ink/10" : "bg-gray-200";
+  const cardBgClass = isVintage ? "bg-vintage-paper border border-vintage-line" : "bg-white/50";
+
+  return (
+    <div className="flex-1 p-6 space-y-6 overflow-hidden">
+      {/* 模擬頂部標題或統計區塊 */}
+      <div className={`w-full h-32 rounded-2xl ${cardBgClass} p-4 space-y-3`}>
+        <div className={`h-6 w-1/3 rounded ${bgClass} ${pulseClass}`}></div>
+        <div className={`h-12 w-2/3 rounded ${bgClass} ${pulseClass}`}></div>
+      </div>
+
+      {/* 模擬列表內容 */}
+      <div className="space-y-4">
+        {/* 模擬分段標題 */}
+        <div className={`h-5 w-1/4 rounded mb-4 ${bgClass} ${pulseClass}`}></div>
+        
+        {/* 模擬 3 個列表項目 */}
+        {[1, 2, 3].map((i) => (
+          <div key={i} className={`w-full h-24 rounded-2xl ${cardBgClass} p-4 flex items-center space-x-4`}>
+            {/* 圓形圖標佔位 */}
+            <div className={`w-12 h-12 rounded-full flex-shrink-0 ${bgClass} ${pulseClass}`}></div>
+            {/* 文字條佔位 */}
+            <div className="flex-1 space-y-2">
+              <div className={`h-4 w-3/4 rounded ${bgClass} ${pulseClass}`}></div>
+              <div className={`h-3 w-1/2 rounded ${bgClass} ${pulseClass}`}></div>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+};
+// -----------------------------------------------------
 
 const Layout = ({ children }: React.PropsWithChildren<{}>) => {
   const { theme } = useApp();
@@ -53,18 +88,21 @@ const App = () => {
   return (
     <ErrorBoundary>
       <AppProvider>
-        <Router>
-          <Layout>
-            <Suspense fallback={<LoadingFallback />}>
-               <Routes>
-                  <Route path="/" element={<Dashboard />} />
-                  <Route path="/add" element={<AddEntry />} />
-                  <Route path="/settings" element={<Settings />} />
-                  <Route path="/privacy-policy" element={<PrivacyPolicy />} />
-               </Routes>
-            </Suspense>
-          </Layout>
-        </Router>
+        <ToastProvider>
+          <Router>
+            <Layout>
+              {/* 更新這裡：使用 SkeletonPage 替代 LoadingFallback */}
+              <Suspense fallback={<SkeletonPage />}>
+                 <Routes>
+                    <Route path="/" element={<Dashboard />} />
+                    <Route path="/add" element={<AddEntry />} />
+                    <Route path="/settings" element={<Settings />} />
+                    <Route path="/privacy-policy" element={<PrivacyPolicy />} />
+                 </Routes>
+              </Suspense>
+            </Layout>
+          </Router>
+        </ToastProvider>
       </AppProvider>
     </ErrorBoundary>
   );

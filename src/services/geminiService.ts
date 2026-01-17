@@ -1,6 +1,7 @@
 import { httpsCallable } from "firebase/functions";
 import { functions } from "../utils/firebase"; 
 import { AnalysisResult, Language } from "../types";
+import { toast } from "../store/ToastContext";
 
 export const analyzeImage = async (base64Image: string, language: Language = 'en'): Promise<AnalysisResult> => {
   try {
@@ -18,6 +19,8 @@ export const analyzeImage = async (base64Image: string, language: Language = 'en
   } catch (error: any) {
     console.error("ANALYSIS CALL ERROR:", error);
     const msg = error.message || "Unknown analysis error";
+    // 使用 Toast 通知使用者
+    toast.error(`AI Analysis Failed: ${msg}`);
     throw new Error(`AI Analysis Error: ${msg}`);
   }
 };

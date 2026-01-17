@@ -1,5 +1,7 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { useApp } from '../store/AppContext';
+import { useToast } from '../store/ToastContext';
+import { useNavigate } from 'react-router-dom';
 import { RecordMode, AnalysisResult, ExpenseCategory, PaymentMethod, UsageCategory, EntryType } from '../types';
 import { analyzeImage } from '../services/geminiService';
 import Button from '../components/Button';
@@ -47,6 +49,9 @@ function isValidRecordType(recordType: any): recordType is EntryType {
 
 const AddEntry = () => {
   const { mode, addEntry, t, language, theme, user } = useApp();
+  const { showToast } = useToast();
+  const navigate = useNavigate();
+
   const [step, setStep] = useState<'upload' | 'analyzing' | 'review'>('upload');
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [analysis, setAnalysis] = useState<AnalysisResult | null>(null);
@@ -139,9 +144,13 @@ const AddEntry = () => {
     try {
       if (!user) throw new Error("User is not signed in.");
       const result = await analyzeImage(base64, language);
+      
       updateStateWithAnalysis(result, activeMode);
+      showToast(t.addEntry?.analysisSuccess || "AI 分析完成！", "success");
+
     } catch (err: any) {
       console.error("AddEntry Analysis Fail:", err);
+      showToast(t.addEntry.analysisFailed || "AI 分析失敗，請手動輸入", "error");
       setError(t.addEntry.analysisFailed);
     } finally {
       setStep('review');
@@ -160,6 +169,7 @@ const AddEntry = () => {
         performAnalysis(compressedBase64);
       } catch (err: any) {
         console.error("Image processing failed:", err);
+        showToast("圖片處理失敗，請重試", "error");
         setError("圖片處理失敗，請重試");
         setStep('upload');
       }
@@ -184,48 +194,77 @@ const AddEntry = () => {
     updateStateWithAnalysis(analysis, activeMode);
   }, [activeMode, analysis, updateStateWithAnalysis]);
 
-  const handleSave = () => {
-    // [FIX START] 日期修正邏輯：統一設定為中午 12:00:00
-    // 移除了原本的 const now = new Date()，避免時區造成日期偏移
-    const [year, month, day] = entryDate.split('-').map(Number);
-    const saveDate = new Date(year, month - 1, day, 12, 0, 0); 
-    
-    // 使用 Firestore Timestamp 轉換
-    const firestoreTimestamp = Timestamp.fromDate(saveDate);
-    // [FIX END]
+  const handleSave = async () => {
+    // 防呆：確保至少有 ID 或名稱
+    if (!finalName.trim()) {
+        showToast("請輸入項目名稱", "error");
+        return;
+    }
 
-    addEntry({
-      id: Date.now().toString(), // ID 由此處的 Date.now() 產生，作為第二排序依據
-      date: firestoreTimestamp,
-      imageUrl: imagePreview || null,
-      itemName: finalName || t.common.untitled,
-      type: recordType,
-      category,
-      paymentMethod,
-      usage,
-      cost: recordType === 'diet' ? 0 : (parseFloat(finalCost) || 0),
-      calories: recordType === 'expense' ? 0 : (parseFloat(finalCalories) || 0),
-      protein: recordType === 'expense' ? 0 : (parseFloat(finalProtein) || 0),
-      carbs: recordType === 'expense' ? 0 : (parseFloat(finalCarbs) || 0),
-      fat: recordType === 'expense' ? 0 : (parseFloat(finalFat) || 0),
-      modeUsed: activeMode,
-      note: note || null 
-    });
-    
-    // Reset state
-    setStep('upload');
-    setEntryMode('camera');
-    setImagePreview(null);
-    setAnalysis(null);
-    setError(null);
-    setEntryDate(getLocalDateString());
-    setFinalName('');
-    setFinalCost('');
-    setFinalCalories('');
-    setFinalProtein('');
-    setFinalCarbs('');
-    setFinalFat('');
-    setNote('');
+    try {
+        // [FIX START] 日期修正邏輯：統一設定為中午 12:00:00
+        const [year, month, day] = entryDate.split('-').map(Number);
+        const saveDate = new Date(year, month - 1, day, 12, 0, 0); 
+        const firestoreTimestamp = Timestamp.fromDate(saveDate);
+        // [FIX END]
+
+        await addEntry({
+          id: Date.now().toString(), // ID 由此處的 Date.now() 產生，作為第二排序依據
+          date: firestoreTimestamp,
+          imageUrl: imagePreview || null,
+          itemName: finalName || t.common.untitled,
+          type: recordType,
+          category,
+          paymentMethod,
+          usage,
+          cost: recordType === 'diet' ? 0 : (parseFloat(finalCost) || 0),
+          calories: recordType === 'expense' ? 0 : (parseFloat(finalCalories) || 0),
+          protein: recordType === 'expense' ? 0 : (parseFloat(finalProtein) || 0),
+          carbs: recordType === 'expense' ? 0 : (parseFloat(finalCarbs) || 0),
+          fat: recordType === 'expense' ? 0 : (parseFloat(finalFat) || 0),
+          modeUsed: activeMode,
+          note: note || null 
+        });
+        
+        showToast(t.common?.saved || "Saved successfully!", "success");
+
+        // Reset state
+        setStep('upload');
+        setEntryMode('camera');
+        setImagePreview(null);
+        setAnalysis(null);
+        setError(null);
+        setEntryDate(getLocalDateString());
+        setFinalName('');
+        setFinalCost('');
+        setFinalCalories('');
+        setFinalProtein('');
+        setFinalCarbs('');
+        setFinalFat('');
+        setNote('');
+        
+        // Optional: Navigate home or stay
+        // navigate('/'); 
+
+    } catch (error) {
+        console.error("Save failed:", error);
+        showToast("雲端同步失敗，已暫存於本機", "info");
+        
+        // Even if cloud sync fails, we have optimistic update, so we can reset UI
+        setStep('upload');
+        setEntryMode('camera');
+        setImagePreview(null);
+        setAnalysis(null);
+        setError(null);
+        setEntryDate(getLocalDateString());
+        setFinalName('');
+        setFinalCost('');
+        setFinalCalories('');
+        setFinalProtein('');
+        setFinalCarbs('');
+        setFinalFat('');
+        setNote('');
+    }
   };
 
   // --- RENDER LOGIC ---
