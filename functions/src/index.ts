@@ -76,7 +76,16 @@ export const analyzeImage = onCall({ secrets: ["GEMINI_API_KEY"] }, async (reque
 
   // 2. 準備 AI 參數
   const genAI = new GoogleGenerativeAI(apiKey);
-  const lang = language === 'zh-TW' ? "Traditional Chinese (繁體中文)" : "English";
+
+  // --- [SECURITY] Language Whitelisting ---
+  const allowedLanguages: { [key: string]: string } = {
+    'en': 'English',
+    'zh-TW': 'Traditional Chinese (繁體中文)'
+  };
+  // Default to English if the language is not in the whitelist
+  const lang = allowedLanguages[language] || 'English';
+  // ---
+
   const base64Data = base64Image.split(',')[1] || base64Image;
 
   const prompt = getAnalysisPrompt(lang);
