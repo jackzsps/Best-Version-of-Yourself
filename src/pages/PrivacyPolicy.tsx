@@ -73,6 +73,15 @@ const PrivacyPolicy = () => {
 
 *   Email: support@bestversion.app
 
+## 9. 帳號刪除
+
+您可以隨時在「設定」頁面中選擇「刪除帳號」功能。該功能會永久刪除您的帳號資訊，包括但不限於：
+*   所有個人資料 (Firestore)
+*   所有歷史記錄 (Firestore)
+*   所有上傳的圖片與封存檔案 (Storage)
+*   登入憑證 (Authentication)
+
+**注意：此操作無法復原。**
 ` : `
 # Privacy Policy
 
@@ -132,6 +141,16 @@ We may update this Privacy Policy from time to time. We will notify you of any s
 If you have any questions about this Privacy Policy, please contact us at:
 
 *   Email: support@bestversion.app
+
+## 9. Account Deletion
+
+You may choose to "Delete Account" at any time from the Settings page. This action will permanently remove your account information, including but not limited to:
+*   All personal data (Firestore)
+*   All historical records (Firestore)
+*   All uploaded images and archived files (Storage)
+*   Login credentials (Authentication)
+
+**Note: This action is irreversible.**
 `;
 
     return (

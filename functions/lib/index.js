@@ -41,7 +41,7 @@ var __importStar = (this && this.__importStar) || (function () {
     };
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.scheduledArchiveEntries = exports.analyzeImage = void 0;
+exports.scheduledArchiveEntries = exports.deleteAccount = exports.analyzeImage = void 0;
 // --- 區塊 1: 引入依賴 ---
 // 新版 Functions (v2) - 用於 AI 分析
 const https_1 = require("firebase-functions/v2/https");
@@ -90,63 +90,39 @@ const analysisSchema = {
     required: ["isFood", "isExpense", "recordType", "itemName", "category", "usage", "calories", "macros", "reasoning"]
 };
 // --- 區塊 4: AI 圖片分析函式 (新版架構) ---
-// 採用 Gen 2, Secrets 管理, Schema 輸出, 以及 Gemini 3.0 -> 2.5 降級機制
 exports.analyzeImage = (0, https_1.onCall)({ secrets: ["GEMINI_API_KEY"] }, async (request) => {
-    // 1. 基礎驗證
     if (!request.auth)
         throw new https_1.HttpsError('unauthenticated', 'Login required.');
-    // 安全地獲取 API Key
     const apiKey = process.env.GEMINI_API_KEY;
     if (!apiKey)
         throw new https_1.HttpsError('internal', 'GEMINI_API_KEY missing.');
     const { base64Image, language } = request.data;
     if (!base64Image)
         throw new https_1.HttpsError('invalid-argument', 'Image missing.');
-    // 2. 準備 AI 參數
     const genAI = new generative_ai_1.GoogleGenerativeAI(apiKey);
-    // --- [SECURITY] Language Whitelisting ---
     const allowedLanguages = {
         'en': 'English',
         'zh-TW': 'Traditional Chinese (繁體中文)'
     };
-    // Default to English if the language is not in the whitelist
     const lang = allowedLanguages[language] || 'English';
-    // ---
     const base64Data = base64Image.split(',')[1] || base64Image;
     const prompt = (0, analysisPrompt_1.getAnalysisPrompt)(lang);
-    const requestParts = [
-        { text: prompt },
-        { inlineData: { data: base64Data, mimeType: "image/jpeg" } }
-    ];
-    const commonConfig = {
-        responseMimeType: "application/json",
-        responseSchema: analysisSchema,
-        temperature: 0.2,
-    };
-    // --- 核心邏輯：雙模型切換 (Retry Pattern) ---
+    const requestParts = [{ text: prompt }, { inlineData: { data: base64Data, mimeType: "image/jpeg" } }];
+    const commonConfig = { responseMimeType: "application/json", responseSchema: analysisSchema, temperature: 0.2 };
     let responseText = null;
     let usedModel = "unknown";
     try {
-        // 優先嘗試：Gemini 3.0 Flash Preview (冒險版)
         console.log("Attempting with Gemini 3.0 Flash Preview...");
-        const modelV3 = genAI.getGenerativeModel({
-            model: "gemini-3.0-flash-preview",
-            generationConfig: commonConfig
-        });
+        const modelV3 = genAI.getGenerativeModel({ model: "gemini-3.0-flash-preview", generationConfig: commonConfig });
         const result = await modelV3.generateContent(requestParts);
         responseText = result.response.text();
         usedModel = "gemini-3.0-flash-preview";
     }
     catch (error) {
-        // 捕捉錯誤並降級
         console.warn(`Gemini 3.0 failed. Reason: ${error.message}. Switching to fallback...`);
         try {
-            // 備案嘗試：Gemini 2.5 Flash (穩定版)
             console.log("Fallback attempting with Gemini 2.5 Flash...");
-            const modelV25 = genAI.getGenerativeModel({
-                model: "gemini-2.5-flash",
-                generationConfig: commonConfig
-            });
+            const modelV25 = genAI.getGenerativeModel({ model: "gemini-2.5-flash", generationConfig: commonConfig });
             const resultFallback = await modelV25.generateContent(requestParts);
             responseText = resultFallback.response.text();
             usedModel = "gemini-2.5-flash";
@@ -156,23 +132,15 @@ exports.analyzeImage = (0, https_1.onCall)({ secrets: ["GEMINI_API_KEY"] }, asyn
             throw new https_1.HttpsError('internal', `AI Analysis completely failed. Error: ${fallbackError.message}`);
         }
     }
-    if (!responseText) {
+    if (!responseText)
         throw new https_1.HttpsError('internal', "Received empty response from AI models.");
-    }
-    // 3. 解析與後處理
     try {
         const data = JSON.parse(responseText);
-        // 注入除錯資訊
         data._debug_model = usedModel;
-        // 二次保險：強制清理非食物數據
         if (!data.isFood) {
             data.recordType = "expense";
             data.calories = { min: 0, max: 0 };
-            data.macros = {
-                protein: { min: 0, max: 0 },
-                carbs: { min: 0, max: 0 },
-                fat: { min: 0, max: 0 }
-            };
+            data.macros = { protein: { min: 0, max: 0 }, carbs: { min: 0, max: 0 }, fat: { min: 0, max: 0 } };
         }
         return data;
     }
@@ -181,8 +149,54 @@ exports.analyzeImage = (0, https_1.onCall)({ secrets: ["GEMINI_API_KEY"] }, asyn
         throw new https_1.HttpsError('internal', 'Failed to parse AI response.');
     }
 });
-// --- 區塊 5: 定期封存函式 (舊版架構 - 保留原樣) ---
-// 使用 functions.pubsub (v1) 在 asia-east1 運行
+// --- 區塊 5: 刪除帳號函式 (v2) - 已修正 ---
+exports.deleteAccount = (0, https_1.onCall)(async (request) => {
+    if (!request.auth) {
+        throw new https_1.HttpsError('unauthenticated', 'User must be logged in to delete account.');
+    }
+    const uid = request.auth.uid;
+    try {
+        console.log(`Starting account deletion for user: ${uid}`);
+        // 2. 刪除 Firestore 資料
+        const entriesRef = db.collection('users').doc(uid).collection('entries');
+        const entriesSnapshot = await entriesRef.get();
+        const CHUNK_SIZE = 400;
+        const chunks = [];
+        for (let i = 0; i < entriesSnapshot.docs.length; i += CHUNK_SIZE) {
+            chunks.push(entriesSnapshot.docs.slice(i, i + CHUNK_SIZE));
+        }
+        for (const chunk of chunks) {
+            const batch = db.batch();
+            chunk.forEach(doc => batch.delete(doc.ref));
+            await batch.commit();
+        }
+        console.log(`Deleted entries subcollection for user: ${uid}`);
+        await db.collection('users').doc(uid).delete();
+        console.log(`Deleted user document for user: ${uid}`);
+        // 3. 刪除 Storage 資料 (已修正)
+        const bucket = admin.storage().bucket();
+        const prefixesToDelete = [`users/${uid}/`, `archive/${uid}/`];
+        await Promise.all(prefixesToDelete.map(async (prefix) => {
+            try {
+                await bucket.deleteFiles({ prefix });
+                console.log(`Successfully deleted files under prefix: ${prefix} for user ${uid}`);
+            }
+            catch (error) {
+                console.warn(`Could not delete files under prefix ${prefix}. Error: ${error}. This might be because the folder is empty.`);
+            }
+        }));
+        console.log(`Finished attempting to delete all storage data for user: ${uid}`);
+        // 4. 刪除 Firebase Auth User
+        await admin.auth().deleteUser(uid);
+        console.log(`Deleted Auth user: ${uid}`);
+        return { success: true, message: 'Account completely deleted.' };
+    }
+    catch (error) {
+        console.error(`Error deleting account for user ${uid}:`, error);
+        throw new https_1.HttpsError('internal', `Failed to delete account: ${error.message}`);
+    }
+});
+// --- 區塊 6: 定期封存函式 (舊版架構 - 保留原樣) ---
 exports.scheduledArchiveEntries = functions
     .region("asia-east1")
     .pubsub.schedule("0 0 1 * *")
@@ -208,20 +222,17 @@ exports.scheduledArchiveEntries = functions
                 return;
             }
             functions.logger.info(`Found ${snapshot.size} entries to archive for user ${userId}.`);
-            const CHUNK_SIZE = 400; // 保守設定 < 500
+            const CHUNK_SIZE = 400;
             const chunks = [];
-            // 將資料切成小塊
             for (let i = 0; i < snapshot.docs.length; i += CHUNK_SIZE) {
                 chunks.push(snapshot.docs.slice(i, i + CHUNK_SIZE));
             }
-            // 逐塊執行
             for (const chunk of chunks) {
                 const batch = db.batch();
                 const storageUploadPromises = [];
                 chunk.forEach((doc) => {
                     const entry = doc.data();
                     const entryId = doc.id;
-                    // 檢查時間戳格式
                     if (!entry.date || !(entry.date instanceof admin.firestore.Timestamp)) {
                         functions.logger.warn(`Entry ${entryId} for user ${userId} has invalid date, skipping.`);
                         return;
@@ -232,7 +243,7 @@ exports.scheduledArchiveEntries = functions
                     batch.delete(doc.ref);
                 });
                 await Promise.all(storageUploadPromises);
-                await batch.commit(); // 每 400 筆提交一次，不會爆掉
+                await batch.commit();
             }
             functions.logger.info(`Successfully archived entries for user ${userId}.`);
         });

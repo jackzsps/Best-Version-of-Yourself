@@ -2,18 +2,26 @@ rules_version = '2';
 
 // Firebase Storage Rules
 // These rules secure your user's files by ensuring that
-// only an authenticated user can read or write to their own personal folder.
+// only an authenticated user can access their own data.
 service firebase.storage {
   match /b/{bucket}/o {
-    // Images are stored under the path: /users/{userId}/images/{imageName}
-    // The {userId} wildcard captures the user's unique ID from the path.
+
+    // Rule for user-specific image uploads
+    // Path: /users/{userId}/images/{imageId}
     match /users/{userId}/images/{imageId} {
-    
-      // Allow read and write operations (get, create, update, delete)
-      // ONLY if the requesting user is authenticated (request.auth != null)
-      // AND their user ID (request.auth.uid) matches the {userId} from the path.
-      // This is the principle of "user owns their data".
+      // Allow read and write ONLY if the user is authenticated
+      // and their UID matches the path.
       allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+
+    // Rule for user-specific archived data
+    // Path: /archive/{userId}/{fileId}
+    match /archive/{userId}/{fileId} {
+      // Allow ONLY read access if the user is authenticated
+      // and their UID matches the path.
+      // Write access should be restricted to backend/cloud functions.
+      allow read: if request.auth != null && request.auth.uid == userId;
+      allow write: if false; // Explicitly deny client-side writes
     }
   }
 }

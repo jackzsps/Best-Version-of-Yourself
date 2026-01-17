@@ -4,6 +4,8 @@ import { RecordMode, Entry, Theme } from '../types';
 import AuthModal from '../components/AuthModal';
 import { getArchivedEntries } from '../services/storageService';
 import { Link } from 'react-router-dom';
+import { httpsCallable } from 'firebase/functions';
+import { functions } from '../utils/firebase';
 
 // --- Theme Configuration ---
 // This extracts the styling logic out of the component render cycle.
@@ -85,6 +87,7 @@ const Settings = () => {
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [archivedEntries, setArchivedEntries] = useState<Entry[] | null>(null);
   const [isLoadingArchive, setIsLoadingArchive] = useState(false);
+  const [isDeletingAccount, setIsDeletingAccount] = useState(false);
 
   // Use the extracted styles based on current theme
   const styles = THEME_STYLES[theme] || THEME_STYLES.default;
@@ -108,6 +111,51 @@ const Settings = () => {
       // You might want to show an error message to the user
     } finally {
       setIsLoadingArchive(false);
+    }
+  };
+
+  const handleDeleteAccount = async () => {
+    if (!user) return;
+    
+    // 1. Confirm with user
+    const confirmDelete = window.confirm(
+      language === 'zh-TW' 
+        ? "您確定要刪除帳號嗎？此操作將永久刪除所有資料且無法復原。" 
+        : "Are you sure you want to delete your account? This action will permanently delete all your data and cannot be undone."
+    );
+
+    if (!confirmDelete) return;
+
+    // 2. Double confirm for safety
+    const doubleConfirm = window.prompt(
+      language === 'zh-TW'
+        ? "請輸入 'DELETE' 以確認刪除帳號："
+        : "Please type 'DELETE' to confirm account deletion:"
+    );
+
+    if (doubleConfirm !== 'DELETE') {
+      alert(language === 'zh-TW' ? "輸入不正確，已取消刪除。" : "Incorrect input, deletion cancelled.");
+      return;
+    }
+
+    setIsDeletingAccount(true);
+
+    try {
+      const deleteAccountFn = httpsCallable(functions, 'deleteAccount');
+      await deleteAccountFn();
+      
+      alert(language === 'zh-TW' ? "帳號已成功刪除。" : "Account successfully deleted.");
+      logout(); // Logout and clear local state
+
+    } catch (error: any) {
+      console.error("Delete account failed:", error);
+      alert(
+        language === 'zh-TW' 
+          ? `刪除帳號失敗: ${error.message || '請稍後再試'}` 
+          : `Failed to delete account: ${error.message || 'Please try again later'}`
+      );
+    } finally {
+      setIsDeletingAccount(false);
     }
   };
 
@@ -143,8 +191,19 @@ const Settings = () => {
                       </p>
                     </div>
                  </div>
-                 <button onClick={handleLogout} className={`w-full py-3 px-4 rounded-xl text-sm font-bold transition-all ${styles.buttonDanger}`}>
+                 <button onClick={handleLogout} className={`w-full py-3 px-4 rounded-xl text-sm font-bold transition-all ${styles.buttonSecondary}`}>
                     {t.settings.signOut}
+                 </button>
+                 
+                 {/* Delete Account Button */}
+                 <button 
+                   onClick={handleDeleteAccount} 
+                   disabled={isDeletingAccount}
+                   className={`w-full py-3 px-4 rounded-xl text-sm font-bold transition-all bg-red-600 text-white hover:bg-red-700 shadow-sm mt-2`}
+                 >
+                    {isDeletingAccount 
+                      ? (language === 'zh-TW' ? '刪除中...' : 'Deleting...') 
+                      : (language === 'zh-TW' ? '刪除帳號' : 'Delete Account')}
                  </button>
                </>
              ) : (
