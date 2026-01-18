@@ -71,8 +71,8 @@ const PrivacyPolicy = () => {
 
 為了讓您能順利使用 AI 分析功能，本應用程式需要存取您的裝置權限。我們僅在必要時請求以下權限，並明確說明用途：
 
-*   **相機 (Camera)：** App 需要存取相機以拍攝食物或收據照片，進行 AI 熱量分析與開支辨識。
-*   **相簿 (Photo Library)：** App 需要存取相簿以選取食物或收據照片，進行 AI 熱量分析與開支辨識。
+*   **相機 (NSCameraUsageDescription)：** 我們需要相機權限以讓您拍攝食物或收據進行 AI 分析。
+*   **相簿 (NSPhotoLibraryUsageDescription)：** 我們需要存取相簿以讓您上傳截圖或舊照片。
 
 ## 9. 聯絡我們
 
@@ -147,8 +147,8 @@ We may update this Privacy Policy from time to time. We will notify you of any s
 
 To enable AI analysis features, the App requires access to certain device permissions. We request these permissions only when necessary and for the following specific purposes:
 
-*   **Camera:** The App needs access to the camera to take photos of food or receipts for AI calorie analysis and expense recognition.
-*   **Photo Library:** The App needs access to the photo library to select photos of food or receipts for AI calorie analysis and expense recognition.
+*   **Camera (NSCameraUsageDescription):** We need camera access to let you take photos of food or receipts for AI analysis.
+*   **Photo Library (NSPhotoLibraryUsageDescription):** We need access to your photo album to let you upload screenshots or old photos.
 
 ## 9. Contact Us
 

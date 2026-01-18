@@ -11,7 +11,7 @@ const getAnalysisPrompt = (lang) => {
   - 'combined': Restaurant meals, cafe items, or food with visible price tags/menus. (Context: User is paying AND eating).
 
 2. CATEGORIZE:
-  - If the item is ediable food/drink, categorize as 'food'.
+  - If the item is edible food/drink, categorize as 'food'.
   - If NOT food/drink, categorize into: transport, shopping, entertainment, bills, or other.
 
 3. DATA CLEANUP (Prevent Hallucinations):
