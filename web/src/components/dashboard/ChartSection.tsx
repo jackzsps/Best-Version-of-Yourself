@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { BarChart, Bar, XAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend } from 'recharts';
-import { Theme } from '../../types';
+import { Theme } from '../@shared/types';
 import { Icon } from '../Icons';
 
 const COLORS = {

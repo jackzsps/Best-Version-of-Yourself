@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import { useApp } from '../store/AppContext';
-import { Entry } from '../types';
+import { Entry } from '@shared/types';
 import { Icon } from '../components/Icons';
 
 // Sub-components
@@ -91,7 +91,7 @@ const Dashboard = () => {
             // 如果不想顯示未來的月份，可以在這裡加判斷 break
             const stats = monthMap.get(m) || { cost: 0, kcal: 0 };
             data.push({
-                name: d.toLocaleDateString(dateLocale, { month: 'short' }), // 顯示 "1月", "Jan"
+                name: d.toLocaleDateString(dateLocale, { month: 'short' }), // 顯示 '1月', 'Jan'
                 cost: stats.cost,
                 kcal: stats.kcal
             });
@@ -129,11 +129,11 @@ const Dashboard = () => {
       // 決定 X 軸顯示名稱
       let displayName = d.toLocaleDateString(dateLocale, { weekday: 'short' });
       
-      // 如果是「本日」，顯示 "本日" (需確認翻譯檔有此key) 或直接顯示日期
+      // 如果是「本日」，顯示 '本日' (需確認翻譯檔有此key) 或直接顯示日期
       if (timeRange === 'today') {
           displayName = t.dashboard.timeRange?.today || d.toLocaleDateString(dateLocale, { month: 'numeric', day: 'numeric' });
       }
-      // 如果是「本季」，顯示日期 (如 10/27) 避免全是 "週X"
+      // 如果是「本季」，顯示日期 (如 10/27) 避免全是 '週X'
       else if (timeRange === 'quarter') {
           displayName = d.toLocaleDateString(dateLocale, { month: 'numeric', day: 'numeric' });
       }
@@ -172,20 +172,20 @@ const Dashboard = () => {
   return (
     <div className={`flex-1 pb-24 overflow-y-auto no-scrollbar ${isVintage ? 'bg-vintage-bg' : 'bg-gray-50'}`}>
       <header className={`p-6 ${isVintage ? 'border-b-2 border-vintage-line pb-4' : 'bg-white shadow-sm'}`}>
-        <div className="flex justify-between items-center">
+        <div className='flex justify-between items-center'>
            <div>
              <h1 className={`text-3xl font-extrabold ${isVintage ? 'text-vintage-ink font-typewriter' : 'text-gray-900'}`}>{t.dashboard.title}</h1>
              <p className={`${isVintage ? 'text-vintage-leather font-handwriting text-xl' : 'text-gray-400'}`}>{t.dashboard.subtitle}</p>
            </div>
            {selectedDay && (
-              <button onClick={() => setSelectedDay(null)} className="px-3 py-1 bg-gray-900 text-white text-xs rounded-full flex items-center gap-1">
-                 <Icon name="x" className="w-3 h-3" /> {t.common.reset}
+              <button onClick={() => setSelectedDay(null)} className='px-3 py-1 bg-gray-900 text-white text-xs rounded-full flex items-center gap-1'>
+                 <Icon name='x' className='w-3 h-3' /> {t.common.reset}
               </button>
            )}
         </div>
       </header>
 
-      <div className="p-6 space-y-6">
+      <div className='p-6 space-y-6'>
         <StatsOverview t={t} theme={theme} displayCost={selectedDay ? selectedDay.cost : todayCost} displayCalories={selectedDay ? selectedDay.kcal : todayCalories} showDateIndicator={!!selectedDay} selectedDayName={selectedDay?.name} />
         <ChartSection t={t} theme={theme} reportTab={reportTab} setReportTab={setReportTab} timeRange={timeRange} setTimeRange={setTimeRange} chartData={chartData} spendingData={spendingData} macroData={macroData} setSelectedDay={setSelectedDay} />
         <InsightCard t={t} theme={theme} insightText={t.dashboard.insights.generalTip} />

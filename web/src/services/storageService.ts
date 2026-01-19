@@ -2,7 +2,7 @@
 import { collection, query, where, getDocs, writeBatch, Timestamp } from "firebase/firestore";
 import { ref, uploadString, getDownloadURL } from "firebase/storage";
 import { db, storage } from "../utils/firebase";
-import { Entry } from "../types";
+import { Entry } from "@shared/types";
 
 const ARCHIVE_THRESHOLD_MONTHS = 6;
 

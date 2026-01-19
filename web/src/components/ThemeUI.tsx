@@ -1,6 +1,6 @@
 import React from 'react';
 import { Icon } from './Icons';
-import { Theme, UsageCategory } from '../types';
+import { Theme, UsageCategory } from '@shared/types';
 
 // --- Styled Inputs ---
 
@@ -14,7 +14,7 @@ export const VintageInput = (props: React.InputHTMLAttributes<HTMLInputElement>)
 export const VintageSelect = (props: React.SelectHTMLAttributes<HTMLSelectElement>) => (
   <select 
     {...props} 
-    className="w-full p-2 rounded-none border-b-2 border-vintage-line bg-transparent text-vintage-ink font-typewriter focus:outline-none appearance-none text-lg"
+    className='w-full p-2 rounded-none border-b-2 border-vintage-line bg-transparent text-vintage-ink font-typewriter focus:outline-none appearance-none text-lg'
   >
     {props.children}
   </select>
@@ -23,7 +23,7 @@ export const VintageSelect = (props: React.SelectHTMLAttributes<HTMLSelectElemen
 export const VintageTextArea = (props: React.TextareaHTMLAttributes<HTMLTextAreaElement>) => (
    <textarea 
       {...props}
-      className="w-full p-2 bg-transparent border-2 border-dashed border-vintage-line font-typewriter text-sm text-vintage-ink focus:outline-none focus:border-vintage-ink rounded-sm resize-none"
+      className='w-full p-2 bg-transparent border-2 border-dashed border-vintage-line font-typewriter text-sm text-vintage-ink focus:outline-none focus:border-vintage-ink rounded-sm resize-none'
    />
 );
 
@@ -37,7 +37,7 @@ export const BentoInput = (props: React.InputHTMLAttributes<HTMLInputElement>) =
 export const BentoSelect = (props: React.SelectHTMLAttributes<HTMLSelectElement>) => (
    <select 
     {...props} 
-    className="w-full px-4 py-3 rounded-2xl bg-gray-50 text-gray-900 font-semibold focus:outline-none focus:ring-2 focus:ring-brand-100 appearance-none transition-all border-none"
+    className='w-full px-4 py-3 rounded-2xl bg-gray-50 text-gray-900 font-semibold focus:outline-none focus:ring-2 focus:ring-brand-100 appearance-none transition-all border-none'
   >
     {props.children}
   </select>
@@ -46,7 +46,7 @@ export const BentoSelect = (props: React.SelectHTMLAttributes<HTMLSelectElement>
 export const BentoTextArea = (props: React.TextareaHTMLAttributes<HTMLTextAreaElement>) => (
   <textarea 
      {...props}
-     className="w-full px-4 py-3 bg-gray-50 rounded-2xl border-none focus:ring-2 focus:ring-brand-100 font-sans text-gray-900 resize-none font-semibold"
+     className='w-full px-4 py-3 bg-gray-50 rounded-2xl border-none focus:ring-2 focus:ring-brand-100 font-sans text-gray-900 resize-none font-semibold'
   />
 );
 
@@ -65,27 +65,27 @@ export const ThemeDateInput = ({
   
   if (isVintage) {
     return (
-      <div className="relative w-full">
+      <div className='relative w-full'>
         <input 
-          type="date"
+          type='date'
           value={value}
           onChange={onChange}
-          className="w-full p-2 pr-10 rounded-none border-b-2 border-vintage-line bg-transparent text-vintage-ink font-handwriting text-2xl focus:outline-none focus:border-vintage-ink transition-colors [&::-webkit-calendar-picker-indicator]:opacity-0 [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:right-0 [&::-webkit-calendar-picker-indicator]:w-full [&::-webkit-calendar-picker-indicator]:h-full cursor-pointer"
+          className='w-full p-2 pr-10 rounded-none border-b-2 border-vintage-line bg-transparent text-vintage-ink font-handwriting text-2xl focus:outline-none focus:border-vintage-ink transition-colors [&::-webkit-calendar-picker-indicator]:opacity-0 [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:right-0 [&::-webkit-calendar-picker-indicator]:w-full [&::-webkit-calendar-picker-indicator]:h-full cursor-pointer'
         />
-        <Icon name="calendar" className="absolute right-2 top-1/2 -translate-y-1/2 w-6 h-6 text-vintage-leather pointer-events-none" />
+        <Icon name='calendar' className='absolute right-2 top-1/2 -translate-y-1/2 w-6 h-6 text-vintage-leather pointer-events-none' />
       </div>
     );
   }
 
   return (
-    <div className="relative w-full">
+    <div className='relative w-full'>
       <input 
-        type="date"
+        type='date'
         value={value}
         onChange={onChange}
-        className="w-full px-4 py-3 pr-10 rounded-2xl bg-gray-50 text-gray-900 font-semibold focus:outline-none focus:ring-2 focus:ring-brand-100 transition-all border-none appearance-none min-h-[3rem] [&::-webkit-calendar-picker-indicator]:opacity-0 [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:right-0 [&::-webkit-calendar-picker-indicator]:w-full [&::-webkit-calendar-picker-indicator]:h-full cursor-pointer"
+        className='w-full px-4 py-3 pr-10 rounded-2xl bg-gray-50 text-gray-900 font-semibold focus:outline-none focus:ring-2 focus:ring-brand-100 transition-all border-none appearance-none min-h-[3rem] [&::-webkit-calendar-picker-indicator]:opacity-0 [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:right-0 [&::-webkit-calendar-picker-indicator]:w-full [&::-webkit-calendar-picker-indicator]:h-full cursor-pointer'
       />
-      <Icon name="calendar" className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 pointer-events-none" />
+      <Icon name='calendar' className='absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 pointer-events-none' />
     </div>
   );
 };

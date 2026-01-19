@@ -1,6 +1,6 @@
 import { httpsCallable } from "firebase/functions";
 import { functions } from "../utils/firebase"; 
-import { AnalysisResult, Language } from "../types";
+import { AnalysisResult, Language } from "@shared/types";
 import { toast } from "../store/ToastContext";
 
 export const analyzeImage = async (base64Image: string, language: Language = 'en'): Promise<AnalysisResult> => {

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Entry, ExpenseCategory, PaymentMethod, UsageCategory, EntryType, Theme } from '../../types';
+import { Entry, ExpenseCategory, PaymentMethod, UsageCategory, EntryType, Theme } from '../@shared/types';
 import Button from '../Button';
 import { Icon } from '../Icons';
 import { Timestamp } from 'firebase/firestore'; // 引入 Timestamp

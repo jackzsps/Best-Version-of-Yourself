@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { useApp } from '../store/AppContext';
 import { useToast } from '../store/ToastContext';
 import { useNavigate } from 'react-router-dom';
-import { RecordMode, AnalysisResult, ExpenseCategory, PaymentMethod, UsageCategory, EntryType } from '../types';
+import { RecordMode, AnalysisResult, ExpenseCategory, PaymentMethod, UsageCategory, EntryType } from '@shared/types';
 import { analyzeImage } from '../services/geminiService';
 import Button from '../components/Button';
 import { Icon } from '../components/Icons'; 
@@ -61,11 +61,11 @@ const AddEntry = () => {
   
   // 定義符合 App 邏輯 (Food + Expense) 的提示語
   const loadingMessages = [
-    "Analyzing image content...",   // 通用分析
-    "Detecting items & receipts...", // 呼應 Prompt: 判斷是物品還是收據
-    "Reading prices & text...",      // 呼應 OCR 與 Data Cleanup
-    "Calculating cost & macros...",  // 呼應 Schema 的核心欄位
-    //"Generating insights..."         // 呼應 reasoning 建議
+    'Analyzing image content...',   // 通用分析
+    'Detecting items & receipts...', // 呼應 Prompt: 判斷是物品還是收據
+    'Reading prices & text...',      // 呼應 OCR 與 Data Cleanup
+    'Calculating cost & macros...',  // 呼應 Schema 的核心欄位
+    //'Generating insights...'         // 呼應 reasoning 建議
   ];
 
   
@@ -142,15 +142,15 @@ const AddEntry = () => {
     setError(null);
     setStep('analyzing');
     try {
-      if (!user) throw new Error("User is not signed in.");
+      if (!user) throw new Error('User is not signed in.');
       const result = await analyzeImage(base64, language);
       
       updateStateWithAnalysis(result, activeMode);
-      showToast(t.addEntry?.analysisSuccess || "AI 分析完成！", "success");
+      showToast(t.addEntry?.analysisSuccess || 'AI 分析完成！', 'success');
 
     } catch (err: any) {
-      console.error("AddEntry Analysis Fail:", err);
-      showToast(t.addEntry.analysisFailed || "AI 分析失敗，請手動輸入", "error");
+      console.error('AddEntry Analysis Fail:', err);
+      showToast(t.addEntry.analysisFailed || 'AI 分析失敗，請手動輸入', 'error');
       setError(t.addEntry.analysisFailed);
     } finally {
       setStep('review');
@@ -168,9 +168,9 @@ const AddEntry = () => {
         setImagePreview(compressedBase64);
         performAnalysis(compressedBase64);
       } catch (err: any) {
-        console.error("Image processing failed:", err);
-        showToast("圖片處理失敗，請重試", "error");
-        setError("圖片處理失敗，請重試");
+        console.error('Image processing failed:', err);
+        showToast('圖片處理失敗，請重試', 'error');
+        setError('圖片處理失敗，請重試');
         setStep('upload');
       }
     }
@@ -197,7 +197,7 @@ const AddEntry = () => {
   const handleSave = async () => {
     // 防呆：確保至少有 ID 或名稱
     if (!finalName.trim()) {
-        showToast("請輸入項目名稱", "error");
+        showToast('請輸入項目名稱', 'error');
         return;
     }
 
@@ -226,7 +226,7 @@ const AddEntry = () => {
           note: note || null 
         });
         
-        showToast(t.common?.saved || "Saved successfully!", "success");
+        showToast(t.common?.saved || 'Saved successfully!', 'success');
 
         // Reset state
         setStep('upload');
@@ -247,8 +247,8 @@ const AddEntry = () => {
         // navigate('/'); 
 
     } catch (error) {
-        console.error("Save failed:", error);
-        showToast("雲端同步失敗，已暫存於本機", "info");
+        console.error('Save failed:', error);
+        showToast('雲端同步失敗，已暫存於本機', 'info');
         
         // Even if cloud sync fails, we have optimistic update, so we can reset UI
         setStep('upload');
@@ -275,34 +275,34 @@ const AddEntry = () => {
         
         {/* 1. 背景特效：模糊預覽圖 */}
         {imagePreview && (
-          <div className="absolute inset-0 opacity-20 blur-sm z-0">
-             <img src={imagePreview} className="w-full h-full object-cover" alt="background" />
+          <div className='absolute inset-0 opacity-20 blur-sm z-0'>
+             <img src={imagePreview} className='w-full h-full object-cover' alt='background' />
           </div>
         )}
 
         {/* 2. 主要內容卡片 */}
-        <div className="z-10 flex flex-col items-center bg-white/90 p-8 rounded-[2rem] shadow-xl backdrop-blur-md max-w-xs w-full transition-all">
+        <div className='z-10 flex flex-col items-center bg-white/90 p-8 rounded-[2rem] shadow-xl backdrop-blur-md max-w-xs w-full transition-all'>
            
            {/* 圖片掃描動畫區塊 */}
-           <div className="relative w-32 h-32 rounded-2xl overflow-hidden mb-6 shadow-inner bg-gray-100 border-4 border-white">
+           <div className='relative w-32 h-32 rounded-2xl overflow-hidden mb-6 shadow-inner bg-gray-100 border-4 border-white'>
               {imagePreview ? (
-                <img src={imagePreview} className="w-full h-full object-cover" alt="analyzing" />
+                <img src={imagePreview} className='w-full h-full object-cover' alt='analyzing' />
               ) : (
-                <div className="w-full h-full bg-gray-200" />
+                <div className='w-full h-full bg-gray-200' />
               )}
               
               {/* 掃描線動畫 */}
-              <div className="absolute inset-0 bg-gradient-to-b from-transparent via-brand-500/50 to-transparent w-full h-1/2 animate-scan" style={{ top: '-50%' }} />
+              <div className='absolute inset-0 bg-gradient-to-b from-transparent via-brand-500/50 to-transparent w-full h-1/2 animate-scan' style={{ top: '-50%' }} />
            </div>
 
            {/* 動態提示文字 */}
-           <div className="h-8 flex items-center justify-center mb-2">
-             <h2 className="text-xl font-bold animate-pulse text-gray-800 whitespace-nowrap">
+           <div className='h-8 flex items-center justify-center mb-2'>
+             <h2 className='text-xl font-bold animate-pulse text-gray-800 whitespace-nowrap'>
                {loadingMessages[loadingTip]}
              </h2>
            </div>
            
-           <p className="text-gray-500 text-sm font-medium">{t.addEntry.analyzingDesc}</p>
+           <p className='text-gray-500 text-sm font-medium'>{t.addEntry.analyzingDesc}</p>
         </div>
         
         {/* 3. 內嵌樣式 (掃描動畫) */}
@@ -330,34 +330,34 @@ const AddEntry = () => {
 
     return (
       <div className={`flex-1 overflow-y-auto pb-24 no-scrollbar ${containerClass}`}>
-        <div className="p-6">
+        <div className='p-6'>
            {error && (
-             <div className="mb-4 p-4 bg-red-50 text-red-600 rounded-2xl text-sm border border-red-100 flex items-center gap-2">
+             <div className='mb-4 p-4 bg-red-50 text-red-600 rounded-2xl text-sm border border-red-100 flex items-center gap-2'>
                <span>⚠️</span> {error}
              </div>
             )}
            
            {/* Review 頂部：有圖顯示圖，沒圖顯示手動輸入標題 */}
            {imagePreview ? (
-              <div className="rounded-bento overflow-hidden shadow-bento h-64 relative bg-white mb-6">
-                 <img src={imagePreview} alt="Review" className="w-full h-full object-cover" />
-                 <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent flex items-end p-6"><h2 className="text-white text-2xl font-bold">{finalName || t.common.untitled}</h2></div>
+              <div className='rounded-bento overflow-hidden shadow-bento h-64 relative bg-white mb-6'>
+                 <img src={imagePreview} alt='Review' className='w-full h-full object-cover' />
+                 <div className='absolute inset-0 bg-gradient-to-t from-black/50 to-transparent flex items-end p-6'><h2 className='text-white text-2xl font-bold'>{finalName || t.common.untitled}</h2></div>
               </div>
            ) : (
               <div className={`mb-6 p-4 rounded-xl flex items-center justify-center gap-3 ${isVintageTheme ? 'border-2 border-dashed border-vintage-line bg-vintage-paper/50' : 'bg-white shadow-sm border border-gray-100'}`}>
                   <div className={`p-2 rounded-full ${isVintageTheme ? 'bg-vintage-ink text-vintage-bg' : 'bg-brand-100 text-brand-600'}`}>
-                    <Icon name="pencil" className="w-5 h-5" />
+                    <Icon name='pencil' className='w-5 h-5' />
                   </div>
                   <span className={`font-bold ${isVintageTheme ? 'text-vintage-ink font-typewriter' : 'text-gray-600'}`}>
-                    {t.addEntry?.manual || "手動輸入"}
+                    {t.addEntry?.manual || '手動輸入'}
                   </span>
               </div>
            )}
 
             {/* Disclaimer for AI Analysis */}
             {imagePreview && (
-             <div className="mb-4 p-3 bg-blue-50 text-blue-700 rounded-lg text-xs border border-blue-100 flex items-start gap-2">
-               <span className="mt-0.5">ℹ️</span>
+             <div className='mb-4 p-3 bg-blue-50 text-blue-700 rounded-lg text-xs border border-blue-100 flex items-start gap-2'>
+               <span className='mt-0.5'>ℹ️</span>
                <span>{t.addEntry.disclaimer}</span>
              </div>
             )}
@@ -380,7 +380,7 @@ const AddEntry = () => {
 
            <div className={cardClass}>
              {isVintageTheme && (
-                <div className="absolute top-0 left-1/2 -translate-x-1/2 -mt-3 w-4 h-4 rounded-full bg-vintage-line shadow-inner"></div>
+                <div className='absolute top-0 left-1/2 -translate-x-1/2 -mt-3 w-4 h-4 rounded-full bg-vintage-line shadow-inner'></div>
              )}
 
              <div>
@@ -391,13 +391,13 @@ const AddEntry = () => {
              <div>
                <label className={labelClass}>{t.addEntry.itemName}</label>
                {isVintageTheme
-                  ? <VintageInput type="text" value={finalName} onChange={e => setFinalName(e.target.value)} />
-                  : <BentoInput type="text" value={finalName} onChange={e => setFinalName(e.target.value)} />
+                  ? <VintageInput type='text' value={finalName} onChange={e => setFinalName(e.target.value)} />
+                  : <BentoInput type='text' value={finalName} onChange={e => setFinalName(e.target.value)} />
                }
              </div>
 
-             <div className="grid grid-cols-2 gap-4">
-                <div className="col-span-2">
+             <div className='grid grid-cols-2 gap-4'>
+                <div className='col-span-2'>
                    <label className={labelClass}>{t.addEntry.category}</label>
                    {isVintageTheme
                      ? <VintageSelect value={category} onChange={e => setCategory(e.target.value as ExpenseCategory)}>{ALL_EXPENSE_CATEGORIES.map(c => <option key={c} value={c}>{t.categories[c]}</option>)}</VintageSelect>
@@ -406,9 +406,9 @@ const AddEntry = () => {
                 </div>
 
                 {(recordType === 'expense' || recordType === 'combined') && (
-                  <div className="col-span-2">
+                  <div className='col-span-2'>
                      <label className={labelClass}>{t.addEntry.usage}</label>
-                     <div className="flex gap-2">
+                     <div className='flex gap-2'>
                       {ALL_USAGE_CATEGORIES.map(u => (
                         <button
                           key={u}
@@ -436,8 +436,8 @@ const AddEntry = () => {
                     <div>
                       <label className={labelClass}>{t.addEntry.cost}</label>
                       {isVintageTheme
-                        ? <VintageInput type="number" value={finalCost} onChange={e => setFinalCost(e.target.value)} placeholder="0.00" />
-                        : <div className="relative"><span className="absolute left-4 top-3.5 text-gray-400 font-bold">$</span><BentoInput type="number" value={finalCost} onChange={e => setFinalCost(e.target.value)} className="!pl-8" placeholder="0.00" /></div>
+                        ? <VintageInput type='number' value={finalCost} onChange={e => setFinalCost(e.target.value)} placeholder='0.00' />
+                        : <div className='relative'><span className='absolute left-4 top-3.5 text-gray-400 font-bold'>$</span><BentoInput type='number' value={finalCost} onChange={e => setFinalCost(e.target.value)} className='!pl-8' placeholder='0.00' /></div>
                       }
                     </div>
                   </>
@@ -457,7 +457,7 @@ const AddEntry = () => {
                       >
                         {t.addEntry.modeStrict}
                       </button>
-                      <div className={isVintageTheme ? "w-px bg-vintage-line border-dashed" : "hidden"}></div>
+                      <div className={isVintageTheme ? 'w-px bg-vintage-line border-dashed' : 'hidden'}></div>
                       <button 
                         onClick={() => setActiveMode(RecordMode.CONSERVATIVE)} 
                         className={`flex-1 py-1.5 text-xs font-bold transition-all ${
@@ -473,31 +473,31 @@ const AddEntry = () => {
                    <div>
                       <label className={labelClass}>{t.addEntry.calories}</label>
                       {isVintageTheme
-                        ? <VintageInput type="number" value={finalCalories} onChange={e => setFinalCalories(e.target.value)} placeholder="0" />
-                        : <BentoInput type="number" value={finalCalories} onChange={e => setFinalCalories(e.target.value)} placeholder="0" />
+                        ? <VintageInput type='number' value={finalCalories} onChange={e => setFinalCalories(e.target.value)} placeholder='0' />
+                        : <BentoInput type='number' value={finalCalories} onChange={e => setFinalCalories(e.target.value)} placeholder='0' />
                       }
                    </div>
                    
-                   <div className="grid grid-cols-3 gap-3 mt-4">
+                   <div className='grid grid-cols-3 gap-3 mt-4'>
                       <div>
                          <label className={labelClass}>{t.addEntry.protein}</label>
                          {isVintageTheme
-                           ? <VintageInput type="number" value={finalProtein} onChange={e => setFinalProtein(e.target.value)} className="!text-lg" placeholder="g" />
-                           : <BentoInput type="number" value={finalProtein} onChange={e => setFinalProtein(e.target.value)} className="!p-3 !text-sm" placeholder="g" />
+                           ? <VintageInput type='number' value={finalProtein} onChange={e => setFinalProtein(e.target.value)} className='!text-lg' placeholder='g' />
+                           : <BentoInput type='number' value={finalProtein} onChange={e => setFinalProtein(e.target.value)} className='!p-3 !text-sm' placeholder='g' />
                          }
                       </div>
                       <div>
                          <label className={labelClass}>{t.addEntry.carbs}</label>
                          {isVintageTheme
-                           ? <VintageInput type="number" value={finalCarbs} onChange={e => setFinalCarbs(e.target.value)} className="!text-lg" placeholder="g" />
-                           : <BentoInput type="number" value={finalCarbs} onChange={e => setFinalCarbs(e.target.value)} className="!p-3 !text-sm" placeholder="g" />
+                           ? <VintageInput type='number' value={finalCarbs} onChange={e => setFinalCarbs(e.target.value)} className='!text-lg' placeholder='g' />
+                           : <BentoInput type='number' value={finalCarbs} onChange={e => setFinalCarbs(e.target.value)} className='!p-3 !text-sm' placeholder='g' />
                          }
                       </div>
                       <div>
                          <label className={labelClass}>{t.addEntry.fat}</label>
                          {isVintageTheme
-                           ? <VintageInput type="number" value={finalFat} onChange={e => setFinalFat(e.target.value)} className="!text-lg" placeholder="g" />
-                           : <BentoInput type="number" value={finalFat} onChange={e => setFinalFat(e.target.value)} className="!p-3 !text-sm" placeholder="g" />
+                           ? <VintageInput type='number' value={finalFat} onChange={e => setFinalFat(e.target.value)} className='!text-lg' placeholder='g' />
+                           : <BentoInput type='number' value={finalFat} onChange={e => setFinalFat(e.target.value)} className='!p-3 !text-sm' placeholder='g' />
                          }
                       </div>
                    </div>
@@ -513,7 +513,7 @@ const AddEntry = () => {
              </div>
           </div>
           
-          <div className="mt-8 flex gap-3">
+          <div className='mt-8 flex gap-3'>
              <Button fullWidth onClick={() => { setStep('upload'); setImagePreview(null); setEntryMode('camera'); }} className={isVintageTheme ? 'bg-transparent border-2 border-vintage-ink text-vintage-ink font-typewriter hover:bg-vintage-ink hover:text-vintage-bg rounded-sm' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}>{t.common.cancel}</Button>
              <Button fullWidth onClick={handleSave} className={isVintageTheme ? 'bg-vintage-leather text-vintage-card font-typewriter shadow-md hover:bg-vintage-ink border-2 border-vintage-ink rounded-sm' : 'bg-gray-900 text-white shadow-xl hover:bg-black'}>{t.common.save}</Button>
           </div>
@@ -525,14 +525,14 @@ const AddEntry = () => {
   // Step === 'upload' (極簡模式：大按鈕 + 雙按鈕)
   return (
     <div className={`flex-1 flex flex-col p-6 relative overflow-hidden ${isVintageTheme ? 'bg-vintage-bg' : 'bg-pastel-bg'}`}>
-       <div className="flex-1 flex flex-col items-center justify-center z-10">
+       <div className='flex-1 flex flex-col items-center justify-center z-10'>
           
           {/* 1. 原本的大型拍照按鈕 (只開相機) */}
           <div className={`relative w-64 h-64 mb-6 group cursor-pointer ${isVintageTheme ? '' : ''}`} onClick={() => fileInputRef.current?.click()}>
              <div className={`absolute inset-0 rounded-full animate-spin-slow opacity-20 ${isVintageTheme ? 'border-4 border-dashed border-vintage-ink' : 'bg-gradient-to-r from-brand-200 to-accent-200 blur-2xl'}`} />
              <div className={`absolute inset-4 rounded-full flex items-center justify-center transition-transform group-hover:scale-105 duration-500 ${isVintageTheme ? 'bg-vintage-card border-4 border-vintage-ink shadow-[4px_4px_0px_rgba(44,36,27,1)]' : 'bg-white shadow-soft'}`}>
                 <div className={`text-center ${isVintageTheme ? 'text-vintage-ink' : 'text-gray-900'}`}>
-                   <Icon name="camera" className="w-16 h-16 mx-auto mb-2 opacity-80" />
+                   <Icon name='camera' className='w-16 h-16 mx-auto mb-2 opacity-80' />
                    <span className={`font-bold text-lg tracking-wide ${isVintageTheme ? 'font-typewriter' : ''}`}>{t.addEntry.tapToCapture}</span>
                 </div>
              </div>
@@ -543,7 +543,7 @@ const AddEntry = () => {
           </div>
 
           {/* 2. [修改] 底部按鈕區：相簿上傳 & 手動輸入 */}
-          <div className="flex items-center gap-4">
+          <div className='flex items-center gap-4'>
             
             {/* 相簿按鈕 */}
             <button 
@@ -555,8 +555,8 @@ const AddEntry = () => {
                }`}
             >
                {/* Gallery Icon */}
-               <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-4 h-4">
-                 <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.409a2.25 2.25 0 013.182 0l2.909 2.909m-18 3.75h16.5a1.5 1.5 0 001.5-1.5V6a1.5 1.5 0 00-1.5-1.5H3.75A1.5 1.5 0 002.25 6v12a1.5 1.5 0 001.5 1.5zm10.5-11.25h.008v.008h-.008V8.25zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0z" />
+               <svg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' strokeWidth={1.5} stroke='currentColor' className='w-4 h-4'>
+                 <path strokeLinecap='round' strokeLinejoin='round' d='M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.409a2.25 2.25 0 013.182 0l2.909 2.909m-18 3.75h16.5a1.5 1.5 0 001.5-1.5V6a1.5 1.5 0 00-1.5-1.5H3.75A1.5 1.5 0 002.25 6v12a1.5 1.5 0 001.5 1.5zm10.5-11.25h.008v.008h-.008V8.25zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0z' />
                </svg>
                {isVintageTheme ? '相簿' : '相簿'}
             </button>
@@ -570,22 +570,22 @@ const AddEntry = () => {
                   : 'text-gray-400 hover:text-brand-600 bg-white/50 hover:bg-white rounded-full px-6 shadow-sm'
                }`}
             >
-               {isVintageTheme ? '✎' : <Icon name="pencil" className="w-4 h-4" />}
-               {t.addEntry?.manual || "手動輸入"}
+               {isVintageTheme ? '✎' : <Icon name='pencil' className='w-4 h-4' />}
+               {t.addEntry?.manual || '手動輸入'}
             </button>
           </div>
 
        </div>
        
        {/* 3. [修改] 兩個 Input，分別負責 相機 與 相簿 */}
-       <input type="file" accept="image/*" capture="environment" className="hidden" ref={fileInputRef} onChange={handleFileChange} />
-       <input type="file" accept="image/*" className="hidden" ref={galleryInputRef} onChange={handleFileChange} />
+       <input type='file' accept='image/*' capture='environment' className='hidden' ref={fileInputRef} onChange={handleFileChange} />
+       <input type='file' accept='image/*' className='hidden' ref={galleryInputRef} onChange={handleFileChange} />
        
        {!isVintageTheme && (
          <>
-           <div className="absolute top-0 left-0 w-full h-1/2 bg-gradient-to-b from-brand-50/50 to-transparent -z-0" />
-           <div className="absolute -bottom-20 -right-20 w-80 h-80 bg-accent-100 rounded-full blur-3xl opacity-30 pointer-events-none" />
-           <div className="absolute top-20 -left-20 w-60 h-60 bg-brand-100 rounded-full blur-3xl opacity-30 pointer-events-none" />
+           <div className='absolute top-0 left-0 w-full h-1/2 bg-gradient-to-b from-brand-50/50 to-transparent -z-0' />
+           <div className='absolute -bottom-20 -right-20 w-80 h-80 bg-accent-100 rounded-full blur-3xl opacity-30 pointer-events-none' />
+           <div className='absolute top-20 -left-20 w-60 h-60 bg-brand-100 rounded-full blur-3xl opacity-30 pointer-events-none' />
          </>
        )}
     </div>

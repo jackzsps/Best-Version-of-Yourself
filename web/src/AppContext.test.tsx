@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, waitFor, act } from '@testing-library/react';
 import { AppProvider, useApp } from './store/AppContext';
-import { Entry } from './types';
+import { Entry } from "@shared/types';
 import { Timestamp } from 'firebase/firestore';
 import React, { ReactNode } from 'react';
 

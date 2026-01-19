@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useApp } from '../store/AppContext';
-import { RecordMode, Entry, Theme } from '../types';
+import { RecordMode, Entry, Theme } from '@shared/types';
 import AuthModal from '../components/AuthModal';
 import { getArchivedEntries } from '../services/storageService';
 import { Link } from 'react-router-dom';
@@ -121,28 +121,28 @@ const ConfirmationModal = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-      <div className="bg-white rounded-lg p-6 max-w-sm w-full shadow-xl">
-        <h3 className="text-lg font-bold mb-2 text-gray-900">{title}</h3>
-        <p className="text-gray-600 mb-4 text-sm">{message}</p>
+    <div className='fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4'>
+      <div className='bg-white rounded-lg p-6 max-w-sm w-full shadow-xl'>
+        <h3 className='text-lg font-bold mb-2 text-gray-900'>{title}</h3>
+        <p className='text-gray-600 mb-4 text-sm'>{message}</p>
         
         {isInput && (
           <input 
-            type="text" 
-            className="w-full border border-gray-300 rounded p-2 mb-4 focus:ring-2 focus:ring-blue-500 outline-none"
+            type='text' 
+            className='w-full border border-gray-300 rounded p-2 mb-4 focus:ring-2 focus:ring-blue-500 outline-none'
             value={inputValue}
             onChange={(e) => setInputValue(e.target.value)}
             placeholder={inputPlaceholder}
           />
         )}
 
-        <div className="flex justify-end gap-3">
+        <div className='flex justify-end gap-3'>
           <button 
             onClick={() => {
                 setInputValue('');
                 onClose();
             }}
-            className="px-4 py-2 rounded-lg text-gray-600 hover:bg-gray-100 font-medium text-sm"
+            className='px-4 py-2 rounded-lg text-gray-600 hover:bg-gray-100 font-medium text-sm'
           >
             Cancel
           </button>
@@ -188,8 +188,8 @@ const Settings = () => {
       const entries = await getArchivedEntries(user.uid);
       setArchivedEntries(entries);
     } catch (error) {
-      console.error("Failed to load archived entries:", error);
-      showToast("Failed to load archived entries.", 'error');
+      console.error('Failed to load archived entries:', error);
+      showToast('Failed to load archived entries.', 'error');
     } finally {
       setIsLoadingArchive(false);
     }
@@ -199,8 +199,8 @@ const Settings = () => {
     if (!user) return;
     
     // Check input if provided
-    if (input !== 'DELETE') {
-      showToast(language === 'zh-TW' ? "輸入不正確，已取消刪除。" : "Incorrect input, deletion cancelled.", 'error');
+    if (input !== "DELETE") {
+      showToast(language === 'zh-TW' ? '輸入不正確，已取消刪除。' : 'Incorrect input, deletion cancelled.', 'error');
       setShowDeleteConfirm(false);
       return;
     }
@@ -212,11 +212,11 @@ const Settings = () => {
       const deleteAccountFn = httpsCallable(functions, 'deleteAccount');
       await deleteAccountFn();
       
-      showToast(language === 'zh-TW' ? "帳號已成功刪除。" : "Account successfully deleted.", 'success');
+      showToast(language === 'zh-TW' ? '帳號已成功刪除。' : 'Account successfully deleted.', 'success');
       logout(); // Logout and clear local state
 
     } catch (error: any) {
-      console.error("Delete account failed:", error);
+      console.error('Delete account failed:', error);
       showToast(
         language === 'zh-TW' 
           ? `刪除帳號失敗: ${error.message || '請稍後再試'}` 
@@ -234,24 +234,24 @@ const Settings = () => {
         <h1 className={styles.title}>{t.settings.title}</h1>
       </header>
 
-      <div className="p-6 space-y-6">
+      <div className='p-6 space-y-6'>
 
         {/* Account Settings */}
         <div className={styles.card}>
            <h2 className={styles.textHead}>{t.settings.account}</h2>
            
-           <div className="flex flex-col items-start gap-4">
+           <div className='flex flex-col items-start gap-4'>
              {user ? (
                <>
-                 <div className="flex items-center gap-4 w-full">
+                 <div className='flex items-center gap-4 w-full'>
                     <div className={`w-14 h-14 rounded-full flex items-center justify-center text-2xl font-bold ${styles.userAvatarBg}`}>
                       {user.photoURL ? (
-                        <img src={user.photoURL} alt="Profile" className={`w-14 h-14 rounded-full ${styles.userAvatarImg}`} />
+                        <img src={user.photoURL} alt='Profile' className={`w-14 h-14 rounded-full ${styles.userAvatarImg}`} />
                       ) : (
                         user.displayName ? user.displayName[0].toUpperCase() : 'U'
                       )}
                     </div>
-                    <div className="flex-1 min-w-0">
+                    <div className='flex-1 min-w-0'>
                       <p className={`font-bold truncate ${styles.userName}`}>
                         {user.displayName || 'User'}
                       </p>
@@ -279,7 +279,7 @@ const Settings = () => {
                <>
                  <p className={styles.textBody}>{t.settings.authDesc}</p>
                  <button onClick={() => setShowAuthModal(true)} className={`w-full py-3 px-4 rounded-xl text-sm font-bold transition-all flex items-center justify-center gap-2 ${styles.buttonPrimary}`}>
-                    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>
+                    <svg className='w-5 h-5' fill='none' viewBox='0 0 24 24' stroke='currentColor'><path strokeLinecap='round' strokeLinejoin='round' strokeWidth={2} d='M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z' /></svg>
                     {t.settings.signIn}
                  </button>
                </>
@@ -296,11 +296,11 @@ const Settings = () => {
                     {isLoadingArchive ? 'Loading...' : 'Load Archived Entries'}
                 </button>
                 {archivedEntries && (
-                    <div className="mt-4">
-                        <h3 className="text-lg font-bold">Archived Entries</h3>
+                    <div className='mt-4'>
+                        <h3 className='text-lg font-bold'>Archived Entries</h3>
                         <ul>
                             {archivedEntries.map((entry, index) => (
-                                <li key={index} className="py-2 border-b">
+                                <li key={index} className='py-2 border-b'>
                                     {entry.itemName} - {new Date(entry.date.seconds * 1000).toLocaleDateString()}
                                 </li>
                             ))}
@@ -338,17 +338,17 @@ const Settings = () => {
         <div className={styles.card}>
           <h2 className={styles.textHead}>{t.settings.standard}</h2>
           <p className={styles.textBody}>{t.settings.standardDesc}</p>
-          <div className="space-y-4">
+          <div className='space-y-4'>
             <label className={styles.inputContainer(mode === RecordMode.STRICT)}>
-              <input type="radio" name="mode" className="mt-1 w-4 h-4" checked={mode === RecordMode.STRICT} onChange={() => setMode(RecordMode.STRICT)} />
-              <div className="ml-3">
+              <input type='radio' name='mode' className='mt-1 w-4 h-4' checked={mode === RecordMode.STRICT} onChange={() => setMode(RecordMode.STRICT)} />
+              <div className='ml-3'>
                 <span className={`block text-sm font-bold ${theme === 'vintage' ? 'font-typewriter' : ''}`}>{t.settings.strict}</span>
                 <span className={`block text-xs mt-1 ${theme === 'vintage' ? 'font-handwriting text-lg' : 'text-gray-500'}`}>{t.settings.strictDesc}</span>
               </div>
             </label>
             <label className={styles.inputContainer(mode === RecordMode.CONSERVATIVE)}>
-              <input type="radio" name="mode" className="mt-1 w-4 h-4" checked={mode === RecordMode.CONSERVATIVE} onChange={() => setMode(RecordMode.CONSERVATIVE)} />
-              <div className="ml-3">
+              <input type='radio' name='mode' className='mt-1 w-4 h-4' checked={mode === RecordMode.CONSERVATIVE} onChange={() => setMode(RecordMode.CONSERVATIVE)} />
+              <div className='ml-3'>
                 <span className={`block text-sm font-bold ${theme === 'vintage' ? 'font-typewriter' : ''}`}>{t.settings.conservative}</span>
                 <span className={`block text-xs mt-1 ${theme === 'vintage' ? 'font-handwriting text-lg' : 'text-gray-500'}`}>{t.settings.conservativeDesc}</span>
               </div>
@@ -359,7 +359,7 @@ const Settings = () => {
         {/* Privacy Policy */}
          <div className={styles.card}>
            <h2 className={styles.textHead}>{t.settings.privacyPolicy}</h2>
-           <Link to="/privacy-policy" className={`block w-full text-center py-3 px-4 rounded-xl text-sm font-bold transition-all ${styles.buttonSecondary}`}>
+           <Link to='/privacy-policy' className={`block w-full text-center py-3 px-4 rounded-xl text-sm font-bold transition-all ${styles.buttonSecondary}`}>
               {t.settings.privacyPolicy}
            </Link>
          </div>
@@ -376,7 +376,7 @@ const Settings = () => {
         title={t.settings.signOut}
         message={t.settings.logoutWarning}
         confirmText={t.settings.signOut}
-        confirmButtonClass="bg-red-600 hover:bg-red-700"
+        confirmButtonClass='bg-red-600 hover:bg-red-700'
       />
 
       {/* Delete Account Modal */}
@@ -384,12 +384,12 @@ const Settings = () => {
         isOpen={showDeleteConfirm}
         onClose={() => setShowDeleteConfirm(false)}
         onConfirm={confirmDeleteAccount}
-        title={language === 'zh-TW' ? "確定要刪除帳號？" : "Are you sure?"}
+        title={language === 'zh-TW' ? '確定要刪除帳號？' : 'Are you sure?'}
         message={language === 'zh-TW' 
-          ? "此操作將永久刪除所有資料且無法復原。請輸入 'DELETE' 以確認。" 
-          : "This action cannot be undone. Please type 'DELETE' to confirm."}
-        confirmText={language === 'zh-TW' ? "刪除帳號" : "Delete Account"}
-        confirmButtonClass="bg-red-600 hover:bg-red-700"
+          ? '此操作將永久刪除所有資料且無法復原。請輸入 "DELETE" 以確認。' 
+          : 'This action cannot be undone. Please type "DELETE" to confirm.'}
+        confirmText={language === 'zh-TW' ? '刪除帳號' : 'Delete Account'}
+        confirmButtonClass='bg-red-600 hover:bg-red-700'
         isInput={true}
         inputPlaceholder="DELETE"
         expectedInput="DELETE"

@@ -1,5 +1,5 @@
 import React from 'react';
-import { Theme } from '../../types';
+import { Theme } from '../@shared/types';
 
 interface StatsOverviewProps {
   t: any;

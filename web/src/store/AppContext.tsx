@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { Entry, RecordMode, Language, Theme } from '../types';
-import { DEFAULT_MODE, DEFAULT_LANGUAGE } from '../constants';
-import { TRANSLATIONS } from '../translations';
+import { Entry, RecordMode, Language, Theme } from "@shared/types";
+import { DEFAULT_MODE, DEFAULT_LANGUAGE } from "@shared/constants";
+import { TRANSLATIONS } from "@shared/translations";
 import { toast } from './ToastContext';
 
 // Firebase Imports
