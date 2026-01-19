@@ -53,7 +53,10 @@ export const AppProvider = ({ children }: React.PropsWithChildren<{}>) => {
   useEffect(() => {
     if (!user) return;
 
-    const unsubscribe = firestore()
+    // Use specific database instance 'bvoy'
+    const db = firestore().app.firestore('bvoy');
+
+    const unsubscribe = db
       .collection('users')
       .doc(user.uid)
       .collection('entries')
@@ -109,8 +112,11 @@ export const AppProvider = ({ children }: React.PropsWithChildren<{}>) => {
     // DIRECTLY write to Firestore. 
     // The SDK handles local cache immediately (Optimistic UI) and syncs later.
     // No need for manual setEntries or local storage manipulation.
-    firestore()
-      .collection('users')
+    
+    // Use specific database instance 'bvoy'
+    const db = firestore().app.firestore('bvoy');
+
+    db.collection('users')
       .doc(user.uid)
       .collection('entries')
       .add(entry);
@@ -119,8 +125,11 @@ export const AppProvider = ({ children }: React.PropsWithChildren<{}>) => {
   const updateEntry = (updatedEntry: Entry) => {
     if (!user) return;
     const { id, ...data } = updatedEntry;
-    firestore()
-      .collection('users')
+
+    // Use specific database instance 'bvoy'
+    const db = firestore().app.firestore('bvoy');
+
+    db.collection('users')
       .doc(user.uid)
       .collection('entries')
       .doc(id)
@@ -129,8 +138,11 @@ export const AppProvider = ({ children }: React.PropsWithChildren<{}>) => {
 
   const deleteEntry = (id: string) => {
     if (!user) return;
-    firestore()
-      .collection('users')
+
+    // Use specific database instance 'bvoy'
+    const db = firestore().app.firestore('bvoy');
+
+    db.collection('users')
       .doc(user.uid)
       .collection('entries')
       .doc(id)

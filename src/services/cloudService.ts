@@ -34,6 +34,7 @@ export const uploadImageToCloud = async (imageDataUrl: string, entryId: string, 
  * This is the primary "write" operation for entry data.
  */
 export const syncEntryToCloud = async (entry: Entry, userId: string): Promise<void> => {
+  // Use 'bvoy' database instance implicitly via the 'db' export from ../utils/firebase which already specifies "bvoy"
   const entryRef = doc(db, 'users', userId, 'entries', entry.id);
   const sanitizedEntry = { ...entry };
   await setDoc(entryRef, sanitizedEntry, { merge: true });
@@ -46,6 +47,7 @@ export const syncEntryToCloud = async (entry: Entry, userId: string): Promise<vo
  * This is a simplified query for debugging purposes.
  */
 export const listenToEntries = (userId: string, callback: (entries: Entry[]) => void): Unsubscribe => {
+  // Use 'bvoy' database instance implicitly via the 'db' export from ../utils/firebase which already specifies "bvoy"
   const entriesCollectionRef = collection(db, 'users', userId, 'entries');
   
   // DEBUG: Querying all entries and ordering by date to isolate indexing/filtering issues.
@@ -73,6 +75,7 @@ export const listenToEntries = (userId: string, callback: (entries: Entry[]) => 
  * Deletes an entry document from Firestore and its associated image from Storage.
  */
 export const deleteEntryFromCloud = async (entryId: string, imageUrl: string | null, userId: string): Promise<void> => {
+  // Use 'bvoy' database instance implicitly via the 'db' export from ../utils/firebase which already specifies "bvoy"
   const entryRef = doc(db, 'users', userId, 'entries', entryId);
   await deleteDoc(entryRef);
 

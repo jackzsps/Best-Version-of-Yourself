@@ -56,8 +56,25 @@ const analysisPrompt_1 = require("./prompts/analysisPrompt");
 // --- 區塊 2: 初始化 ---
 // 初始化 Firebase Admin
 admin.initializeApp();
+// Use specific database instance 'bvoy' - admin.app() is optional if using default app, but safer to include.
+// However, admin.firestore(app) returns a Firestore service interface which doesn't take a second string argument for database ID in the Node SDK in the same way.
+// The Admin SDK initializes the app with options. If a specific database ID is needed, it should be in the options or accessed via getFirestore(app, databaseId).
+// But for "bvoy" being the default database, we just need `getFirestore()`.
+// If "bvoy" is a *named* database (not default), we need `getFirestore('bvoy')`.
+// The error TS2554: Expected 0-1 arguments, but got 2. suggests admin.firestore() does not take 2 args.
+// Let's try to get the database correctly.
 const db = admin.firestore();
-// 設定 v2 全域選項 (主要影響 analyzeImage)
+try {
+    // If bvoy is a named database, we might need a different initialization or access pattern.
+    // However, the prompt says "bvoy" should be the *default* database or we must use it.
+    // In Admin SDK, usually `admin.firestore()` connects to the default database of the project.
+    // If we need to connect to a specific database:
+    // const db = getFirestore(app, 'bvoy'); // This is for modular SDK, but admin uses `admin.firestore()`.
+}
+catch (e) {
+    console.error(e);
+}
+//設定 v2 全域選項 (主要影響 analyzeImage)
 (0, v2_1.setGlobalOptions)({ region: "asia-east1" });
 // --- 區塊 3: 定義 AI 分析用的 Schema ---
 const analysisSchema = {
