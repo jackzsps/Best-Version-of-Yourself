@@ -6,6 +6,7 @@ import react from '@vitejs/plugin-react';
 export default defineConfig(({ mode }) => {
     const env = loadEnv(mode, '.', '');
     return {
+        base: '/', // Changed back to '/' as it's more standard for SPA routing unless subpath is required
         server: {
             port: 3000,
             host: '0.0.0.0',

@@ -7,7 +7,7 @@ import Button from './Button'; // Assuming a generic Button component exists
 
 const ErrorFallback: React.FC<FallbackProps> = ({ error, resetErrorBoundary }) => {
   // It's good practice to log the error to an external service
-  // console.error("Caught by ErrorBoundary:", error);
+  console.error("Caught by ErrorBoundary:", error);
 
   return (
     <div className="flex flex-col items-center justify-center h-screen bg-gray-50 p-8 text-center" role="alert">
@@ -17,16 +17,14 @@ const ErrorFallback: React.FC<FallbackProps> = ({ error, resetErrorBoundary }) =
       </p>
       
       {/* Displaying error details can be helpful in development */}
-      {process.env.NODE_ENV === 'development' && (
-          <details className="w-full max-w-lg bg-gray-100 p-4 rounded-lg mb-6 text-left">
-              <summary className="font-medium text-gray-600 cursor-pointer">Error Details</summary>
-              <pre className="mt-4 text-xs text-gray-500 overflow-auto whitespace-pre-wrap">
-                  {error.message}
-                  \n\n
-                  {error.stack}
-              </pre>
-          </details>
-      )}
+      <details className="w-full max-w-lg bg-gray-100 p-4 rounded-lg mb-6 text-left">
+          <summary className="font-medium text-gray-600 cursor-pointer">Error Details</summary>
+          <pre className="mt-4 text-xs text-gray-500 overflow-auto whitespace-pre-wrap">
+              {error.message}
+              {'\n\n'}
+              {error.stack}
+          </pre>
+      </details>
 
       <Button 
         onClick={resetErrorBoundary} 

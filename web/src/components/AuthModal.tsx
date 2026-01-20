@@ -78,6 +78,9 @@ const useStyles = (isVintage: boolean) => ({
     googleButton: isVintage
         ? 'w-full py-3 border-2 border-vintage-ink font-typewriter font-bold flex items-center justify-center gap-2 hover:bg-vintage-ink/10 transition-colors'
         : 'w-full py-3 rounded-lg bg-white border border-gray-300 text-gray-700 font-semibold shadow-sm hover:bg-gray-50 flex items-center justify-center gap-2 transition-all',
+    appleButton: isVintage
+        ? 'w-full py-3 border-2 border-vintage-ink font-typewriter font-bold flex items-center justify-center gap-2 hover:bg-vintage-ink/10 transition-colors mt-3'
+        : 'w-full py-3 rounded-lg bg-black text-white font-semibold shadow-sm hover:bg-gray-800 flex items-center justify-center gap-2 transition-all mt-3',
     title: `text-2xl font-bold mb-8 text-center ${isVintage ? 'font-typewriter text-vintage-ink' : 'text-gray-900'}`,
     switchButton: `text-sm hover:underline transition-all ${isVintage ? 'text-vintage-leather font-typewriter' : 'text-brand-600 font-medium'}`,
     divider: isVintage ? 'border-vintage-ink/30' : 'border-gray-200',
@@ -87,7 +90,7 @@ const useStyles = (isVintage: boolean) => ({
 // --- Component ---
 
 const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
-  const { loginEmail, registerEmail, loginGoogle, theme, t } = useApp();
+  const { loginEmail, registerEmail, loginGoogle, loginApple, theme, t } = useApp();
   const [state, dispatch] = useReducer(authReducer, initialState);
   const { isLogin, email, password, name, error, isLoading } = state;
 
@@ -142,6 +145,22 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
     }
   };
 
+  const handleAppleLogin = async () => {
+    dispatch({ type: 'SET_ERROR', payload: '' });
+    dispatch({ type: 'SET_LOADING', payload: true });
+    
+    try {
+      await loginApple();
+      onClose();
+    } catch (err) {
+      console.error("Apple Auth Error:", err);
+      const errorMessage = getAuthErrorMessage(err as AuthError, t);
+      dispatch({ type: 'SET_ERROR', payload: errorMessage });
+    } finally {
+      dispatch({ type: 'SET_LOADING', payload: false });
+    }
+  };
+
   return (
     <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm" aria-modal="true" role="dialog">
       <div className={`w-full max-w-md p-8 relative ${styles.modalBg}`}>
@@ -164,6 +183,16 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
             >
                 <Icon name="google" className="w-5 h-5" />
                 {isLogin ? "Sign in with Google" : "Sign up with Google"}
+            </button>
+
+            <button 
+                type="button" 
+                onClick={handleAppleLogin} 
+                className={styles.appleButton}
+                disabled={isLoading}
+            >
+                <Icon name="apple" className="w-5 h-5 fill-current" />
+                {isLogin ? "Sign in with Apple" : "Sign up with Apple"}
             </button>
 
             <div className="relative flex items-center justify-center my-6">

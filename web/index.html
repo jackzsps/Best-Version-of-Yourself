@@ -4,6 +4,22 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
     <title>Best Version of Yourself</title>
+    <script>
+      window.onerror = function(message, source, lineno, colno, error) {
+        var errorDiv = document.createElement('div');
+        errorDiv.style.position = 'fixed';
+        errorDiv.style.top = '0';
+        errorDiv.style.left = '0';
+        errorDiv.style.width = '100%';
+        errorDiv.style.backgroundColor = 'red';
+        errorDiv.style.color = 'white';
+        errorDiv.style.padding = '20px';
+        errorDiv.style.zIndex = '9999';
+        errorDiv.innerText = 'Global Error: ' + message + '\nAt: ' + source + ':' + lineno + ':' + colno;
+        document.body.appendChild(errorDiv);
+        console.error('Global Error caught:', message, error);
+      };
+    </script>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Special+Elite&family=Caveat:wght@400;700&display=swap" rel="stylesheet">
     <script>

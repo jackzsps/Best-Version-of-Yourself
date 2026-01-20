@@ -14,7 +14,7 @@ import {
   updateProfile,
   User
 } from 'firebase/auth';
-import { auth, googleProvider } from '../utils/firebase';
+import { auth, googleProvider, appleProvider } from '../utils/firebase';
 import { 
     uploadImageToCloud, 
     syncEntryToCloud, 
@@ -38,6 +38,7 @@ interface AppState {
   setLanguage: (lang: Language) => void;
   setTheme: (theme: Theme) => void;
   loginGoogle: () => Promise<void>;
+  loginApple: () => Promise<void>;
   loginEmail: (email: string, pass: string) => Promise<void>;
   registerEmail: (email: string, pass: string, name: string) => Promise<void>;
   logout: () => Promise<void>;
@@ -153,6 +154,19 @@ export const AppProvider = ({ children }: React.PropsWithChildren<{}>) => {
     } catch (error: any) {
       console.error("Login failed", error);
       toast.error(`Login failed: ${error.message}`);
+    }
+  };
+
+  const loginApple = async () => {
+    try {
+      // Configure Apple provider scopes if needed, e.g. email, name
+      appleProvider.addScope('email');
+      appleProvider.addScope('name');
+      
+      await signInWithPopup(auth, appleProvider);
+    } catch (error: any) {
+      console.error("Apple Login failed", error);
+      toast.error(`Apple Login failed: ${error.message}`);
     }
   };
 
@@ -273,7 +287,7 @@ export const AppProvider = ({ children }: React.PropsWithChildren<{}>) => {
       entries, mode, language, theme, user, t, 
       addEntry, updateEntry, deleteEntry, 
       setMode: updateMode, setLanguage: updateLang, setTheme: updateTheme,
-      loginGoogle, loginEmail, registerEmail, logout
+      loginGoogle, loginApple, loginEmail, registerEmail, logout
     }}>
       {children}
     </AppContext.Provider>
