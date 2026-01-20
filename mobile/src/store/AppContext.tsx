@@ -15,7 +15,7 @@ interface AppState {
   language: Language;
   theme: Theme;
   user: FirebaseAuthTypes.User | null;
-  t: typeof TRANSLATIONS['en'];
+  t: (typeof TRANSLATIONS)['en'];
   addEntry: (entry: Entry) => void;
   updateEntry: (entry: Entry) => void;
   deleteEntry: (id: string) => void;
@@ -51,7 +51,9 @@ export const AppProvider = ({ children }: React.PropsWithChildren<{}>) => {
   // 2. Data Synchronization (Optimized for React Native)
   // Uses onSnapshot with includeMetadataChanges to handle offline/online sync seamlessly.
   useEffect(() => {
-    if (!user) return;
+    if (!user) {
+      return;
+    }
 
     // Use specific database instance 'bvoy'
     const db = firestore().app.firestore('bvoy');
@@ -61,21 +63,25 @@ export const AppProvider = ({ children }: React.PropsWithChildren<{}>) => {
       .doc(user.uid)
       .collection('entries')
       .orderBy('date', 'desc')
-      .onSnapshot({
-        includeMetadataChanges: true, // Critical for offline support (Risk A)
-      }, (snapshot) => {
-        const newEntries = snapshot.docs.map(doc => ({
-          id: doc.id,
-          ...doc.data(),
-          // Metadata allows us to show "Syncing..." UI state if needed
-          isSyncing: doc.metadata.hasPendingWrites 
-        })) as Entry[];
-        
-        setEntries(newEntries);
-      }, (error) => {
-        console.error("Firestore snapshot error:", error);
-      });
-      
+      .onSnapshot(
+        {
+          includeMetadataChanges: true, // Critical for offline support (Risk A)
+        },
+        (snapshot) => {
+          const newEntries = snapshot.docs.map((doc) => ({
+            id: doc.id,
+            ...doc.data(),
+            // Metadata allows us to show "Syncing..." UI state if needed
+            isSyncing: doc.metadata.hasPendingWrites,
+          })) as Entry[];
+
+          setEntries(newEntries);
+        },
+        (error) => {
+          console.error('Firestore snapshot error:', error);
+        },
+      );
+
     return () => unsubscribe();
   }, [user]);
 
@@ -90,12 +96,15 @@ export const AppProvider = ({ children }: React.PropsWithChildren<{}>) => {
     await auth().signInWithCredential(googleCredential);
   };
 
-  const loginEmail = async (email: string, pass: string) => { 
-    await auth().signInWithEmailAndPassword(email, pass); 
+  const loginEmail = async (email: string, pass: string) => {
+    await auth().signInWithEmailAndPassword(email, pass);
   };
-  
+
   const registerEmail = async (email: string, pass: string, name: string) => {
-    const userCredential = await auth().createUserWithEmailAndPassword(email, pass);
+    const userCredential = await auth().createUserWithEmailAndPassword(
+      email,
+      pass,
+    );
     if (userCredential.user) {
       await userCredential.user.updateProfile({ displayName: name });
       setUser(auth().currentUser); // Force update state
@@ -108,22 +117,23 @@ export const AppProvider = ({ children }: React.PropsWithChildren<{}>) => {
   };
 
   const addEntry = (entry: Entry) => {
-    if (!user) return;
-    // DIRECTLY write to Firestore. 
+    if (!user) {
+      return;
+    }
+    // DIRECTLY write to Firestore.
     // The SDK handles local cache immediately (Optimistic UI) and syncs later.
     // No need for manual setEntries or local storage manipulation.
-    
+
     // Use specific database instance 'bvoy'
     const db = firestore().app.firestore('bvoy');
 
-    db.collection('users')
-      .doc(user.uid)
-      .collection('entries')
-      .add(entry);
+    db.collection('users').doc(user.uid).collection('entries').add(entry);
   };
 
   const updateEntry = (updatedEntry: Entry) => {
-    if (!user) return;
+    if (!user) {
+      return;
+    }
     const { id, ...data } = updatedEntry;
 
     // Use specific database instance 'bvoy'
@@ -137,27 +147,39 @@ export const AppProvider = ({ children }: React.PropsWithChildren<{}>) => {
   };
 
   const deleteEntry = (id: string) => {
-    if (!user) return;
+    if (!user) {
+      return;
+    }
 
     // Use specific database instance 'bvoy'
     const db = firestore().app.firestore('bvoy');
 
-    db.collection('users')
-      .doc(user.uid)
-      .collection('entries')
-      .doc(id)
-      .delete();
+    db.collection('users').doc(user.uid).collection('entries').doc(id).delete();
   };
 
   const t = TRANSLATIONS[language];
 
   return (
-    <AppContext.Provider value={{ 
-      entries, mode, language, theme, user, t, 
-      addEntry, updateEntry, deleteEntry, 
-      setMode, setLanguage, setTheme,
-      loginGoogle, loginEmail, registerEmail, logout
-    }}>
+    <AppContext.Provider
+      value={{
+        entries,
+        mode,
+        language,
+        theme,
+        user,
+        t,
+        addEntry,
+        updateEntry,
+        deleteEntry,
+        setMode,
+        setLanguage,
+        setTheme,
+        loginGoogle,
+        loginEmail,
+        registerEmail,
+        logout,
+      }}
+    >
       {children}
     </AppContext.Provider>
   );
@@ -165,6 +187,8 @@ export const AppProvider = ({ children }: React.PropsWithChildren<{}>) => {
 
 export const useApp = () => {
   const context = useContext(AppContext);
-  if (!context) throw new Error("useApp must be used within AppProvider");
+  if (!context) {
+    throw new Error('useApp must be used within AppProvider');
+  }
   return context;
 };

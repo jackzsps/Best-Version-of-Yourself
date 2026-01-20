@@ -1,7 +1,7 @@
 import React from 'react';
 import { FlatList, View, Text, StyleSheet } from 'react-native'; // Native components
 import { Entry } from '../../types';
-import { EntryCard } from './EntryCard'; // Assuming you port this component too
+import { EntryCard } from './EntryCard';
 import { useApp } from '../../store/AppContext';
 
 // ✅ React Native Optimized List
@@ -11,7 +11,7 @@ export const EntryList = ({ entries }: { entries: Entry[] }) => {
   if (entries.length === 0) {
     return (
       <View style={styles.emptyContainer}>
-        <Text style={styles.emptyText}>{t.noEntries}</Text>
+        <Text style={styles.emptyText}>{t.dashboard.noEntries}</Text>
       </View>
     );
   }
@@ -25,10 +25,10 @@ export const EntryList = ({ entries }: { entries: Entry[] }) => {
       removeClippedSubviews={true} // Unmount components off-screen
       contentContainerStyle={styles.listContainer}
       renderItem={({ item }) => (
-        <EntryCard 
-          entry={item} 
+        <EntryCard
+          entry={item}
           // If you added isSyncing to your Entry type:
-          // status={item.isSyncing ? t.syncing : undefined} 
+          // status={item.isSyncing ? t.syncing : undefined}
         />
       )}
       // Optional: Add ItemSeparatorComponent for consistent spacing
@@ -51,5 +51,5 @@ const styles = StyleSheet.create({
   emptyText: {
     color: '#888',
     fontSize: 16,
-  }
+  },
 });
