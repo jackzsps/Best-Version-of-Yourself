@@ -1,4 +1,3 @@
-// Placeholder for AddEntry screen
 import React, { useState } from 'react';
 import {
   View,
@@ -9,10 +8,13 @@ import {
   Alert,
   TouchableOpacity,
   Image,
+  ActivityIndicator,
+  TextInput,
 } from 'react-native';
 import { launchCamera, launchImageLibrary } from 'react-native-image-picker';
 import { useApp } from '../store/AppContext';
 import { analyzeImage } from '../services/geminiService';
+import { uploadImage } from '../services/storageService';
 import {
   Entry,
   RecordMode,
@@ -22,43 +24,54 @@ import {
   PaymentMethod,
 } from '../types';
 import { Icon } from '../components/Icons';
-import firestore from '@react-native-firebase/firestore'; // Import firestore to use Timestamp
+import firestore from '@react-native-firebase/firestore';
 
 export const AddEntry = () => {
-  const { t, addEntry, mode } = useApp();
+  const { t, addEntry, mode, user } = useApp();
   const [imageUri, setImageUri] = useState<string | null>(null);
   const [analyzing, setAnalyzing] = useState(false);
-  const [analysisResult, setAnalysisResult] = useState<any>(null); // Replace 'any' with appropriate type
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [analysisResult, setAnalysisResult] = useState<any>(null);
+  
+  // Local state for editing values before save
+  const [editedCost, setEditedCost] = useState<string>('');
+  const [editedName, setEditedName] = useState<string>('');
+
+  const cameraOptions = {
+    mediaType: 'photo' as const,
+    includeBase64: true,
+    maxWidth: 1024,
+    maxHeight: 1024,
+    quality: 0.7,
+  };
 
   const handleCamera = async () => {
-    const result = await launchCamera({
-      mediaType: 'photo',
-      includeBase64: true,
-    });
+    const result = await launchCamera(cameraOptions);
     if (result.assets && result.assets[0]) {
       processImage(result.assets[0]);
     }
   };
 
   const handleLibrary = async () => {
-    const result = await launchImageLibrary({
-      mediaType: 'photo',
-      includeBase64: true,
-    });
+    const result = await launchImageLibrary(cameraOptions);
     if (result.assets && result.assets[0]) {
       processImage(result.assets[0]);
     }
   };
 
   const processImage = async (asset: any) => {
-    if (!asset.base64) {
+    if (!asset.base64 || !asset.uri) {
       return;
     }
     setImageUri(asset.uri);
     setAnalyzing(true);
+    setAnalysisResult(null); // Clear previous result
+    
     try {
       const result = await analyzeImage(asset.base64);
       setAnalysisResult(result);
+      setEditedName(result.itemName || '');
+      setEditedCost(result.cost ? result.cost.toString() : '0');
     } catch (error) {
       Alert.alert(t.common.error, t.addEntry.analysisFailed);
     } finally {
@@ -66,48 +79,65 @@ export const AddEntry = () => {
     }
   };
 
-  const handleSave = () => {
-    if (!analysisResult) {
+  const handleSave = async () => {
+    if (!analysisResult || !user) {
       return;
     }
+    
+    setIsSubmitting(true);
 
-    // Determine values based on mode (strict vs conservative)
-    // This logic mirrors the web app's `getFinalValue`
-    const getFinalValue = (
-      val: number | { min: number; max: number } | null | undefined,
-    ): number => {
-      if (val === null || val === undefined) {
-        return 0;
+    try {
+      let finalImageUrl = imageUri;
+
+      // Upload image if it's a local file
+      if (imageUri && !imageUri.startsWith('http')) {
+        finalImageUrl = await uploadImage(imageUri, user.uid);
       }
-      if (typeof val === 'number') {
-        return val;
-      }
-      return mode === RecordMode.STRICT ? val.max : val.min;
-    };
 
-    const newEntry: Entry = {
-      id: Date.now().toString(),
-      date: firestore.Timestamp.now(), // Use Firestore Timestamp
-      imageUrl: imageUri,
-      itemName: analysisResult.itemName || 'Untitled',
-      type: (analysisResult.recordType as EntryType) || 'expense',
-      category: (analysisResult.category as ExpenseCategory) || 'other',
-      paymentMethod: 'cash' as PaymentMethod, // Default
-      usage: (analysisResult.usage as UsageCategory) || 'want',
-      cost: analysisResult.cost || 0,
-      calories: getFinalValue(analysisResult.calories),
-      protein: getFinalValue(analysisResult.macros?.protein),
-      carbs: getFinalValue(analysisResult.macros?.carbs),
-      fat: getFinalValue(analysisResult.macros?.fat),
-      modeUsed: mode,
-      note: analysisResult.reasoning,
-    };
+      const getFinalValue = (
+        val: number | { min: number; max: number } | null | undefined,
+      ): number => {
+        if (val === null || val === undefined) {
+          return 0;
+        }
+        if (typeof val === 'number') {
+          return val;
+        }
+        return mode === RecordMode.STRICT ? val.max : val.min;
+      };
 
-    addEntry(newEntry);
-    Alert.alert(t.common.save, t.addEntry.entrySaved);
-    // Reset state
-    setImageUri(null);
-    setAnalysisResult(null);
+      const newEntry: Entry = {
+        id: Date.now().toString(),
+        date: firestore.Timestamp.now(),
+        imageUrl: finalImageUrl,
+        itemName: editedName || analysisResult.itemName || t.common.untitled,
+        type: (analysisResult.recordType as EntryType) || 'expense',
+        category: (analysisResult.category as ExpenseCategory) || 'other',
+        paymentMethod: 'cash' as PaymentMethod,
+        usage: (analysisResult.usage as UsageCategory) || 'want',
+        cost: parseFloat(editedCost) || 0,
+        calories: getFinalValue(analysisResult.calories),
+        protein: getFinalValue(analysisResult.macros?.protein),
+        carbs: getFinalValue(analysisResult.macros?.carbs),
+        fat: getFinalValue(analysisResult.macros?.fat),
+        modeUsed: mode,
+        note: analysisResult.reasoning,
+      };
+
+      addEntry(newEntry);
+      Alert.alert(t.common.save, t.addEntry.entrySaved);
+      
+      // Reset state
+      setImageUri(null);
+      setAnalysisResult(null);
+      setEditedName('');
+      setEditedCost('');
+    } catch (error) {
+      console.error('Save failed:', error);
+      Alert.alert(t.common.error, 'Failed to save entry. Please try again.');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -131,21 +161,59 @@ export const AddEntry = () => {
       </View>
 
       {analyzing && (
-        <Text style={styles.status}>{t.addEntry.analyzingTitle}</Text>
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color="#000" />
+          <Text style={styles.status}>{t.addEntry.analyzingTitle}</Text>
+          <Text style={styles.subStatus}>{t.addEntry.analyzingDesc}</Text>
+        </View>
       )}
 
-      {imageUri && (
+      {!analyzing && imageUri && (
         <View style={styles.previewContainer}>
           <Image source={{ uri: imageUri }} style={styles.previewImage} />
         </View>
       )}
 
-      {analysisResult && (
+      {!analyzing && analysisResult && (
         <View style={styles.resultContainer}>
-          <Text style={styles.resultTitle}>{analysisResult.itemName}</Text>
-          <Text>Cost: ${analysisResult.cost}</Text>
-          {/* Display other details */}
-          <Button title={t.addEntry.saveEntry} onPress={handleSave} />
+          <Text style={styles.resultHeader}>{t.addEntry.reviewTitle}</Text>
+          
+          <View style={styles.inputGroup}>
+            <Text style={styles.label}>{t.addEntry.itemName}</Text>
+            <TextInput
+              style={styles.input}
+              value={editedName}
+              onChangeText={setEditedName}
+            />
+          </View>
+
+          <View style={styles.inputGroup}>
+            <Text style={styles.label}>{t.addEntry.cost}</Text>
+            <TextInput
+              style={styles.input}
+              value={editedCost}
+              onChangeText={setEditedCost}
+              keyboardType="numeric"
+            />
+          </View>
+          
+          {/* Display read-only info */}
+          <View style={styles.infoRow}>
+             <Text style={styles.infoLabel}>{t.addEntry.category}:</Text>
+             <Text style={styles.infoValue}>{analysisResult.category}</Text>
+          </View>
+          <View style={styles.infoRow}>
+             <Text style={styles.infoLabel}>{t.addEntry.usage}:</Text>
+             <Text style={styles.infoValue}>{analysisResult.usage}</Text>
+          </View>
+
+          <View style={{ marginTop: 20 }}>
+            {isSubmitting ? (
+              <ActivityIndicator size="small" color="#000" />
+            ) : (
+              <Button title={t.addEntry.saveEntry} onPress={handleSave} />
+            )}
+          </View>
         </View>
       )}
     </ScrollView>
@@ -156,13 +224,15 @@ const styles = StyleSheet.create({
   container: {
     padding: 20,
     paddingBottom: 100,
+    backgroundColor: '#fff',
   },
   header: {
     marginBottom: 20,
   },
   title: {
-    fontSize: 24,
+    fontSize: 28,
     fontWeight: 'bold',
+    color: '#000',
     marginBottom: 8,
   },
   subtitle: {
@@ -171,14 +241,14 @@ const styles = StyleSheet.create({
   },
   actionContainer: {
     alignItems: 'center',
-    marginBottom: 20,
+    marginBottom: 24,
     gap: 12,
   },
   captureButton: {
     backgroundColor: '#000',
-    width: 150,
-    height: 150,
-    borderRadius: 75,
+    width: 80,
+    height: 80,
+    borderRadius: 40,
     justifyContent: 'center',
     alignItems: 'center',
     shadowColor: '#000',
@@ -189,8 +259,10 @@ const styles = StyleSheet.create({
   },
   captureText: {
     color: '#fff',
-    marginTop: 8,
+    marginTop: 4,
+    fontSize: 10,
     fontWeight: 'bold',
+    display: 'none', // Hide text for cleaner look, icon is enough
   },
   secondaryButton: {
     padding: 10,
@@ -199,29 +271,76 @@ const styles = StyleSheet.create({
     color: '#007AFF',
     fontSize: 16,
   },
+  loadingContainer: {
+    alignItems: 'center',
+    padding: 20,
+  },
   status: {
     textAlign: 'center',
-    marginVertical: 10,
-    fontSize: 16,
-    color: '#007AFF',
+    marginTop: 10,
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#000',
+  },
+  subStatus: {
+    textAlign: 'center',
+    marginTop: 4,
+    color: '#666',
   },
   previewContainer: {
     alignItems: 'center',
     marginBottom: 20,
   },
   previewImage: {
-    width: 200,
-    height: 200,
-    borderRadius: 10,
+    width: '100%',
+    height: 250,
+    borderRadius: 16,
+    resizeMode: 'cover',
   },
   resultContainer: {
     backgroundColor: '#f9f9f9',
-    padding: 16,
-    borderRadius: 10,
+    padding: 20,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: '#eee',
   },
-  resultTitle: {
-    fontSize: 18,
+  resultHeader: {
+    fontSize: 20,
     fontWeight: 'bold',
-    marginBottom: 10,
+    marginBottom: 16,
+    color: '#000',
+  },
+  inputGroup: {
+    marginBottom: 12,
+  },
+  label: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#333',
+    marginBottom: 4,
+  },
+  input: {
+    backgroundColor: '#fff',
+    borderWidth: 1,
+    borderColor: '#ddd',
+    borderRadius: 8,
+    padding: 10,
+    fontSize: 16,
+    color: '#000',
+  },
+  infoRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 8,
+  },
+  infoLabel: {
+    color: '#666',
+    fontSize: 14,
+  },
+  infoValue: {
+    color: '#000',
+    fontWeight: '500',
+    fontSize: 14,
+    textTransform: 'capitalize',
   },
 });
