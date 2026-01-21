@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { Entry, RecordMode, Language, Theme } from '../types';
 import { DEFAULT_MODE, DEFAULT_LANGUAGE } from '../constants';
-import { TRANSLATIONS } from '../translations';
+import { TRANSLATIONS } from '../../../shared/translations';
 import firestore from '@react-native-firebase/firestore';
 import auth, { FirebaseAuthTypes } from '@react-native-firebase/auth';
 import { GoogleSignin } from '@react-native-google-signin/google-signin';
