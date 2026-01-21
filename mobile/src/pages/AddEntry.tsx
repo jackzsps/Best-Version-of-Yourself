@@ -11,7 +11,7 @@ import {
   ActivityIndicator,
   TextInput,
 } from 'react-native';
-import { launchCamera, launchImageLibrary } from 'react-native-image-picker';
+import { launchCamera, launchImageLibrary, ImageLibraryOptions, CameraOptions } from 'react-native-image-picker';
 import { useApp } from '../store/AppContext';
 import { analyzeImage } from '../services/geminiService';
 import { uploadImage } from '../services/storageService';
@@ -37,23 +37,23 @@ export const AddEntry = () => {
   const [editedCost, setEditedCost] = useState<string>('');
   const [editedName, setEditedName] = useState<string>('');
 
-  const cameraOptions = {
+  const commonOptions = {
     mediaType: 'photo' as const,
     includeBase64: true,
     maxWidth: 1024,
     maxHeight: 1024,
-    quality: 0.7,
+    quality: 0.7 as const,
   };
 
   const handleCamera = async () => {
-    const result = await launchCamera(cameraOptions);
+    const result = await launchCamera(commonOptions as CameraOptions);
     if (result.assets && result.assets[0]) {
       processImage(result.assets[0]);
     }
   };
 
   const handleLibrary = async () => {
-    const result = await launchImageLibrary(cameraOptions);
+    const result = await launchImageLibrary(commonOptions as ImageLibraryOptions);
     if (result.assets && result.assets[0]) {
       processImage(result.assets[0]);
     }
