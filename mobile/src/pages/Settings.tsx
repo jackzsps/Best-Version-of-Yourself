@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
@@ -10,7 +10,7 @@ import {
 import { useNavigation } from '@react-navigation/native';
 import { useApp } from '../store/AppContext';
 import { Icon } from '../components/Icons';
-import { Theme } from '../types';
+import { PaywallModal } from '../components/PaywallModal';
 
 export const Settings = () => {
   const navigation = useNavigation();
@@ -24,8 +24,10 @@ export const Settings = () => {
     setTheme,
     mode,
     setMode,
+    subscription
   } = useApp();
   const isVintage = theme === 'vintage';
+  const [showPaywall, setShowPaywall] = useState(false);
 
   const handleLogout = () => {
     Alert.alert(t.settings.signOut, t.settings.logoutWarning, [
@@ -138,6 +140,12 @@ export const Settings = () => {
               : t.settings.conservative
           }
           onPress={() => setMode(mode === 'strict' ? 'conservative' : 'strict')}
+        />
+        {/* Subscription Test Button */}
+        <SettingItem
+          label={subscription.isPro ? "Manage Subscription" : "Upgrade to Pro (Test)"}
+          value={subscription.isPro ? "Pro Active" : ""}
+          onPress={() => setShowPaywall(true)}
           isLast
         />
       </View>
@@ -166,6 +174,8 @@ export const Settings = () => {
       </TouchableOpacity>
 
       <Text style={styles.versionText}>Version 1.0.0</Text>
+
+      <PaywallModal visible={showPaywall} onClose={() => setShowPaywall(false)} />
     </ScrollView>
   );
 };

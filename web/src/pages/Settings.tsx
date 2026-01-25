@@ -159,7 +159,7 @@ const ConfirmationModal = ({
 };
 
 const Settings = () => {
-  const { mode, setMode, language, setLanguage, theme, setTheme, t, user, logout, isWriting } = useApp();
+  const { mode, setMode, language, setLanguage, theme, setTheme, t, user, logout, isPro, setSubscription } = useApp();
   const { showToast } = useToast();
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [archivedEntries, setArchivedEntries] = useState<Entry[] | null>(null);
@@ -174,11 +174,7 @@ const Settings = () => {
   const styles = THEME_STYLES[theme] || THEME_STYLES.default;
 
   const handleLogout = () => {
-    if (isWriting) {
       setShowLogoutConfirm(true);
-    } else {
-      logout();
-    }
   };
 
   const handleLoadArchive = async () => {
@@ -194,6 +190,29 @@ const Settings = () => {
       setIsLoadingArchive(false);
     }
   };
+
+  const handleTestSubscription = async () => {
+      // Mock Subscription for Web Testing
+      if (!user) {
+          setShowAuthModal(true);
+          return;
+      }
+      
+      const confirm = window.confirm("Enable Pro Mode (Test)?");
+      if (confirm) {
+          try {
+            await setSubscription({
+                status: 'active',
+                productId: 'web_test_pro',
+                purchaseDate: Date.now(),
+                transactionId: `web_test_${Date.now()}`
+            });
+            showToast("Pro mode enabled!", "success");
+          } catch (e) {
+            showToast("Failed to enable Pro mode.", "error");
+          }
+      }
+  }
 
   const confirmDeleteAccount = async (input?: string) => {
     if (!user) return;
@@ -258,6 +277,11 @@ const Settings = () => {
                       <p className={`text-sm truncate ${styles.userEmail}`}>
                         {user.email}
                       </p>
+                      {isPro && (
+                          <span className="inline-block mt-1 px-2 py-0.5 bg-yellow-100 text-yellow-800 text-xs font-bold rounded-full">
+                              PRO
+                          </span>
+                      )}
                     </div>
                  </div>
                  <button onClick={handleLogout} className={`w-full py-3 px-4 rounded-xl text-sm font-bold transition-all ${styles.buttonSecondary}`}>
@@ -286,6 +310,24 @@ const Settings = () => {
              )}
            </div>
         </div>
+        
+        {/* Subscription (Web Test) */}
+        {user && (
+            <div className={styles.card}>
+                <h2 className={styles.textHead}>Subscription (Web Test)</h2>
+                <div className="flex items-center justify-between">
+                    <div>
+                        <p className={styles.textBody + " mb-0"}>Status: {isPro ? "Active" : "Free"}</p>
+                    </div>
+                    <button 
+                        onClick={handleTestSubscription}
+                        className={`px-4 py-2 rounded-xl text-sm font-bold transition-all ${isPro ? styles.buttonSecondary : styles.buttonPrimary}`}
+                    >
+                        {isPro ? "Manage (Mock)" : "Upgrade to Pro (Test)"}
+                    </button>
+                </div>
+            </div>
+        )}
 
         {/* Data Management */}
         {user && (

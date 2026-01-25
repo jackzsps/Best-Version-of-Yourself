@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { Entry, RecordMode, Language, Theme } from '../types';
+import { Entry, RecordMode, Language, Theme, UserSubscription } from '../types';
 import { DEFAULT_MODE, DEFAULT_LANGUAGE } from '../constants';
 import { TRANSLATIONS } from '../../../shared/translations';
 import firestore from '@react-native-firebase/firestore';
@@ -15,6 +15,8 @@ interface AppState {
   language: Language;
   theme: Theme;
   user: FirebaseAuthTypes.User | null;
+  subscription: UserSubscription; // Add subscription state
+  isPro: boolean; // Derived state for easier UI usage
   t: (typeof TRANSLATIONS)['en'];
   addEntry: (entry: Entry) => void;
   updateEntry: (entry: Entry) => void;
@@ -26,6 +28,7 @@ interface AppState {
   loginEmail: (email: string, pass: string) => Promise<void>;
   registerEmail: (email: string, pass: string, name: string) => Promise<void>;
   logout: () => Promise<void>;
+  setSubscription: (sub: UserSubscription) => void; // Add setter
 }
 
 const AppContext = createContext<AppState | undefined>(undefined);
@@ -36,6 +39,10 @@ export const AppProvider = ({ children }: React.PropsWithChildren<{}>) => {
   const [language, setLanguage] = useState<Language>(DEFAULT_LANGUAGE);
   const [theme, setTheme] = useState<Theme>('default');
   const [user, setUser] = useState<FirebaseAuthTypes.User | null>(null);
+  const [subscription, setSubscription] = useState<UserSubscription>({ status: 'inactive' }); // Default to inactive
+
+  // Derived state: isPro is true only if status is active
+  const isPro = subscription.status === 'active';
 
   // 1. Auth Listener
   useEffect(() => {
@@ -43,6 +50,7 @@ export const AppProvider = ({ children }: React.PropsWithChildren<{}>) => {
       setUser(currentUser);
       if (!currentUser) {
         setEntries([]); // Clear entries on logout
+        setSubscription({ status: 'inactive' }); // Reset subscription
       }
     });
     return subscriber; // unsubscribe on unmount
@@ -81,8 +89,32 @@ export const AppProvider = ({ children }: React.PropsWithChildren<{}>) => {
           console.error('Firestore snapshot error:', error);
         },
       );
+    
+    // Sync Subscription Status (assuming it's stored in user document)
+    // We listen to the user document itself
+    const userUnsubscribe = db
+      .collection('users')
+      .doc(user.uid)
+      .onSnapshot(
+        (doc) => {
+          if (doc.exists) {
+            const data = doc.data();
+            // Check if subscription field exists and has status
+            if (data?.subscription?.status) {
+               setSubscription(data.subscription as UserSubscription);
+            } else {
+               // Fallback/Default for existing users who don't have this field yet
+               setSubscription({ status: 'inactive' });
+            }
+          }
+        },
+        (error) => console.error('Firestore user snapshot error:', error)
+      );
 
-    return () => unsubscribe();
+    return () => {
+      unsubscribe();
+      userUnsubscribe();
+    };
   }, [user]);
 
   const loginGoogle = async () => {
@@ -156,6 +188,15 @@ export const AppProvider = ({ children }: React.PropsWithChildren<{}>) => {
 
     db.collection('users').doc(user.uid).collection('entries').doc(id).delete();
   };
+  
+  const updateSubscription = (sub: UserSubscription) => {
+      if (!user) return;
+      setSubscription(sub); // Optimistic update
+      
+      const db = firestore().app.firestore('bvoy');
+      // Merge: true ensures we don't overwrite other user fields (like email, name if stored there)
+      db.collection('users').doc(user.uid).set({ subscription: sub }, { merge: true });
+  }
 
   const t = TRANSLATIONS[language];
 
@@ -167,6 +208,8 @@ export const AppProvider = ({ children }: React.PropsWithChildren<{}>) => {
         language,
         theme,
         user,
+        subscription,
+        isPro,
         t,
         addEntry,
         updateEntry,
@@ -178,6 +221,7 @@ export const AppProvider = ({ children }: React.PropsWithChildren<{}>) => {
         loginEmail,
         registerEmail,
         logout,
+        setSubscription: updateSubscription,
       }}
     >
       {children}

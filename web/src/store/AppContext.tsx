@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { Entry, RecordMode, Language, Theme } from "@shared/types";
+import { Entry, RecordMode, Language, Theme, UserSubscription } from "@shared/types";
 import { DEFAULT_MODE, DEFAULT_LANGUAGE } from "@shared/constants";
 import { TRANSLATIONS } from "@shared/translations";
 import { toast } from './ToastContext';
@@ -14,7 +14,7 @@ import {
   updateProfile,
   User
 } from 'firebase/auth';
-import { auth, googleProvider, appleProvider } from '../utils/firebase';
+import { auth, googleProvider, appleProvider, db } from '../utils/firebase';
 import { 
     uploadImageToCloud, 
     syncEntryToCloud, 
@@ -22,7 +22,7 @@ import {
     listenToEntries, 
     fetchAllFromCloud 
 } from '../services/cloudService';
-import { Unsubscribe } from 'firebase/firestore';
+import { Unsubscribe, doc, onSnapshot, setDoc } from 'firebase/firestore';
 
 interface AppState {
   entries: Entry[];
@@ -30,6 +30,8 @@ interface AppState {
   language: Language;
   theme: Theme;
   user: User | null;
+  subscription: UserSubscription;
+  isPro: boolean;
   t: typeof TRANSLATIONS['en'];
   addEntry: (entry: Entry) => Promise<void>;
   updateEntry: (entry: Entry) => Promise<void>;
@@ -42,6 +44,7 @@ interface AppState {
   loginEmail: (email: string, pass: string) => Promise<void>;
   registerEmail: (email: string, pass: string, name: string) => Promise<void>;
   logout: () => Promise<void>;
+  setSubscription: (sub: UserSubscription) => Promise<void>;
 }
 
 const AppContext = createContext<AppState | undefined>(undefined);
@@ -57,6 +60,10 @@ export const AppProvider = ({ children }: React.PropsWithChildren<{}>) => {
   const [language, setLanguage] = useState<Language>(DEFAULT_LANGUAGE);
   const [theme, setTheme] = useState<Theme>('default');
   const [user, setUser] = useState<User | null>(null);
+  const [subscription, setSubscriptionState] = useState<UserSubscription>({ status: 'inactive' });
+
+  // Derived state: isPro is true only if status is active
+  const isPro = subscription.status === 'active';
 
   // Helper to save entries to the correct local storage key
   const saveToLocal = (data: Entry[], uid: string | null) => {
@@ -89,6 +96,7 @@ export const AppProvider = ({ children }: React.PropsWithChildren<{}>) => {
   // 2. Auth State Change & Data Synchronization
   useEffect(() => {
     let unsubscribe: Unsubscribe | null = null;
+    let userUnsubscribe: Unsubscribe | null = null;
 
     const authUnsubscribe = onAuthStateChanged(auth, async (currentUser) => {
       setUser(currentUser);
@@ -97,6 +105,14 @@ export const AppProvider = ({ children }: React.PropsWithChildren<{}>) => {
       if (unsubscribe) {
         (unsubscribe as Function)();
         unsubscribe = null;
+      }
+      if (userUnsubscribe) {
+        (userUnsubscribe as Function)();
+        userUnsubscribe = null;
+      }
+
+      if (!currentUser) {
+          setSubscriptionState({ status: 'inactive' }); // Reset subscription
       }
 
       const storageKey = getStorageKey(currentUser ? currentUser.uid : null);
@@ -136,6 +152,18 @@ export const AppProvider = ({ children }: React.PropsWithChildren<{}>) => {
             localStorage.setItem(storageKey, JSON.stringify(sortedEntries));
         });
 
+        // C. Listen to User document for subscription status
+        userUnsubscribe = onSnapshot(doc(db, "users", currentUser.uid), (doc) => {
+            if (doc.exists()) {
+                const data = doc.data();
+                if (data?.subscription?.status) {
+                    setSubscriptionState(data.subscription as UserSubscription);
+                } else {
+                    setSubscriptionState({ status: 'inactive' });
+                }
+            }
+        });
+
       } else {
         // --- User is LOGGED OUT / GUEST ---
         console.log("User is guest. Using guest local data only.");
@@ -145,6 +173,7 @@ export const AppProvider = ({ children }: React.PropsWithChildren<{}>) => {
     return () => {
         authUnsubscribe();
         if (unsubscribe) (unsubscribe as Function)();
+        if (userUnsubscribe) (userUnsubscribe as Function)();
     };
   }, []);
 
@@ -275,6 +304,19 @@ export const AppProvider = ({ children }: React.PropsWithChildren<{}>) => {
       }
     }
   };
+  
+  const updateSubscription = async (sub: UserSubscription) => {
+      if (!user) return;
+      setSubscriptionState(sub); // Optimistic update
+      
+      try {
+        await setDoc(doc(db, "users", user.uid), { subscription: sub }, { merge: true });
+      } catch (error) {
+          console.error("Failed to update subscription", error);
+          // Rollback handled by real-time listener eventually, but could add manual rollback here
+          toast.error("Failed to sync subscription status.");
+      }
+  }
 
   const updateMode = (m: RecordMode) => { setMode(m); localStorage.setItem('bvoy_mode', m); };
   const updateLang = (l: Language) => { setLanguage(l); localStorage.setItem('bvoy_language', l); };
@@ -284,10 +326,11 @@ export const AppProvider = ({ children }: React.PropsWithChildren<{}>) => {
 
   return (
     <AppContext.Provider value={{ 
-      entries, mode, language, theme, user, t, 
+      entries, mode, language, theme, user, subscription, isPro, t, 
       addEntry, updateEntry, deleteEntry, 
       setMode: updateMode, setLanguage: updateLang, setTheme: updateTheme,
-      loginGoogle, loginApple, loginEmail, registerEmail, logout
+      loginGoogle, loginApple, loginEmail, registerEmail, logout,
+      setSubscription: updateSubscription
     }}>
       {children}
     </AppContext.Provider>

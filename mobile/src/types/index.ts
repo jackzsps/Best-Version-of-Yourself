@@ -69,3 +69,13 @@ export interface Entry {
 }
 
 export type Tab = 'dashboard' | 'add' | 'settings';
+
+export type SubscriptionStatus = 'active' | 'inactive' | 'expired';
+
+export interface UserSubscription {
+  status: SubscriptionStatus;
+  productId?: string;
+  transactionId?: string;
+  purchaseDate?: number;
+  originalTransactionId?: string; // For restoring
+}
