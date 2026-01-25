@@ -32,6 +32,7 @@ interface AppState {
   user: User | null;
   subscription: UserSubscription;
   isPro: boolean;
+  isWriting: boolean;
   t: typeof TRANSLATIONS['en'];
   addEntry: (entry: Entry) => Promise<void>;
   updateEntry: (entry: Entry) => Promise<void>;
@@ -39,6 +40,7 @@ interface AppState {
   setMode: (mode: RecordMode) => void;
   setLanguage: (lang: Language) => void;
   setTheme: (theme: Theme) => void;
+  setIsWriting: (isWriting: boolean) => void;
   loginGoogle: () => Promise<void>;
   loginApple: () => Promise<void>;
   loginEmail: (email: string, pass: string) => Promise<void>;
@@ -61,6 +63,7 @@ export const AppProvider = ({ children }: React.PropsWithChildren<{}>) => {
   const [theme, setTheme] = useState<Theme>('default');
   const [user, setUser] = useState<User | null>(null);
   const [subscription, setSubscriptionState] = useState<UserSubscription>({ status: 'inactive' });
+  const [isWriting, setIsWriting] = useState(false);
 
   // Derived state: isPro is true only if status is active
   const isPro = subscription.status === 'active';
@@ -326,9 +329,9 @@ export const AppProvider = ({ children }: React.PropsWithChildren<{}>) => {
 
   return (
     <AppContext.Provider value={{ 
-      entries, mode, language, theme, user, subscription, isPro, t, 
+      entries, mode, language, theme, user, subscription, isPro, isWriting, t, 
       addEntry, updateEntry, deleteEntry, 
-      setMode: updateMode, setLanguage: updateLang, setTheme: updateTheme,
+      setMode: updateMode, setLanguage: updateLang, setTheme: updateTheme, setIsWriting,
       loginGoogle, loginApple, loginEmail, registerEmail, logout,
       setSubscription: updateSubscription
     }}>

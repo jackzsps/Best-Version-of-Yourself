@@ -159,7 +159,7 @@ const ConfirmationModal = ({
 };
 
 const Settings = () => {
-  const { mode, setMode, language, setLanguage, theme, setTheme, t, user, logout, isPro, setSubscription } = useApp();
+  const { mode, setMode, language, setLanguage, theme, setTheme, t, user, logout, isWriting,isPro, setSubscription } = useApp();
   const { showToast } = useToast();
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [archivedEntries, setArchivedEntries] = useState<Entry[] | null>(null);
@@ -174,8 +174,13 @@ const Settings = () => {
   const styles = THEME_STYLES[theme] || THEME_STYLES.default;
 
   const handleLogout = () => {
+    if (isWriting) {
       setShowLogoutConfirm(true);
+    } else {
+      logout();
+    }
   };
+
 
   const handleLoadArchive = async () => {
     if (!user) return;
