@@ -24,7 +24,8 @@ export const Settings = () => {
     setTheme,
     mode,
     setMode,
-    subscription
+    subscription,
+    isPro
   } = useApp();
   const isVintage = theme === 'vintage';
   const [showPaywall, setShowPaywall] = useState(false);
@@ -44,6 +45,20 @@ export const Settings = () => {
         },
       },
     ]);
+  };
+  
+  const getSubscriptionStatusText = () => {
+      if (!subscription) return "";
+      
+      if (!isPro) {
+          if (subscription.status === 'pro' || subscription.status === 'trial') return "Expired";
+          return "Free";
+      }
+      
+      if (subscription.status === 'trial') return "Pro (Trial)";
+      if (subscription.status === 'pro') return "Pro Active";
+      
+      return "";
   };
 
   const SettingItem = ({
@@ -143,8 +158,8 @@ export const Settings = () => {
         />
         {/* Subscription Test Button */}
         <SettingItem
-          label={subscription.isPro ? "Manage Subscription" : "Upgrade to Pro (Test)"}
-          value={subscription.isPro ? "Pro Active" : ""}
+          label={isPro ? "Manage Subscription" : "Upgrade to Pro (Test)"}
+          value={getSubscriptionStatusText()}
           onPress={() => setShowPaywall(true)}
           isLast
         />

@@ -25,13 +25,15 @@ import {
 } from '../types';
 import { Icon } from '../components/Icons';
 import firestore from '@react-native-firebase/firestore';
+import { PaywallModal } from '../components/PaywallModal';
 
 export const AddEntry = () => {
-  const { t, addEntry, mode, user } = useApp();
+  const { t, addEntry, mode, user, isPro, subscription } = useApp();
   const [imageUri, setImageUri] = useState<string | null>(null);
   const [analyzing, setAnalyzing] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [analysisResult, setAnalysisResult] = useState<any>(null);
+  const [showPaywall, setShowPaywall] = useState(false);
   
   // Local state for editing values before save
   const [editedCost, setEditedCost] = useState<string>('');
@@ -44,8 +46,20 @@ export const AddEntry = () => {
     maxHeight: 1024,
     quality: 0.7 as const,
   };
+  
+  // Check permission before launching AI
+  const checkPermission = (): boolean => {
+      // 1. If active pro, allow
+      if (isPro) return true;
+      
+      // 2. If expired pro or basic, block and show paywall
+      setShowPaywall(true);
+      return false;
+  }
 
   const handleCamera = async () => {
+    if (!checkPermission()) return;
+    
     const result = await launchCamera(commonOptions as CameraOptions);
     if (result.assets && result.assets[0]) {
       processImage(result.assets[0]);
@@ -53,6 +67,8 @@ export const AddEntry = () => {
   };
 
   const handleLibrary = async () => {
+    if (!checkPermission()) return;
+
     const result = await launchImageLibrary(commonOptions as ImageLibraryOptions);
     if (result.assets && result.assets[0]) {
       processImage(result.assets[0]);
@@ -158,6 +174,13 @@ export const AddEntry = () => {
         >
           <Text style={styles.secondaryButtonText}>Select from Library</Text>
         </TouchableOpacity>
+        
+        {/* Pro Badge/Hint if needed */}
+        {!isPro && (
+            <View style={styles.proHintContainer}>
+                <Text style={styles.proHintText}>Upgrade to Pro to use AI Analysis</Text>
+            </View>
+        )}
       </View>
 
       {analyzing && (
@@ -216,6 +239,8 @@ export const AddEntry = () => {
           </View>
         </View>
       )}
+      
+      <PaywallModal visible={showPaywall} onClose={() => setShowPaywall(false)} />
     </ScrollView>
   );
 };
@@ -270,6 +295,17 @@ const styles = StyleSheet.create({
   secondaryButtonText: {
     color: '#007AFF',
     fontSize: 16,
+  },
+  proHintContainer: {
+      marginTop: 8,
+      padding: 8,
+      backgroundColor: '#FEF2F2',
+      borderRadius: 8,
+  },
+  proHintText: {
+      color: '#EF4444',
+      fontSize: 12,
+      fontWeight: '600',
   },
   loadingContainer: {
     alignItems: 'center',

@@ -70,12 +70,9 @@ export interface Entry {
 
 export type Tab = 'dashboard' | 'add' | 'settings';
 
-export type SubscriptionStatus = 'active' | 'inactive' | 'expired';
+export type SubscriptionStatus = 'trial' | 'pro' | 'basic';
 
 export interface UserSubscription {
   status: SubscriptionStatus;
-  productId?: string;
-  transactionId?: string;
-  purchaseDate?: number;
-  originalTransactionId?: string; // For restoring
+  expiryDate?: FirestoreTimestamp; // Use timestamp for expiry
 }

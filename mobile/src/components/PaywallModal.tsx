@@ -12,6 +12,8 @@ import {
 import { useApp } from '../store/AppContext';
 import { Icon } from './Icons';
 import * as RNIap from 'react-native-iap';
+import firestore from '@react-native-firebase/firestore';
+import { SubscriptionStatus, UserSubscription } from '../types';
 
 const ITEM_SKUS = Platform.select({
   ios: ['com.bestversion.monthly'], // 替換為實際的 Product ID
@@ -24,10 +26,13 @@ interface PaywallModalProps {
 }
 
 export const PaywallModal = ({ visible, onClose }: PaywallModalProps) => {
-  const { t, theme, setSubscription } = useApp();
+  const { t, theme, setSubscription, subscription, isPro } = useApp();
   const [loading, setLoading] = useState(false);
   const [products, setProducts] = useState<RNIap.Product[]>([]);
   const isVintage = theme === 'vintage';
+  
+  // Test Button for Simulator only (since IAP doesn't work on Simulator)
+  const isSimulator = Platform.OS === 'ios' && !Platform.isTV && !Platform.isPad; // Rough check, better to use DeviceInfo.isEmulator()
 
   useEffect(() => {
     if (visible) {
@@ -68,13 +73,19 @@ export const PaywallModal = ({ visible, onClose }: PaywallModalProps) => {
          // Verify receipt here if you have a backend
          console.log('Purchase Successful', purchase);
          
-         // Update global state with status='active'
-         setSubscription({
-             status: 'active',
+         // Update global state with status='pro'
+         const newExpiry = new Date();
+         newExpiry.setMonth(newExpiry.getMonth() + 1); // Add 1 month
+         
+         const newSub: UserSubscription = {
+             status: 'pro',
+             expiryDate: firestore.Timestamp.fromDate(newExpiry) as any,
              productId: purchase.productId,
              transactionId: purchase.transactionId,
              purchaseDate: purchase.transactionDate,
-         });
+         }
+         
+         setSubscription(newSub);
 
          Alert.alert('Success', 'Subscription Successful!');
          onClose();
@@ -99,8 +110,12 @@ export const PaywallModal = ({ visible, onClose }: PaywallModalProps) => {
           const hasPro = purchases.find(p => ITEM_SKUS?.includes(p.productId));
           
           if (hasPro) {
+              const newExpiry = new Date();
+              newExpiry.setMonth(newExpiry.getMonth() + 1); // Mock logic for restore
+
               setSubscription({
-                  status: 'active',
+                  status: 'pro',
+                  expiryDate: firestore.Timestamp.fromDate(newExpiry) as any,
                   productId: hasPro.productId,
                   transactionId: hasPro.transactionId,
                   purchaseDate: hasPro.transactionDate,
@@ -117,6 +132,25 @@ export const PaywallModal = ({ visible, onClose }: PaywallModalProps) => {
       } finally {
           setLoading(false);
       }
+  }
+  
+  const handleTestUpgrade = () => {
+      const isExpired = !isPro && subscription.status === 'pro'; // Was pro but expired
+      
+      const newExpiry = new Date();
+      newExpiry.setDate(newExpiry.getDate() + 14); // Extend 14 days
+      
+      // If currently trial, upgrade to Pro (Test)
+      // If currently Pro (expired), renew Pro
+      
+      const newSub: UserSubscription = {
+          status: 'pro',
+          expiryDate: firestore.Timestamp.fromDate(newExpiry) as any,
+      };
+      
+      setSubscription(newSub);
+      Alert.alert("Success", "Extended Pro (Test) by 14 days!");
+      onClose();
   }
 
   return (
@@ -141,7 +175,7 @@ export const PaywallModal = ({ visible, onClose }: PaywallModalProps) => {
             </Text>
 
              <View style={styles.sandboxBadge}>
-                <Text style={styles.sandboxText}>Sandbox Environment</Text>
+                <Text style={styles.sandboxText}>Test Environment</Text>
              </View>
 
             <View style={[styles.priceContainer, isVintage && styles.vintagePriceContainer]}>
@@ -152,14 +186,14 @@ export const PaywallModal = ({ visible, onClose }: PaywallModalProps) => {
 
             <TouchableOpacity
               style={[styles.subscribeBtn, isVintage && styles.vintageSubscribeBtn]}
-              onPress={handlePurchase}
+              onPress={handleTestUpgrade} // Changed to Test Upgrade for now as per instructions
               disabled={loading}
             >
               {loading ? (
                   <ActivityIndicator color="#fff" />
               ) : (
                   <Text style={[styles.subscribeText, isVintage && styles.vintageSubscribeText]}>
-                    Subscribe Now
+                    Upgrade to Pro (Test) - 14 Days
                   </Text>
               )}
             </TouchableOpacity>
@@ -167,6 +201,10 @@ export const PaywallModal = ({ visible, onClose }: PaywallModalProps) => {
             <TouchableOpacity onPress={handleRestore} style={styles.restoreBtn}>
                 <Text style={[styles.restoreText, isVintage && styles.vintageText]}>Restore Purchase</Text>
             </TouchableOpacity>
+            
+             <Text style={[styles.disclaimer, isVintage && styles.vintageText]}>
+                 * This button simulates purchase for testing.
+             </Text>
           </View>
         </View>
       </View>
@@ -280,5 +318,11 @@ const styles = StyleSheet.create({
       color: '#666',
       fontSize: 14,
       textDecorationLine: 'underline',
+  },
+  disclaimer: {
+      marginTop: 20,
+      fontSize: 12,
+      color: '#999',
+      textAlign: 'center'
   }
 });

@@ -22,7 +22,7 @@ import {
     listenToEntries, 
     fetchAllFromCloud 
 } from '../services/cloudService';
-import { Unsubscribe, doc, onSnapshot, setDoc } from 'firebase/firestore';
+import { Unsubscribe, doc, onSnapshot, setDoc, Timestamp } from 'firebase/firestore';
 
 interface AppState {
   entries: Entry[];
@@ -62,11 +62,21 @@ export const AppProvider = ({ children }: React.PropsWithChildren<{}>) => {
   const [language, setLanguage] = useState<Language>(DEFAULT_LANGUAGE);
   const [theme, setTheme] = useState<Theme>('default');
   const [user, setUser] = useState<User | null>(null);
-  const [subscription, setSubscriptionState] = useState<UserSubscription>({ status: 'inactive' });
+  const [subscription, setSubscriptionState] = useState<UserSubscription>({ status: 'basic' });
   const [isWriting, setIsWriting] = useState(false);
 
-  // Derived state: isPro is true only if status is active
-  const isPro = subscription.status === 'active';
+  // Derived state: isPro is true only if status is active (trial or pro) AND not expired
+  const isPro = (() => {
+    if (subscription.status !== 'pro' && subscription.status !== 'trial') return false;
+    if (!subscription.expiryDate) return false;
+    
+    // Convert Firestore Timestamp to Date for comparison
+    const now = new Date();
+    // Handle both Firestore Timestamp (has seconds/nanoseconds) and generic object cases
+    const expiry = new Date(subscription.expiryDate.seconds * 1000);
+    
+    return expiry > now;
+  })();
 
   // Helper to save entries to the correct local storage key
   const saveToLocal = (data: Entry[], uid: string | null) => {
@@ -115,7 +125,7 @@ export const AppProvider = ({ children }: React.PropsWithChildren<{}>) => {
       }
 
       if (!currentUser) {
-          setSubscriptionState({ status: 'inactive' }); // Reset subscription
+          setSubscriptionState({ status: 'basic' }); // Reset subscription
       }
 
       const storageKey = getStorageKey(currentUser ? currentUser.uid : null);
@@ -162,7 +172,25 @@ export const AppProvider = ({ children }: React.PropsWithChildren<{}>) => {
                 if (data?.subscription?.status) {
                     setSubscriptionState(data.subscription as UserSubscription);
                 } else {
-                    setSubscriptionState({ status: 'inactive' });
+                    // New user logic handled here (set 14 days trial) is usually better in Cloud Functions
+                    // But for client-side logic:
+                    // Only set if completely missing, otherwise default to basic
+                    if (!data?.subscription) {
+                         const trialExpiry = new Date();
+                         trialExpiry.setDate(trialExpiry.getDate() + 14);
+                         const initialSub: UserSubscription = {
+                             status: 'trial',
+                             expiryDate: Timestamp.fromDate(trialExpiry)
+                         };
+                         // We can trigger an update here if we want to initialize it in DB
+                         // But maybe better to wait for a user action or just treat missing as trial?
+                         // For now, let's treat missing as trial in local state, and maybe persist it?
+                         setSubscriptionState(initialSub);
+                         // Ideally, we should persist this "Trial Start" to DB so it doesn't reset on reinstall
+                         // But we'll leave that for the explicit "setSubscription" calls or registration
+                    } else {
+                        setSubscriptionState({ status: 'basic' });
+                    }
                 }
             }
         });
@@ -217,6 +245,16 @@ export const AppProvider = ({ children }: React.PropsWithChildren<{}>) => {
       if (userCredential.user) {
         await updateProfile(userCredential.user, { displayName: name });
         setUser({ ...userCredential.user, displayName: name } as User);
+        
+        // Initialize 14-day trial
+        const trialExpiry = new Date();
+        trialExpiry.setDate(trialExpiry.getDate() + 14);
+        const initialSub: UserSubscription = {
+             status: 'trial',
+             expiryDate: Timestamp.fromDate(trialExpiry)
+        };
+        await setDoc(doc(db, "users", userCredential.user.uid), { subscription: initialSub }, { merge: true });
+
         toast.success("Account created successfully!");
       }
     } catch (error: any) {

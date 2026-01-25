@@ -1,3 +1,4 @@
+// shared/types.ts
 import { Timestamp } from 'firebase/firestore';
 
 export enum RecordMode {
@@ -36,26 +37,17 @@ export interface AnalysisResult {
   macros: Macros | null;
   reasoning: string;
 }
-// 1. 新增這個定義，方便管理
+
 export interface FirestoreTimestamp {
   seconds: number;
   nanoseconds: number;
 }
 
-
-
 export interface Entry {
   id: string;
-  
-//🔴 刪除這行: timestamp: number;
-  //timestamp: number;
-  //date: Timestamp; // Added date field for Firestore queries
   date: FirestoreTimestamp;
-
-// 🟢 修改這兩行，明確允許 null (這樣跟 AddEntry 的 || null 才能配合)
-imageUrl?: string | null; 
-note?: string | null;
-
+  imageUrl?: string | null; 
+  note?: string | null;
   itemName: string;
   type: EntryType;
   category: ExpenseCategory;
@@ -67,7 +59,14 @@ note?: string | null;
   carbs: number;
   fat: number;
   modeUsed: RecordMode;
-  //note?: string;
 }
 
 export type Tab = 'dashboard' | 'add' | 'settings';
+
+// Subscription Types
+export type SubscriptionStatus = 'trial' | 'pro' | 'basic';
+
+export interface UserSubscription {
+  status: SubscriptionStatus;
+  expiryDate?: FirestoreTimestamp; // Use timestamp for expiry
+}

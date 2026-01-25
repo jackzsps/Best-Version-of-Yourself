@@ -7,6 +7,7 @@ import { Link } from 'react-router-dom';
 import { httpsCallable } from 'firebase/functions';
 import { functions } from '../utils/firebase';
 import { useToast } from '../store/ToastContext';
+import { Timestamp } from 'firebase/firestore';
 
 // --- Theme Configuration ---
 // This extracts the styling logic out of the component render cycle.
@@ -159,7 +160,7 @@ const ConfirmationModal = ({
 };
 
 const Settings = () => {
-  const { mode, setMode, language, setLanguage, theme, setTheme, t, user, logout, isWriting,isPro, setSubscription } = useApp();
+  const { mode, setMode, language, setLanguage, theme, setTheme, t, user, logout, isWriting, isPro, subscription, setSubscription } = useApp();
   const { showToast } = useToast();
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [archivedEntries, setArchivedEntries] = useState<Entry[] | null>(null);
@@ -203,20 +204,44 @@ const Settings = () => {
           return;
       }
       
-      const confirm = window.confirm("Enable Pro Mode (Test)?");
-      if (confirm) {
-          try {
-            await setSubscription({
-                status: 'active',
-                productId: 'web_test_pro',
-                purchaseDate: Date.now(),
-                transactionId: `web_test_${Date.now()}`
-            });
-            showToast("Pro mode enabled!", "success");
-          } catch (e) {
-            showToast("Failed to enable Pro mode.", "error");
-          }
+      const isExpired = !isPro && subscription.status === 'pro'; // Was pro but expired
+      const isTrial = subscription.status === 'trial';
+      
+      const newExpiry = new Date();
+      newExpiry.setDate(newExpiry.getDate() + 14);
+
+      try {
+        await setSubscription({
+            status: 'pro',
+            expiryDate: Timestamp.fromDate(newExpiry)
+        });
+        showToast("Pro mode extended by 14 days (Test)!", "success");
+      } catch (e) {
+        showToast("Failed to extend Pro mode.", "error");
       }
+  }
+  
+  const getSubscriptionDisplay = () => {
+      if (!subscription) return "Unknown";
+      
+      // Basic / Trial / Pro
+      // Check expiry first
+      if (!isPro) {
+          if (subscription.status === 'pro' || subscription.status === 'trial') return "Expired";
+          return "Basic";
+      }
+      
+      if (subscription.status === 'trial') return "Pro (Trial)";
+      if (subscription.status === 'pro') return "Pro";
+      
+      return "Basic";
+  }
+  
+  const getExpiryDisplay = () => {
+      if (!subscription?.expiryDate) return null;
+      
+      const date = new Date(subscription.expiryDate.seconds * 1000);
+      return date.toLocaleDateString();
   }
 
   const confirmDeleteAccount = async (input?: string) => {
@@ -282,11 +307,13 @@ const Settings = () => {
                       <p className={`text-sm truncate ${styles.userEmail}`}>
                         {user.email}
                       </p>
-                      {isPro && (
-                          <span className="inline-block mt-1 px-2 py-0.5 bg-yellow-100 text-yellow-800 text-xs font-bold rounded-full">
-                              PRO
+                      <div className="flex gap-2 mt-1">
+                          <span className={`inline-block px-2 py-0.5 text-xs font-bold rounded-full ${
+                              isPro ? 'bg-yellow-100 text-yellow-800' : 'bg-gray-100 text-gray-500'
+                          }`}>
+                              {getSubscriptionDisplay()}
                           </span>
-                      )}
+                      </div>
                     </div>
                  </div>
                  <button onClick={handleLogout} className={`w-full py-3 px-4 rounded-xl text-sm font-bold transition-all ${styles.buttonSecondary}`}>
@@ -320,16 +347,32 @@ const Settings = () => {
         {user && (
             <div className={styles.card}>
                 <h2 className={styles.textHead}>Subscription (Web Test)</h2>
-                <div className="flex items-center justify-between">
-                    <div>
-                        <p className={styles.textBody + " mb-0"}>Status: {isPro ? "Active" : "Free"}</p>
+                <div className="flex flex-col gap-3">
+                    <div className="flex justify-between items-center">
+                        <span className="text-gray-600 font-medium">Status:</span>
+                        <span className={`font-bold ${isPro ? 'text-green-600' : 'text-gray-500'}`}>
+                             {getSubscriptionDisplay()}
+                        </span>
                     </div>
+                    
+                    {getExpiryDisplay() && (
+                        <div className="flex justify-between items-center text-sm">
+                            <span className="text-gray-500">Expires:</span>
+                            <span>{getExpiryDisplay()}</span>
+                        </div>
+                    )}
+                    
                     <button 
                         onClick={handleTestSubscription}
-                        className={`px-4 py-2 rounded-xl text-sm font-bold transition-all ${isPro ? styles.buttonSecondary : styles.buttonPrimary}`}
+                        className={`mt-2 w-full px-4 py-3 rounded-xl text-sm font-bold transition-all 
+                            ${!isPro ? 'bg-brand-600 text-white shadow-lg hover:bg-brand-700 ring-2 ring-brand-200' : styles.buttonSecondary}
+                        `}
                     >
-                        {isPro ? "Manage (Mock)" : "Upgrade to Pro (Test)"}
+                        {!isPro ? "Re-activate Pro (Test) - 14 Days" : "Extend Pro (Test) - 14 Days"}
                     </button>
+                    <p className="text-xs text-center text-gray-400 mt-1">
+                        * Use this button to simulate purchase/renewal
+                    </p>
                 </div>
             </div>
         )}

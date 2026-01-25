@@ -39,10 +39,22 @@ export const AppProvider = ({ children }: React.PropsWithChildren<{}>) => {
   const [language, setLanguage] = useState<Language>(DEFAULT_LANGUAGE);
   const [theme, setTheme] = useState<Theme>('default');
   const [user, setUser] = useState<FirebaseAuthTypes.User | null>(null);
-  const [subscription, setSubscription] = useState<UserSubscription>({ status: 'inactive' }); // Default to inactive
+  const [subscription, setSubscription] = useState<UserSubscription>({ status: 'basic' }); // Default to basic
 
-  // Derived state: isPro is true only if status is active
-  const isPro = subscription.status === 'active';
+  // Derived state: isPro is true only if status is active (trial or pro) AND not expired
+  const isPro = (() => {
+    if (subscription.status !== 'pro' && subscription.status !== 'trial') return false;
+    if (!subscription.expiryDate) return false;
+    
+    // Convert Firestore Timestamp to Date for comparison
+    const now = new Date();
+    // Handle both Firestore Timestamp (has seconds/nanoseconds) and generic object cases
+    // React Native Firebase Timestamp often behaves slightly differently but usually has toDate() or seconds
+    const expirySeconds = (subscription.expiryDate as any).seconds ?? 0;
+    const expiry = new Date(expirySeconds * 1000);
+    
+    return expiry > now;
+  })();
 
   // 1. Auth Listener
   useEffect(() => {
@@ -50,7 +62,7 @@ export const AppProvider = ({ children }: React.PropsWithChildren<{}>) => {
       setUser(currentUser);
       if (!currentUser) {
         setEntries([]); // Clear entries on logout
-        setSubscription({ status: 'inactive' }); // Reset subscription
+        setSubscription({ status: 'basic' }); // Reset subscription
       }
     });
     return subscriber; // unsubscribe on unmount
@@ -104,7 +116,9 @@ export const AppProvider = ({ children }: React.PropsWithChildren<{}>) => {
                setSubscription(data.subscription as UserSubscription);
             } else {
                // Fallback/Default for existing users who don't have this field yet
-               setSubscription({ status: 'inactive' });
+               // If no subscription data, consider it basic or check if we should init trial
+               // Here we keep it basic to avoid infinite loops or overwrites without user action
+               setSubscription({ status: 'basic' });
             }
           }
         },
@@ -140,6 +154,17 @@ export const AppProvider = ({ children }: React.PropsWithChildren<{}>) => {
     if (userCredential.user) {
       await userCredential.user.updateProfile({ displayName: name });
       setUser(auth().currentUser); // Force update state
+      
+      // Initialize 14-day trial
+      const trialExpiry = new Date();
+      trialExpiry.setDate(trialExpiry.getDate() + 14);
+      const initialSub: UserSubscription = {
+           status: 'trial',
+           expiryDate: firestore.Timestamp.fromDate(trialExpiry) as any
+      };
+      
+      const db = firestore().app.firestore('bvoy');
+      await db.collection('users').doc(userCredential.user.uid).set({ subscription: initialSub }, { merge: true });
     }
   };
 
