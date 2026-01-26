@@ -48,7 +48,7 @@ function isValidRecordType(recordType: any): recordType is EntryType {
 // --- Main Component: AddEntry ---
 
 const AddEntry = () => {
-  const { mode, addEntry, t, language, theme, user } = useApp();
+  const { mode, addEntry, t, language, theme, user, isPro } = useApp();
   const { showToast } = useToast();
   const navigate = useNavigate();
 
@@ -137,6 +137,16 @@ const AddEntry = () => {
     setStep('upload');
     setImagePreview(null);
   };
+  
+  // Check permission helper for Web
+  const checkPermission = (): boolean => {
+      if (isPro) return true;
+      
+      showToast(t.addEntry.subscriptionExpiredDesc || "Please upgrade to Pro.", "error");
+      // Optionally navigate to settings or show a modal
+      navigate('/settings');
+      return false;
+  };
 
   const performAnalysis = async (base64: string) => {
     setError(null);
@@ -158,6 +168,12 @@ const AddEntry = () => {
   };
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    // Check permission first
+    if (!checkPermission()) {
+        e.target.value = ''; // Reset input
+        return;
+    }
+
     const file = e.target.files?.[0];
     if (file) {
       try {

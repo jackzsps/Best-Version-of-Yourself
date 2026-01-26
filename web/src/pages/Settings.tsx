@@ -368,6 +368,12 @@ const Settings = () => {
                         <span className={styles.label}>Email</span>
                         <span className={styles.value}>{user.email || 'Guest'}</span>
                     </div>
+                    {isPro && (
+                        <div className={styles.item + " cursor-default hover:bg-transparent"}>
+                             <span className={styles.label}>Expires</span>
+                             <span className={styles.value}>{getExpiryDisplay() || 'Never'}</span>
+                        </div>
+                    )}
                  </div>
 
                  <button onClick={handleLogout} className={`w-full py-3 px-4 rounded-xl text-sm font-bold transition-all mt-4 ${styles.buttonSecondary}`}>

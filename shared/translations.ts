@@ -13,6 +13,7 @@ export const TRANSLATIONS = {
       reset: 'Reset',
       untitled: 'Untitled',
       or: 'OR',
+      saved: 'Saved successfully!',
     },
     nav: {
       home: 'Home',
@@ -97,11 +98,15 @@ export const TRANSLATIONS = {
       detectedRange: 'Detected Range:',
       saveEntry: 'Save Entry',
       analysisFailed: 'Analysis failed. Please try again or enter manually.',
+      analysisSuccess: 'AI Analysis Complete!',
       entrySaved: 'Entry saved!',
       modeStrict: 'Strict (Max)',
       modeConservative: 'Conservative (Min)',
       disclaimer:
         'AI analysis results are for reference only and should not be considered professional medical advice.',
+      subscriptionExpired: 'Account Expired',
+      subscriptionExpiredDesc: 'Your trial or subscription has ended. Please upgrade to Pro to continue using AI features.',
+      upgrade: 'Upgrade to Pro',
     },
     entryTypes: {
       combined: 'Both',
@@ -189,6 +194,7 @@ export const TRANSLATIONS = {
       reset: '重設',
       untitled: '未命名',
       or: '或',
+      saved: '儲存成功！',
     },
     nav: {
       home: '首頁',
@@ -270,10 +276,14 @@ export const TRANSLATIONS = {
       detectedRange: '偵測範圍：',
       saveEntry: '儲存紀錄',
       analysisFailed: '分析失敗，請重試或手動輸入。',
+      analysisSuccess: 'AI 分析完成！',
       entrySaved: '紀錄已儲存！',
       modeStrict: '偏重口 (最大值)',
       modeConservative: '偏清淡 (最小值)',
       disclaimer: 'AI 分析結果僅供參考，不應視為專業醫療建議。',
+      subscriptionExpired: '帳號已過期',
+      subscriptionExpiredDesc: '您的試用或訂閱已結束。請升級 Pro 版以繼續使用 AI 功能。',
+      upgrade: '升級 Pro',
     },
     entryTypes: {
       combined: '完整紀錄',

@@ -3,13 +3,13 @@ import {
   View,
   Text,
   StyleSheet,
-  Button,
   ScrollView,
   Alert,
   TouchableOpacity,
   Image,
   ActivityIndicator,
   TextInput,
+  Button
 } from 'react-native';
 import { launchCamera, launchImageLibrary, ImageLibraryOptions, CameraOptions } from 'react-native-image-picker';
 import { useApp } from '../store/AppContext';
@@ -52,8 +52,15 @@ export const AddEntry = () => {
       // 1. If active pro, allow
       if (isPro) return true;
       
-      // 2. If expired pro or basic, block and show paywall
-      setShowPaywall(true);
+      // 2. If expired pro or basic, block and show paywall with slogan
+      Alert.alert(
+          t.addEntry.subscriptionExpired, 
+          t.addEntry.subscriptionExpiredDesc,
+          [
+             { text: t.common.cancel, style: "cancel" },
+             { text: t.addEntry.upgrade, onPress: () => setShowPaywall(true) }
+          ]
+      );
       return false;
   }
 
@@ -166,8 +173,9 @@ export const AddEntry = () => {
       <View style={styles.actionContainer}>
         <TouchableOpacity style={styles.captureButton} onPress={handleCamera}>
           <Icon name="camera" size={32} color="#fff" />
-          <Text style={styles.captureText}>{t.addEntry.tapToCapture}</Text>
         </TouchableOpacity>
+        <Text style={styles.captureText}>{t.addEntry.tapToCapture}</Text>
+        
         <TouchableOpacity
           style={styles.secondaryButton}
           onPress={handleLibrary}
@@ -178,7 +186,7 @@ export const AddEntry = () => {
         {/* Pro Badge/Hint if needed */}
         {!isPro && (
             <View style={styles.proHintContainer}>
-                <Text style={styles.proHintText}>Upgrade to Pro to use AI Analysis</Text>
+                <Text style={styles.proHintText}>{t.addEntry.subscriptionExpiredDesc}</Text>
             </View>
         )}
       </View>
@@ -234,7 +242,9 @@ export const AddEntry = () => {
             {isSubmitting ? (
               <ActivityIndicator size="small" color="#000" />
             ) : (
-              <Button title={t.addEntry.saveEntry} onPress={handleSave} />
+               <TouchableOpacity style={styles.saveButton} onPress={handleSave}>
+                  <Text style={styles.saveButtonText}>{t.addEntry.saveEntry}</Text>
+               </TouchableOpacity>
             )}
           </View>
         </View>
@@ -250,9 +260,11 @@ const styles = StyleSheet.create({
     padding: 20,
     paddingBottom: 100,
     backgroundColor: '#fff',
+    flexGrow: 1,
   },
   header: {
     marginBottom: 20,
+    marginTop: 40,
   },
   title: {
     fontSize: 28,
@@ -283,11 +295,10 @@ const styles = StyleSheet.create({
     elevation: 5,
   },
   captureText: {
-    color: '#fff',
+    color: '#000',
     marginTop: 4,
-    fontSize: 10,
+    fontSize: 14,
     fontWeight: 'bold',
-    display: 'none', // Hide text for cleaner look, icon is enough
   },
   secondaryButton: {
     padding: 10,
@@ -306,6 +317,7 @@ const styles = StyleSheet.create({
       color: '#EF4444',
       fontSize: 12,
       fontWeight: '600',
+      textAlign: 'center'
   },
   loadingContainer: {
     alignItems: 'center',
@@ -339,6 +351,7 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     borderWidth: 1,
     borderColor: '#eee',
+    marginBottom: 40,
   },
   resultHeader: {
     fontSize: 20,
@@ -379,4 +392,15 @@ const styles = StyleSheet.create({
     fontSize: 14,
     textTransform: 'capitalize',
   },
+  saveButton: {
+      backgroundColor: '#000',
+      padding: 16,
+      borderRadius: 12,
+      alignItems: 'center',
+  },
+  saveButtonText: {
+      color: '#fff',
+      fontWeight: 'bold',
+      fontSize: 16,
+  }
 });

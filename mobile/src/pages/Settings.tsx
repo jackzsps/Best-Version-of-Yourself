@@ -98,7 +98,7 @@ export const Settings = () => {
   );
 
   const SectionHeader = ({ title }: { title: string }) => (
-    <Text style={isVintage ? styles.vintageSectionHeader : styles.sectionHeader}>
+    <Text style={[isVintage ? styles.vintageSectionHeader : styles.sectionHeader, { marginTop: 24, marginLeft: 20 }]}>
       {title}
     </Text>
   );
@@ -224,16 +224,12 @@ const styles = StyleSheet.create({
     color: '#6B7280',
     textTransform: 'uppercase',
     marginBottom: 8,
-    marginLeft: 20,
-    marginTop: 24,
   },
   vintageSectionHeader: {
     fontSize: 13,
     color: '#92400e',
     textTransform: 'uppercase',
     marginBottom: 8,
-    marginLeft: 20,
-    marginTop: 24,
     fontFamily: 'Courier',
     fontWeight: 'bold',
   },

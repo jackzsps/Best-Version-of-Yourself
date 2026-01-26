@@ -113,14 +113,16 @@ export const PaywallModal = ({ visible, onClose }: PaywallModalProps) => {
               const newExpiry = new Date();
               newExpiry.setMonth(newExpiry.getMonth() + 1); // Mock logic for restore
 
-              setSubscription({
+              const newSub: UserSubscription = {
                   status: 'pro',
                   expiryDate: firestore.Timestamp.fromDate(newExpiry) as any,
                   productId: hasPro.productId,
                   transactionId: hasPro.transactionId,
                   purchaseDate: hasPro.transactionDate,
                   originalTransactionId: hasPro.originalTransactionIdIOS
-              });
+              };
+              
+              setSubscription(newSub);
               Alert.alert('Restore Successful', 'Your Pro subscription has been restored.');
               onClose();
           } else {

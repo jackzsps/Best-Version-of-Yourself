@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { Entry, RecordMode, Language, Theme, UserSubscription } from '../types';
-import { DEFAULT_MODE, DEFAULT_LANGUAGE } from '../constants';
-import { TRANSLATIONS } from '../../../shared/translations';
+import { Entry, RecordMode, Language, Theme, UserSubscription } from '@shared/types';
+import { DEFAULT_MODE, DEFAULT_LANGUAGE } from '@shared/constants';
+import { TRANSLATIONS } from '@shared/translations';
 import firestore from '@react-native-firebase/firestore';
 import auth, { FirebaseAuthTypes } from '@react-native-firebase/auth';
 import { GoogleSignin } from '@react-native-google-signin/google-signin';
@@ -39,7 +39,7 @@ export const AppProvider = ({ children }: React.PropsWithChildren<{}>) => {
   const [language, setLanguage] = useState<Language>(DEFAULT_LANGUAGE);
   const [theme, setTheme] = useState<Theme>('default');
   const [user, setUser] = useState<FirebaseAuthTypes.User | null>(null);
-  const [subscription, setSubscription] = useState<UserSubscription>({ status: 'basic' }); // Default to basic
+  const [subscription, setSubscriptionState] = useState<UserSubscription>({ status: 'basic' }); // Default to basic
 
   // Derived state: isPro is true only if status is active (trial or pro) AND not expired
   const isPro = (() => {
@@ -62,7 +62,7 @@ export const AppProvider = ({ children }: React.PropsWithChildren<{}>) => {
       setUser(currentUser);
       if (!currentUser) {
         setEntries([]); // Clear entries on logout
-        setSubscription({ status: 'basic' }); // Reset subscription
+        setSubscriptionState({ status: 'basic' }); // Reset subscription
       }
     });
     return subscriber; // unsubscribe on unmount
@@ -76,7 +76,9 @@ export const AppProvider = ({ children }: React.PropsWithChildren<{}>) => {
     }
 
     // Use specific database instance 'bvoy'
-    const db = firestore().app.firestore('bvoy');
+    // In React Native Firebase, you might not be able to name instances like in web if not configured.
+    // Usually firestore() is enough if using default app. If using named app, firestore(app)
+    const db = firestore(); 
 
     const unsubscribe = db
       .collection('users')
@@ -113,12 +115,12 @@ export const AppProvider = ({ children }: React.PropsWithChildren<{}>) => {
             const data = doc.data();
             // Check if subscription field exists and has status
             if (data?.subscription?.status) {
-               setSubscription(data.subscription as UserSubscription);
+               setSubscriptionState(data.subscription as UserSubscription);
             } else {
                // Fallback/Default for existing users who don't have this field yet
                // If no subscription data, consider it basic or check if we should init trial
                // Here we keep it basic to avoid infinite loops or overwrites without user action
-               setSubscription({ status: 'basic' });
+               setSubscriptionState({ status: 'basic' });
             }
           }
         },
@@ -153,7 +155,7 @@ export const AppProvider = ({ children }: React.PropsWithChildren<{}>) => {
     );
     if (userCredential.user) {
       await userCredential.user.updateProfile({ displayName: name });
-      setUser(auth().currentUser); // Force update state
+      // setUser(auth().currentUser); // Force update state if needed, but onAuthStateChanged handles it
       
       // Initialize 14-day trial
       const trialExpiry = new Date();
@@ -163,8 +165,9 @@ export const AppProvider = ({ children }: React.PropsWithChildren<{}>) => {
            expiryDate: firestore.Timestamp.fromDate(trialExpiry) as any
       };
       
-      const db = firestore().app.firestore('bvoy');
+      const db = firestore();
       await db.collection('users').doc(userCredential.user.uid).set({ subscription: initialSub }, { merge: true });
+      setSubscriptionState(initialSub);
     }
   };
 
@@ -181,8 +184,7 @@ export const AppProvider = ({ children }: React.PropsWithChildren<{}>) => {
     // The SDK handles local cache immediately (Optimistic UI) and syncs later.
     // No need for manual setEntries or local storage manipulation.
 
-    // Use specific database instance 'bvoy'
-    const db = firestore().app.firestore('bvoy');
+    const db = firestore();
 
     db.collection('users').doc(user.uid).collection('entries').add(entry);
   };
@@ -193,8 +195,7 @@ export const AppProvider = ({ children }: React.PropsWithChildren<{}>) => {
     }
     const { id, ...data } = updatedEntry;
 
-    // Use specific database instance 'bvoy'
-    const db = firestore().app.firestore('bvoy');
+    const db = firestore();
 
     db.collection('users')
       .doc(user.uid)
@@ -208,17 +209,16 @@ export const AppProvider = ({ children }: React.PropsWithChildren<{}>) => {
       return;
     }
 
-    // Use specific database instance 'bvoy'
-    const db = firestore().app.firestore('bvoy');
+    const db = firestore();
 
     db.collection('users').doc(user.uid).collection('entries').doc(id).delete();
   };
   
   const updateSubscription = (sub: UserSubscription) => {
       if (!user) return;
-      setSubscription(sub); // Optimistic update
+      setSubscriptionState(sub); // Optimistic update
       
-      const db = firestore().app.firestore('bvoy');
+      const db = firestore();
       // Merge: true ensures we don't overwrite other user fields (like email, name if stored there)
       db.collection('users').doc(user.uid).set({ subscription: sub }, { merge: true });
   }

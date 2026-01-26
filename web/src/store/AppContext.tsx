@@ -166,32 +166,41 @@ export const AppProvider = ({ children }: React.PropsWithChildren<{}>) => {
         });
 
         // C. Listen to User document for subscription status
-        userUnsubscribe = onSnapshot(doc(db, "users", currentUser.uid), (doc) => {
-            if (doc.exists()) {
-                const data = doc.data();
+        userUnsubscribe = onSnapshot(doc(db, "users", currentUser.uid), async (docSnapshot) => {
+            if (docSnapshot.exists()) {
+                const data = docSnapshot.data();
                 if (data?.subscription?.status) {
                     setSubscriptionState(data.subscription as UserSubscription);
                 } else {
-                    // New user logic handled here (set 14 days trial) is usually better in Cloud Functions
-                    // But for client-side logic:
-                    // Only set if completely missing, otherwise default to basic
-                    if (!data?.subscription) {
-                         const trialExpiry = new Date();
-                         trialExpiry.setDate(trialExpiry.getDate() + 14);
-                         const initialSub: UserSubscription = {
-                             status: 'trial',
-                             expiryDate: Timestamp.fromDate(trialExpiry)
-                         };
-                         // We can trigger an update here if we want to initialize it in DB
-                         // But maybe better to wait for a user action or just treat missing as trial?
-                         // For now, let's treat missing as trial in local state, and maybe persist it?
-                         setSubscriptionState(initialSub);
-                         // Ideally, we should persist this "Trial Start" to DB so it doesn't reset on reinstall
-                         // But we'll leave that for the explicit "setSubscription" calls or registration
-                    } else {
-                        setSubscriptionState({ status: 'basic' });
+                    // Initialize if missing
+                    const trialExpiry = new Date();
+                    trialExpiry.setDate(trialExpiry.getDate() + 14);
+                    const initialSub: UserSubscription = {
+                         status: 'trial',
+                         expiryDate: Timestamp.fromDate(trialExpiry)
+                    };
+                    // Write to DB
+                    try {
+                        await setDoc(doc(db, "users", currentUser.uid), { subscription: initialSub }, { merge: true });
+                        setSubscriptionState(initialSub);
+                    } catch (e) {
+                        console.error("Failed to init subscription", e);
                     }
                 }
+            } else {
+                 // Document doesn't exist at all, create it with trial
+                 const trialExpiry = new Date();
+                 trialExpiry.setDate(trialExpiry.getDate() + 14);
+                 const initialSub: UserSubscription = {
+                      status: 'trial',
+                      expiryDate: Timestamp.fromDate(trialExpiry)
+                 };
+                 try {
+                     await setDoc(doc(db, "users", currentUser.uid), { subscription: initialSub }, { merge: true });
+                     setSubscriptionState(initialSub);
+                 } catch (e) {
+                     console.error("Failed to create user doc with subscription", e);
+                 }
             }
         });
 
