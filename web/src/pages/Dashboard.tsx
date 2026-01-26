@@ -131,7 +131,8 @@ const Dashboard = () => {
       
       // 如果是「本日」，顯示 '本日' (需確認翻譯檔有此key) 或直接顯示日期
       if (timeRange === 'today') {
-          displayName = t.dashboard.timeRange?.today || d.toLocaleDateString(dateLocale, { month: 'numeric', day: 'numeric' });
+          // t.dashboard.timeRange?.today 
+          displayName = d.toLocaleDateString(dateLocale, { month: 'numeric', day: 'numeric' });
       }
       // 如果是「本季」，顯示日期 (如 10/27) 避免全是 '週X'
       else if (timeRange === 'quarter') {

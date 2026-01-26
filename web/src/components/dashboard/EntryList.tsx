@@ -1,5 +1,5 @@
 import React from 'react';
-import { Entry, Theme } from '../@shared/types';
+import { Entry, Theme } from '@shared/types';
 import { getUsageBadgeStyle } from '../ThemeUI';
 
 interface EntryListProps {

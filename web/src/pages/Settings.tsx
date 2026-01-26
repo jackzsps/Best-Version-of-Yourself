@@ -8,6 +8,7 @@ import { httpsCallable } from 'firebase/functions';
 import { functions } from '../utils/firebase';
 import { useToast } from '../store/ToastContext';
 import { Timestamp } from 'firebase/firestore';
+import { Icon } from '../components/Icons';
 
 // --- Theme Configuration ---
 // This extracts the styling logic out of the component render cycle.
@@ -30,6 +31,9 @@ type ThemeClasses = {
   inputContainer: (isActive: boolean) => string;
   tabContainer: string;
   tabButton: (isActive: boolean) => string;
+  item: string;
+  label: string;
+  value: string;
 };
 
 const THEME_STYLES: Record<Theme, ThemeClasses> = {
@@ -56,6 +60,9 @@ const THEME_STYLES: Record<Theme, ThemeClasses> = {
       `flex-1 py-2 text-sm font-bold rounded-lg transition-all ${
         isActive ? 'bg-white shadow text-brand-600' : 'text-gray-500'
       }`,
+    item: 'flex items-center justify-between py-4 border-b border-gray-100 last:border-0 cursor-pointer hover:bg-gray-50 px-2 -mx-2 rounded-lg transition-colors',
+    label: 'text-gray-900 font-medium',
+    value: 'text-gray-500 text-sm',
   },
   vintage: {
     container: 'bg-vintage-bg text-vintage-ink overflow-y-auto h-full',
@@ -80,6 +87,9 @@ const THEME_STYLES: Record<Theme, ThemeClasses> = {
       `flex-1 py-2 text-sm font-bold rounded-lg transition-all ${
         isActive ? 'bg-vintage-ink text-vintage-bg shadow' : 'text-gray-500'
       }`,
+    item: 'flex items-center justify-between py-4 border-b border-dashed border-vintage-line/50 last:border-0 cursor-pointer hover:bg-vintage-line/10 px-2 -mx-2 rounded-sm transition-colors',
+    label: 'text-vintage-ink font-typewriter',
+    value: 'text-vintage-leather font-typewriter text-sm',
   },
 };
 
@@ -204,9 +214,6 @@ const Settings = () => {
           return;
       }
       
-      const isExpired = !isPro && subscription.status === 'pro'; // Was pro but expired
-      const isTrial = subscription.status === 'trial';
-      
       const newExpiry = new Date();
       newExpiry.setDate(newExpiry.getDate() + 14);
 
@@ -277,6 +284,44 @@ const Settings = () => {
     }
   };
 
+  const SettingItem = ({
+    label,
+    value,
+    onPress,
+    isLink = false,
+    to = '',
+  }: {
+    label: string;
+    value?: string;
+    onPress?: () => void;
+    isLink?: boolean;
+    to?: string;
+  }) => {
+    const Content = () => (
+      <>
+        <span className={styles.label}>{label}</span>
+        <div className="flex items-center gap-2">
+            {value && <span className={styles.value}>{value}</span>}
+            <Icon name="arrowRight" className={`w-4 h-4 ${theme === 'vintage' ? 'text-vintage-ink' : 'text-gray-400'}`} />
+        </div>
+      </>
+    );
+
+    if (isLink && to) {
+        return (
+            <Link to={to} className={styles.item}>
+                <Content />
+            </Link>
+        )
+    }
+
+    return (
+      <div onClick={onPress} className={styles.item}>
+        <Content />
+      </div>
+    );
+  };
+
   return (
     <div className={`flex-1 ${styles.container} pb-24 no-scrollbar`}>
       <header className={styles.header}>
@@ -285,17 +330,17 @@ const Settings = () => {
 
       <div className='p-6 space-y-6'>
 
-        {/* Account Settings */}
+        {/* Account Section */}
         <div className={styles.card}>
            <h2 className={styles.textHead}>{t.settings.account}</h2>
            
            <div className='flex flex-col items-start gap-4'>
              {user ? (
                <>
-                 <div className='flex items-center gap-4 w-full'>
-                    <div className={`w-14 h-14 rounded-full flex items-center justify-center text-2xl font-bold ${styles.userAvatarBg}`}>
+                 <div className='flex items-center gap-4 w-full mb-4'>
+                    <div className={`w-14 h-14 rounded-full flex items-center justify-center text-2xl font-bold overflow-hidden ${styles.userAvatarBg}`}>
                       {user.photoURL ? (
-                        <img src={user.photoURL} alt='Profile' className={`w-14 h-14 rounded-full ${styles.userAvatarImg}`} />
+                        <img src={user.photoURL} alt='Profile' className={`w-full h-full object-cover ${styles.userAvatarImg}`} />
                       ) : (
                         user.displayName ? user.displayName[0].toUpperCase() : 'U'
                       )}
@@ -316,7 +361,16 @@ const Settings = () => {
                       </div>
                     </div>
                  </div>
-                 <button onClick={handleLogout} className={`w-full py-3 px-4 rounded-xl text-sm font-bold transition-all ${styles.buttonSecondary}`}>
+                 
+                 {/* Replicating mobile style list items */}
+                 <div className="w-full">
+                    <div className={styles.item + " cursor-default hover:bg-transparent"}>
+                        <span className={styles.label}>Email</span>
+                        <span className={styles.value}>{user.email || 'Guest'}</span>
+                    </div>
+                 </div>
+
+                 <button onClick={handleLogout} className={`w-full py-3 px-4 rounded-xl text-sm font-bold transition-all mt-4 ${styles.buttonSecondary}`}>
                     {t.settings.signOut}
                  </button>
                  
@@ -324,7 +378,7 @@ const Settings = () => {
                  <button 
                    onClick={() => setShowDeleteConfirm(true)} 
                    disabled={isDeletingAccount}
-                   className={`w-full py-3 px-4 rounded-xl text-sm font-bold transition-all bg-red-600 text-white hover:bg-red-700 shadow-sm mt-2`}
+                   className={`w-full py-3 px-4 rounded-xl text-sm font-bold transition-all bg-red-50 text-red-600 hover:bg-red-100 shadow-sm mt-2`}
                  >
                     {isDeletingAccount 
                       ? (language === 'zh-TW' ? '刪除中...' : 'Deleting...') 
@@ -335,56 +389,57 @@ const Settings = () => {
                <>
                  <p className={styles.textBody}>{t.settings.authDesc}</p>
                  <button onClick={() => setShowAuthModal(true)} className={`w-full py-3 px-4 rounded-xl text-sm font-bold transition-all flex items-center justify-center gap-2 ${styles.buttonPrimary}`}>
-                    <svg className='w-5 h-5' fill='none' viewBox='0 0 24 24' stroke='currentColor'><path strokeLinecap='round' strokeLinejoin='round' strokeWidth={2} d='M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z' /></svg>
+                    <Icon name="google" className="w-5 h-5" />
                     {t.settings.signIn}
                  </button>
                </>
              )}
            </div>
         </div>
-        
-        {/* Subscription (Web Test) */}
-        {user && (
-            <div className={styles.card}>
-                <h2 className={styles.textHead}>Subscription (Web Test)</h2>
-                <div className="flex flex-col gap-3">
-                    <div className="flex justify-between items-center">
-                        <span className="text-gray-600 font-medium">Status:</span>
-                        <span className={`font-bold ${isPro ? 'text-green-600' : 'text-gray-500'}`}>
-                             {getSubscriptionDisplay()}
-                        </span>
-                    </div>
-                    
-                    {getExpiryDisplay() && (
-                        <div className="flex justify-between items-center text-sm">
-                            <span className="text-gray-500">Expires:</span>
-                            <span>{getExpiryDisplay()}</span>
-                        </div>
-                    )}
-                    
-                    <button 
-                        onClick={handleTestSubscription}
-                        className={`mt-2 w-full px-4 py-3 rounded-xl text-sm font-bold transition-all 
-                            ${!isPro ? 'bg-brand-600 text-white shadow-lg hover:bg-brand-700 ring-2 ring-brand-200' : styles.buttonSecondary}
-                        `}
-                    >
-                        {!isPro ? "Re-activate Pro (Test) - 14 Days" : "Extend Pro (Test) - 14 Days"}
-                    </button>
-                    <p className="text-xs text-center text-gray-400 mt-1">
-                        * Use this button to simulate purchase/renewal
-                    </p>
-                </div>
-            </div>
-        )}
 
-        {/* Data Management */}
+        {/* Preferences Section */}
+        <div className={styles.card}>
+            <h2 className={styles.textHead}>Preferences</h2>
+            <div className="w-full">
+                <SettingItem
+                  label={t.settings.language}
+                  value={language === 'zh-TW' ? t.settings.langZh : t.settings.langEn}
+                  onPress={() => setLanguage(language === 'zh-TW' ? 'en' : 'zh-TW')}
+                />
+                <SettingItem
+                  label={t.settings.theme}
+                  value={theme === 'vintage' ? t.settings.themeVintage : t.settings.themeDefault}
+                  onPress={() => setTheme(theme === 'vintage' ? 'default' : 'vintage')}
+                />
+                <SettingItem
+                  label={t.settings.standard}
+                  value={mode === 'strict' ? t.settings.strict : t.settings.conservative}
+                  onPress={() => setMode(mode === 'strict' ? 'conservative' : 'strict')}
+                />
+                 {/* Subscription Test Button - mimicking mobile item style */}
+                {user && (
+                    <SettingItem 
+                        label={isPro ? "Manage Subscription" : "Upgrade to Pro (Test)"}
+                        value={getSubscriptionStatusText(subscription, isPro)}
+                        onPress={handleTestSubscription}
+                    />
+                )}
+            </div>
+            <p className={`mt-4 text-xs ${styles.textBody}`}>
+                {mode === 'strict' ? t.settings.strictDesc : t.settings.conservativeDesc}
+            </p>
+        </div>
+
+        {/* Data Management (Web Only Feature but keeping for utility) */}
         {user && (
             <div className={styles.card}>
                 <h2 className={styles.textHead}>Data Management</h2>
-                <p className={styles.textBody}>Load your archived data.</p>
-                <button onClick={handleLoadArchive} disabled={isLoadingArchive} className={`w-full py-3 px-4 rounded-xl text-sm font-bold transition-all ${styles.buttonSecondary}`}>
-                    {isLoadingArchive ? 'Loading...' : 'Load Archived Entries'}
-                </button>
+                <div className="w-full">
+                     <div onClick={handleLoadArchive} className={styles.item}>
+                        <span className={styles.label}>{isLoadingArchive ? 'Loading...' : 'Load Archived Entries'}</span>
+                        <Icon name="arrowRight" className={`w-4 h-4 ${theme === 'vintage' ? 'text-vintage-ink' : 'text-gray-400'}`} />
+                     </div>
+                </div>
                 {archivedEntries && (
                     <div className='mt-4'>
                         <h3 className='text-lg font-bold'>Archived Entries</h3>
@@ -399,59 +454,21 @@ const Settings = () => {
                 )}
             </div>
         )}
-        
-        {/* Theme Settings */}
-        <div className={styles.card}>
-           <h2 className={styles.textHead}>{t.settings.theme}</h2>
-           <p className={styles.textBody}>{t.settings.themeDesc}</p>
-           <div className={`flex w-full p-1 rounded-xl ${styles.tabContainer}`}>
-              <button onClick={() => setTheme('default')} className={styles.tabButton(theme === 'default')}>
-                {t.settings.themeDefault}
-              </button>
-              <button onClick={() => setTheme('vintage')} className={styles.tabButton(theme === 'vintage')}>
-                {t.settings.themeVintage}
-              </button>
-           </div>
-        </div>
 
-        {/* Language Settings */}
-        <div className={styles.card}>
-          <h2 className={styles.textHead}>{t.settings.language}</h2>
-          <p className={styles.textBody}>{t.settings.languageDesc}</p>
-          <div className={`flex p-1 rounded-xl ${styles.tabContainer}`}>
-            <button onClick={() => setLanguage('zh-TW')} className={styles.tabButton(language === 'zh-TW')}>{t.settings.langZh}</button>
-            <button onClick={() => setLanguage('en')} className={styles.tabButton(language === 'en')}>{t.settings.langEn}</button>
-          </div>
-        </div>
-
-        {/* Record Mode Settings */}
-        <div className={styles.card}>
-          <h2 className={styles.textHead}>{t.settings.standard}</h2>
-          <p className={styles.textBody}>{t.settings.standardDesc}</p>
-          <div className='space-y-4'>
-            <label className={styles.inputContainer(mode === RecordMode.STRICT)}>
-              <input type='radio' name='mode' className='mt-1 w-4 h-4' checked={mode === RecordMode.STRICT} onChange={() => setMode(RecordMode.STRICT)} />
-              <div className='ml-3'>
-                <span className={`block text-sm font-bold ${theme === 'vintage' ? 'font-typewriter' : ''}`}>{t.settings.strict}</span>
-                <span className={`block text-xs mt-1 ${theme === 'vintage' ? 'font-handwriting text-lg' : 'text-gray-500'}`}>{t.settings.strictDesc}</span>
-              </div>
-            </label>
-            <label className={styles.inputContainer(mode === RecordMode.CONSERVATIVE)}>
-              <input type='radio' name='mode' className='mt-1 w-4 h-4' checked={mode === RecordMode.CONSERVATIVE} onChange={() => setMode(RecordMode.CONSERVATIVE)} />
-              <div className='ml-3'>
-                <span className={`block text-sm font-bold ${theme === 'vintage' ? 'font-typewriter' : ''}`}>{t.settings.conservative}</span>
-                <span className={`block text-xs mt-1 ${theme === 'vintage' ? 'font-handwriting text-lg' : 'text-gray-500'}`}>{t.settings.conservativeDesc}</span>
-              </div>
-            </label>
-          </div>
-        </div>
-
-        {/* Privacy Policy */}
+        {/* About Section */}
          <div className={styles.card}>
-           <h2 className={styles.textHead}>{t.settings.privacyPolicy}</h2>
-           <Link to='/privacy-policy' className={`block w-full text-center py-3 px-4 rounded-xl text-sm font-bold transition-all ${styles.buttonSecondary}`}>
-              {t.settings.privacyPolicy}
-           </Link>
+           <h2 className={styles.textHead}>{t.settings.about}</h2>
+           <div className="w-full">
+                <SettingItem
+                    label={t.settings.privacyPolicy}
+                    isLink
+                    to='/privacy-policy'
+                />
+           </div>
+         </div>
+         
+         <div className="text-center mt-6 text-gray-400 text-xs">
+            Version 1.0.0
          </div>
 
       </div>
@@ -486,6 +503,21 @@ const Settings = () => {
       />
     </div>
   );
+};
+
+// Helper for subscription text
+const getSubscriptionStatusText = (subscription: any, isPro: boolean) => {
+    if (!subscription) return "";
+    
+    if (!isPro) {
+        if (subscription.status === 'pro' || subscription.status === 'trial') return "Expired";
+        return "Free";
+    }
+    
+    if (subscription.status === 'trial') return "Pro (Trial)";
+    if (subscription.status === 'pro') return "Pro Active";
+    
+    return "";
 };
 
 export default Settings;

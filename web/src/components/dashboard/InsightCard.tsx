@@ -1,6 +1,6 @@
 import React from 'react';
 import { Icon } from '../Icons';
-import { Theme } from '../@shared/types';
+import { Theme } from '@shared/types';
 
 interface InsightCardProps {
   t: any;
