@@ -1,6 +1,7 @@
 {
   "scripts": {
-    "dev": "npm run dev --prefix web"
+    "dev": "cd web && npm run dev",
+    "postinstall": "cd web && npm install && cd ../functions && npm install"
   },
   "dependencies": {
     "firebase": "^12.8.0",
