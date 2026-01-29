@@ -29,7 +29,7 @@ import firestore from '@react-native-firebase/firestore';
 import { PaywallModal } from '../components/PaywallModal';
 
 export const AddEntry = () => {
-  const { t, addEntry, mode, user, isPro, subscription } = useApp();
+  const { t, addEntry, mode, user, isPro, subscription, theme } = useApp();
   const toast = useToast(); // Initialize toast
   const [imageUri, setImageUri] = useState<string | null>(null);
   const [analyzing, setAnalyzing] = useState(false);
@@ -40,6 +40,29 @@ export const AddEntry = () => {
   // Local state for editing values before save
   const [editedCost, setEditedCost] = useState<string>('');
   const [editedName, setEditedName] = useState<string>('');
+
+  const isVintage = theme === 'vintage';
+  const colors = isVintage ? {
+      bg: '#F5E6D3', // vintage-bg
+      text: '#2C241B', // vintage-ink
+      card: '#E6D2B5', // vintage-card
+      line: '#8B7355', // vintage-line
+      leather: '#8B4513', // vintage-leather
+      accent: '#8B4513',
+      subText: '#5C4033', // vintage-leather/50 equivalent
+      inputBg: '#F5E6D3', // Same as bg or slightly lighter
+      buttonText: '#F5E6D3',
+  } : {
+      bg: '#fff',
+      text: '#000',
+      card: '#f9f9f9',
+      line: '#eee',
+      leather: '#000',
+      accent: '#007AFF',
+      subText: '#666',
+      inputBg: '#fff',
+      buttonText: '#fff',
+  };
 
   const commonOptions = {
     mediaType: 'photo' as const,
@@ -203,45 +226,45 @@ export const AddEntry = () => {
   };
 
   return (
-    <ScrollView contentContainerStyle={styles.container}>
+    <ScrollView contentContainerStyle={[styles.container, { backgroundColor: colors.bg }]}>
       <View style={styles.header}>
-        <Text style={styles.title}>{t.addEntry.title}</Text>
-        <Text style={styles.subtitle}>{t.addEntry.subtitle}</Text>
+        <Text style={[styles.title, { color: colors.text, fontFamily: isVintage ? 'Courier' : undefined }]}>{t.addEntry.title}</Text>
+        <Text style={[styles.subtitle, { color: colors.subText, fontFamily: isVintage ? 'Courier' : undefined }]}>{t.addEntry.subtitle}</Text>
       </View>
 
       {/* Action Buttons: Show only when not analyzing and no result yet */}
       {!analyzing && !analysisResult && (
         <View style={styles.actionContainer}>
-          <TouchableOpacity style={styles.captureButton} onPress={handleCamera}>
-            <Icon name="camera" size={32} color="#fff" />
+          <TouchableOpacity style={[styles.captureButton, isVintage && styles.vintageButton, { backgroundColor: isVintage ? colors.card : '#000', borderColor: isVintage ? colors.line : undefined, borderWidth: isVintage ? 2 : 0 }]} onPress={handleCamera}>
+            <Icon name="camera" size={32} color={isVintage ? colors.text : '#fff'} />
           </TouchableOpacity>
-          <Text style={styles.captureText}>{t.addEntry.tapToCapture}</Text>
+          <Text style={[styles.captureText, { color: colors.text, fontFamily: isVintage ? 'Courier' : undefined }]}>{t.addEntry.tapToCapture}</Text>
           
           <View style={styles.secondaryActions}>
             <TouchableOpacity
               style={styles.secondaryButton}
               onPress={handleLibrary}
             >
-              <Text style={styles.secondaryButtonText}>Select from Library</Text>
+              <Text style={[styles.secondaryButtonText, { color: isVintage ? colors.text : colors.accent, fontFamily: isVintage ? 'Courier' : undefined, textDecorationLine: isVintage ? 'underline' : 'none' }]}>Select from Library</Text>
             </TouchableOpacity>
 
-            <Text style={styles.orText}>- {t.addEntry.or || 'or'} -</Text>
+            <Text style={[styles.orText, { color: colors.subText, fontFamily: isVintage ? 'Courier' : undefined }]}>- {t.addEntry.or || 'or'} -</Text>
 
             <TouchableOpacity
               style={styles.secondaryButton}
               onPress={handleManualEntry}
             >
               <View style={styles.manualButtonContent}>
-                 <Icon name="edit" size={16} color="#007AFF" /> 
-                 <Text style={styles.secondaryButtonText}> {t.addEntry.manual}</Text>
+                 <Icon name="edit" size={16} color={isVintage ? colors.text : colors.accent} /> 
+                 <Text style={[styles.secondaryButtonText, { color: isVintage ? colors.text : colors.accent, fontFamily: isVintage ? 'Courier' : undefined, textDecorationLine: isVintage ? 'underline' : 'none' }]}> {t.addEntry.manual}</Text>
               </View>
             </TouchableOpacity>
           </View>
           
           {/* Pro Badge/Hint if needed */}
           {!isPro && (
-              <View style={styles.proHintContainer}>
-                  <Text style={styles.proHintText}>{t.addEntry.subscriptionExpiredDesc}</Text>
+              <View style={[styles.proHintContainer, { backgroundColor: isVintage ? colors.card : '#FEF2F2' }]}>
+                  <Text style={[styles.proHintText, { color: isVintage ? colors.text : '#EF4444', fontFamily: isVintage ? 'Courier' : undefined }]}>{t.addEntry.subscriptionExpiredDesc}</Text>
               </View>
           )}
         </View>
@@ -249,66 +272,68 @@ export const AddEntry = () => {
 
       {analyzing && (
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#000" />
-          <Text style={styles.status}>{t.addEntry.analyzingTitle}</Text>
-          <Text style={styles.subStatus}>{t.addEntry.analyzingDesc}</Text>
+          <ActivityIndicator size="large" color={colors.text} />
+          <Text style={[styles.status, { color: colors.text, fontFamily: isVintage ? 'Courier' : undefined }]}>{t.addEntry.analyzingTitle}</Text>
+          <Text style={[styles.subStatus, { color: colors.subText, fontFamily: isVintage ? 'Courier' : undefined }]}>{t.addEntry.analyzingDesc}</Text>
         </View>
       )}
 
       {!analyzing && imageUri && (
         <View style={styles.previewContainer}>
-          <Image source={{ uri: imageUri }} style={styles.previewImage} />
+          <Image source={{ uri: imageUri }} style={[styles.previewImage, isVintage && { borderWidth: 4, borderColor: '#fff', borderRadius: 2 }]} />
         </View>
       )}
 
       {!analyzing && analysisResult && (
-        <View style={styles.resultContainer}>
-          <Text style={styles.resultHeader}>{t.addEntry.reviewTitle}</Text>
+        <View style={[styles.resultContainer, { backgroundColor: colors.card, borderColor: colors.line, borderStyle: isVintage ? 'dashed' : 'solid' }]}>
+          <Text style={[styles.resultHeader, { color: colors.text, fontFamily: isVintage ? 'Courier' : undefined }]}>{t.addEntry.reviewTitle}</Text>
           
           <View style={styles.inputGroup}>
-            <Text style={styles.label}>{t.addEntry.itemName}</Text>
+            <Text style={[styles.label, { color: colors.text, fontFamily: isVintage ? 'Courier' : undefined }]}>{t.addEntry.itemName}</Text>
             <TextInput
-              style={styles.input}
+              style={[styles.input, { backgroundColor: colors.inputBg, borderColor: colors.line, color: colors.text, fontFamily: isVintage ? 'Courier' : undefined, borderRadius: isVintage ? 0 : 8 }]}
               value={editedName}
               onChangeText={setEditedName}
               placeholder={t.addEntry.itemName}
+              placeholderTextColor={colors.subText}
             />
           </View>
 
           <View style={styles.inputGroup}>
-            <Text style={styles.label}>{t.addEntry.cost}</Text>
+            <Text style={[styles.label, { color: colors.text, fontFamily: isVintage ? 'Courier' : undefined }]}>{t.addEntry.cost}</Text>
             <TextInput
-              style={styles.input}
+              style={[styles.input, { backgroundColor: colors.inputBg, borderColor: colors.line, color: colors.text, fontFamily: isVintage ? 'Courier' : undefined, borderRadius: isVintage ? 0 : 8 }]}
               value={editedCost}
               onChangeText={setEditedCost}
               keyboardType="numeric"
               placeholder="0"
+              placeholderTextColor={colors.subText}
             />
           </View>
           
           {/* Display read-only info (Mocked for manual entry as default) */}
           <View style={styles.infoRow}>
-             <Text style={styles.infoLabel}>{t.addEntry.category}:</Text>
-             <Text style={styles.infoValue}>{analysisResult.category}</Text>
+             <Text style={[styles.infoLabel, { color: colors.subText, fontFamily: isVintage ? 'Courier' : undefined }]}>{t.addEntry.category}:</Text>
+             <Text style={[styles.infoValue, { color: colors.text, fontFamily: isVintage ? 'Courier' : undefined }]}>{analysisResult.category}</Text>
           </View>
           <View style={styles.infoRow}>
-             <Text style={styles.infoLabel}>{t.addEntry.usage}:</Text>
-             <Text style={styles.infoValue}>{analysisResult.usage}</Text>
+             <Text style={[styles.infoLabel, { color: colors.subText, fontFamily: isVintage ? 'Courier' : undefined }]}>{t.addEntry.usage}:</Text>
+             <Text style={[styles.infoValue, { color: colors.text, fontFamily: isVintage ? 'Courier' : undefined }]}>{analysisResult.usage}</Text>
           </View>
 
           <View style={{ marginTop: 20, gap: 10 }}>
             {isSubmitting ? (
-              <ActivityIndicator size="small" color="#000" />
+              <ActivityIndicator size="small" color={colors.text} />
             ) : (
                <>
-                 <TouchableOpacity style={styles.saveButton} onPress={handleSave}>
-                    <Text style={styles.saveButtonText}>{t.addEntry.saveEntry}</Text>
+                 <TouchableOpacity style={[styles.saveButton, { backgroundColor: isVintage ? colors.leather : '#000', borderRadius: isVintage ? 4 : 12 }]} onPress={handleSave}>
+                    <Text style={[styles.saveButtonText, { color: colors.buttonText, fontFamily: isVintage ? 'Courier' : undefined }]}>{t.addEntry.saveEntry}</Text>
                  </TouchableOpacity>
-                 <TouchableOpacity style={styles.cancelButton} onPress={() => {
+                 <TouchableOpacity style={[styles.cancelButton, { borderColor: colors.line, borderRadius: isVintage ? 4 : 12 }]} onPress={() => {
                      setAnalysisResult(null);
                      setImageUri(null);
                  }}>
-                    <Text style={styles.cancelButtonText}>{t.common.cancel}</Text>
+                    <Text style={[styles.cancelButtonText, { color: colors.subText, fontFamily: isVintage ? 'Courier' : undefined }]}>{t.common.cancel}</Text>
                  </TouchableOpacity>
                </>
             )}
@@ -325,7 +350,6 @@ const styles = StyleSheet.create({
   container: {
     padding: 20,
     paddingBottom: 100,
-    backgroundColor: '#fff',
     flexGrow: 1,
   },
   header: {
@@ -335,12 +359,10 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 28,
     fontWeight: 'bold',
-    color: '#000',
     marginBottom: 8,
   },
   subtitle: {
     fontSize: 16,
-    color: '#666',
   },
   actionContainer: {
     alignItems: 'center',
@@ -348,7 +370,6 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   captureButton: {
-    backgroundColor: '#000',
     width: 80,
     height: 80,
     borderRadius: 40,
@@ -360,8 +381,13 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
     elevation: 5,
   },
+  vintageButton: {
+      shadowColor: '#2C241B',
+      shadowOffset: { width: 4, height: 4 },
+      shadowOpacity: 1,
+      shadowRadius: 0,
+  },
   captureText: {
-    color: '#000',
     marginTop: 4,
     fontSize: 14,
     fontWeight: 'bold',
@@ -375,7 +401,6 @@ const styles = StyleSheet.create({
     padding: 10,
   },
   secondaryButtonText: {
-    color: '#007AFF',
     fontSize: 16,
     fontWeight: '500',
   },
@@ -385,17 +410,14 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   orText: {
-    color: '#999',
     fontSize: 12,
   },
   proHintContainer: {
       marginTop: 8,
       padding: 8,
-      backgroundColor: '#FEF2F2',
       borderRadius: 8,
   },
   proHintText: {
-      color: '#EF4444',
       fontSize: 12,
       fontWeight: '600',
       textAlign: 'center'
@@ -409,12 +431,10 @@ const styles = StyleSheet.create({
     marginTop: 10,
     fontSize: 18,
     fontWeight: '600',
-    color: '#000',
   },
   subStatus: {
     textAlign: 'center',
     marginTop: 4,
-    color: '#666',
   },
   previewContainer: {
     alignItems: 'center',
@@ -427,17 +447,14 @@ const styles = StyleSheet.create({
     resizeMode: 'cover',
   },
   resultContainer: {
-    backgroundColor: '#f9f9f9',
     padding: 20,
     borderRadius: 16,
     borderWidth: 1,
-    borderColor: '#eee',
     marginBottom: 40,
   },
   resultHeader: {
     fontSize: 20,
     fontWeight: 'bold',    marginBottom: 16,
-    color: '#000',
   },
   inputGroup: {
     marginBottom: 12,
@@ -445,17 +462,12 @@ const styles = StyleSheet.create({
   label: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#333',
     marginBottom: 4,
   },
   input: {
-    backgroundColor: '#fff',
     borderWidth: 1,
-    borderColor: '#ddd',
-    borderRadius: 8,
     padding: 10,
     fontSize: 16,
-    color: '#000',
   },
   infoRow: {
     flexDirection: 'row',
@@ -463,35 +475,27 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   infoLabel: {
-    color: '#666',
     fontSize: 14,
   },
   infoValue: {
-    color: '#000',
     fontWeight: '500',
     fontSize: 14,
     textTransform: 'capitalize',
   },
   saveButton: {
-      backgroundColor: '#000',
       padding: 16,
-      borderRadius: 12,
       alignItems: 'center',
   },
   saveButtonText: {
-      color: '#fff',
       fontWeight: 'bold',
       fontSize: 16,
   },
   cancelButton: {
       padding: 12,
-      borderRadius: 12,
       alignItems: 'center',
       borderWidth: 1,
-      borderColor: '#ddd'
   },
   cancelButtonText: {
-      color: '#666',
       fontSize: 16,
   }
 });
