@@ -84,6 +84,30 @@ export const AddEntry = () => {
     }
   };
 
+  const handleManualEntry = () => {
+    // Manual entry does not require Pro subscription (parity with Web)
+    setImageUri(null);
+    setAnalyzing(false);
+    
+    // Create a default/empty analysis result to render the form
+    const defaultResult = {
+      isFood: false,
+      isExpense: true,
+      recordType: 'combined' as EntryType,
+      itemName: '',
+      category: 'other' as ExpenseCategory,
+      usage: 'need' as UsageCategory,
+      cost: 0,
+      calories: null,
+      macros: null,
+      reasoning: ''
+    };
+    
+    setAnalysisResult(defaultResult);
+    setEditedName('');
+    setEditedCost('');
+  };
+
   const processImage = async (asset: any) => {
     if (!asset.base64 || !asset.uri) {
       return;
@@ -137,9 +161,13 @@ export const AddEntry = () => {
         return mode === RecordMode.STRICT ? val.max : val.min;
       };
 
+      // Date Logic Normalization (Parity with Web: Noon 12:00:00)
+      const now = new Date();
+      const dateAtNoon = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 12, 0, 0);
+
       const newEntry: Entry = {
         id: Date.now().toString(),
-        date: firestore.Timestamp.now(),
+        date: firestore.Timestamp.fromDate(dateAtNoon),
         imageUrl: finalImageUrl,
         itemName: editedName || analysisResult.itemName || t.common.untitled,
         type: (analysisResult.recordType as EntryType) || 'expense',
@@ -181,26 +209,43 @@ export const AddEntry = () => {
         <Text style={styles.subtitle}>{t.addEntry.subtitle}</Text>
       </View>
 
-      <View style={styles.actionContainer}>
-        <TouchableOpacity style={styles.captureButton} onPress={handleCamera}>
-          <Icon name="camera" size={32} color="#fff" />
-        </TouchableOpacity>
-        <Text style={styles.captureText}>{t.addEntry.tapToCapture}</Text>
-        
-        <TouchableOpacity
-          style={styles.secondaryButton}
-          onPress={handleLibrary}
-        >
-          <Text style={styles.secondaryButtonText}>Select from Library</Text>
-        </TouchableOpacity>
-        
-        {/* Pro Badge/Hint if needed */}
-        {!isPro && (
-            <View style={styles.proHintContainer}>
-                <Text style={styles.proHintText}>{t.addEntry.subscriptionExpiredDesc}</Text>
-            </View>
-        )}
-      </View>
+      {/* Action Buttons: Show only when not analyzing and no result yet */}
+      {!analyzing && !analysisResult && (
+        <View style={styles.actionContainer}>
+          <TouchableOpacity style={styles.captureButton} onPress={handleCamera}>
+            <Icon name="camera" size={32} color="#fff" />
+          </TouchableOpacity>
+          <Text style={styles.captureText}>{t.addEntry.tapToCapture}</Text>
+          
+          <View style={styles.secondaryActions}>
+            <TouchableOpacity
+              style={styles.secondaryButton}
+              onPress={handleLibrary}
+            >
+              <Text style={styles.secondaryButtonText}>Select from Library</Text>
+            </TouchableOpacity>
+
+            <Text style={styles.orText}>- {t.addEntry.or || 'or'} -</Text>
+
+            <TouchableOpacity
+              style={styles.secondaryButton}
+              onPress={handleManualEntry}
+            >
+              <View style={styles.manualButtonContent}>
+                 <Icon name="edit" size={16} color="#007AFF" /> 
+                 <Text style={styles.secondaryButtonText}> {t.addEntry.manual}</Text>
+              </View>
+            </TouchableOpacity>
+          </View>
+          
+          {/* Pro Badge/Hint if needed */}
+          {!isPro && (
+              <View style={styles.proHintContainer}>
+                  <Text style={styles.proHintText}>{t.addEntry.subscriptionExpiredDesc}</Text>
+              </View>
+          )}
+        </View>
+      )}
 
       {analyzing && (
         <View style={styles.loadingContainer}>
@@ -226,6 +271,7 @@ export const AddEntry = () => {
               style={styles.input}
               value={editedName}
               onChangeText={setEditedName}
+              placeholder={t.addEntry.itemName}
             />
           </View>
 
@@ -236,10 +282,11 @@ export const AddEntry = () => {
               value={editedCost}
               onChangeText={setEditedCost}
               keyboardType="numeric"
+              placeholder="0"
             />
           </View>
           
-          {/* Display read-only info */}
+          {/* Display read-only info (Mocked for manual entry as default) */}
           <View style={styles.infoRow}>
              <Text style={styles.infoLabel}>{t.addEntry.category}:</Text>
              <Text style={styles.infoValue}>{analysisResult.category}</Text>
@@ -249,13 +296,21 @@ export const AddEntry = () => {
              <Text style={styles.infoValue}>{analysisResult.usage}</Text>
           </View>
 
-          <View style={{ marginTop: 20 }}>
+          <View style={{ marginTop: 20, gap: 10 }}>
             {isSubmitting ? (
               <ActivityIndicator size="small" color="#000" />
             ) : (
-               <TouchableOpacity style={styles.saveButton} onPress={handleSave}>
-                  <Text style={styles.saveButtonText}>{t.addEntry.saveEntry}</Text>
-               </TouchableOpacity>
+               <>
+                 <TouchableOpacity style={styles.saveButton} onPress={handleSave}>
+                    <Text style={styles.saveButtonText}>{t.addEntry.saveEntry}</Text>
+                 </TouchableOpacity>
+                 <TouchableOpacity style={styles.cancelButton} onPress={() => {
+                     setAnalysisResult(null);
+                     setImageUri(null);
+                 }}>
+                    <Text style={styles.cancelButtonText}>{t.common.cancel}</Text>
+                 </TouchableOpacity>
+               </>
             )}
           </View>
         </View>
@@ -311,12 +366,27 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: 'bold',
   },
+  secondaryActions: {
+    alignItems: 'center',
+    gap: 8,
+    marginTop: 10
+  },
   secondaryButton: {
     padding: 10,
   },
   secondaryButtonText: {
     color: '#007AFF',
     fontSize: 16,
+    fontWeight: '500',
+  },
+  manualButtonContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  orText: {
+    color: '#999',
+    fontSize: 12,
   },
   proHintContainer: {
       marginTop: 8,
@@ -411,6 +481,17 @@ const styles = StyleSheet.create({
   saveButtonText: {
       color: '#fff',
       fontWeight: 'bold',
+      fontSize: 16,
+  },
+  cancelButton: {
+      padding: 12,
+      borderRadius: 12,
+      alignItems: 'center',
+      borderWidth: 1,
+      borderColor: '#ddd'
+  },
+  cancelButtonText: {
+      color: '#666',
       fontSize: 16,
   }
 });
