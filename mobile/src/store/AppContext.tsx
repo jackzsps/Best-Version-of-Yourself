@@ -5,6 +5,7 @@ import { TRANSLATIONS } from '@shared/translations';
 import firestore from '@react-native-firebase/firestore';
 import auth, { FirebaseAuthTypes } from '@react-native-firebase/auth';
 import { GoogleSignin } from '@react-native-google-signin/google-signin';
+import { appleAuth } from '@invertase/react-native-apple-authentication';
 
 // Note: This file is a React Native specific implementation of AppContext.
 // It uses @react-native-firebase which provides native bindings and better offline support (SQLite).
@@ -25,6 +26,7 @@ interface AppState {
   setLanguage: (lang: Language) => void;
   setTheme: (theme: Theme) => void;
   loginGoogle: () => Promise<void>;
+  loginApple: () => Promise<void>;
   loginEmail: (email: string, pass: string) => Promise<void>;
   registerEmail: (email: string, pass: string, name: string) => Promise<void>;
   logout: () => Promise<void>;
@@ -144,6 +146,26 @@ export const AppProvider = ({ children }: React.PropsWithChildren<{}>) => {
     await auth().signInWithCredential(googleCredential);
   };
 
+  const loginApple = async () => {
+    // Start the sign-in request
+    const appleAuthRequestResponse = await appleAuth.performRequest({
+      requestedOperation: appleAuth.Operation.LOGIN,
+      requestedScopes: [appleAuth.Scope.EMAIL, appleAuth.Scope.FULL_NAME],
+    });
+  
+    // Ensure Apple returned a user identityToken
+    if (!appleAuthRequestResponse.identityToken) {
+      throw new Error('Apple Sign-In failed - no identify token returned');
+    }
+  
+    // Create a Firebase credential from the response
+    const { identityToken, nonce } = appleAuthRequestResponse;
+    const appleCredential = auth.AppleAuthProvider.credential(identityToken, nonce);
+  
+    // Sign the user in with the credential
+    return auth().signInWithCredential(appleCredential);
+  };
+
   const loginEmail = async (email: string, pass: string) => {
     await auth().signInWithEmailAndPassword(email, pass);
   };
@@ -243,6 +265,7 @@ export const AppProvider = ({ children }: React.PropsWithChildren<{}>) => {
         setLanguage,
         setTheme,
         loginGoogle,
+        loginApple,
         loginEmail,
         registerEmail,
         logout,

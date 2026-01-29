@@ -61,6 +61,7 @@ const getAuthErrorMessage = (error: AuthError, t: any): string => {
         case 'auth/email-already-in-use': return t.auth.errorInUse;
         case 'auth/weak-password': return t.auth.errorWeak;
         case 'auth/network-request-failed': return t.auth.errorNetwork;
+        case 'auth/operation-not-allowed': return t.auth.errorOperationNotAllowed;
         default: return error.message || t.common.error;
     }
 };

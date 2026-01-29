@@ -11,6 +11,7 @@ import { useNavigation } from '@react-navigation/native';
 import { useApp } from '../store/AppContext';
 import { Icon } from '../components/Icons';
 import { PaywallModal } from '../components/PaywallModal';
+import { AuthModal } from '../components/AuthModal';
 
 export const Settings = () => {
   const navigation = useNavigation();
@@ -29,6 +30,7 @@ export const Settings = () => {
   } = useApp();
   const isVintage = theme === 'vintage';
   const [showPaywall, setShowPaywall] = useState(false);
+  const [showAuthModal, setShowAuthModal] = useState(false);
 
   const handleLogout = () => {
     Alert.alert(t.settings.signOut, t.settings.logoutWarning, [
@@ -118,14 +120,35 @@ export const Settings = () => {
       {/* Account Section */}
       <SectionHeader title={t.settings.account} />
       <View style={isVintage ? styles.vintageSection : styles.section}>
-        <View style={[styles.item, isVintage && styles.vintageItem]}>
-          <Text style={isVintage ? styles.vintageLabel : styles.label}>
-            Email
-          </Text>
-          <Text style={isVintage ? styles.vintageValue : styles.value}>
-            {user?.email || 'Guest'}
-          </Text>
-        </View>
+        {user ? (
+          <View style={[styles.item, isVintage && styles.vintageItem, styles.lastItem]}>
+            <Text style={isVintage ? styles.vintageLabel : styles.label}>
+              Email
+            </Text>
+            <Text style={isVintage ? styles.vintageValue : styles.value}>
+              {user.email}
+            </Text>
+          </View>
+        ) : (
+          <TouchableOpacity
+            style={[styles.item, isVintage && styles.vintageItem, styles.lastItem]}
+            onPress={() => setShowAuthModal(true)}
+          >
+            <Text style={isVintage ? styles.vintageLabel : styles.label}>
+              {t.settings.signIn}
+            </Text>
+             <View style={styles.rightContainer}>
+                <Text style={isVintage ? styles.vintageValue : styles.value}>
+                   Guest
+                </Text>
+                <Icon
+                  name="arrowRight"
+                  size={16}
+                  color={isVintage ? '#2d2a26' : '#9CA3AF'}
+                />
+             </View>
+          </TouchableOpacity>
+        )}
       </View>
 
       {/* Preferences Section */}
@@ -157,12 +180,14 @@ export const Settings = () => {
           onPress={() => setMode(mode === 'strict' ? 'conservative' : 'strict')}
         />
         {/* Subscription Test Button */}
-        <SettingItem
-          label={isPro ? "Manage Subscription" : "Upgrade to Pro (Test)"}
-          value={getSubscriptionStatusText()}
-          onPress={() => setShowPaywall(true)}
-          isLast
-        />
+        {user && (
+            <SettingItem
+            label={isPro ? "Manage Subscription" : "Upgrade to Pro (Test)"}
+            value={getSubscriptionStatusText()}
+            onPress={() => setShowPaywall(true)}
+            isLast
+            />
+        )}
       </View>
       <Text style={isVintage ? styles.vintageHint : styles.hint}>
         {mode === 'strict' ? t.settings.strictDesc : t.settings.conservativeDesc}
@@ -179,18 +204,21 @@ export const Settings = () => {
       </View>
 
       {/* Logout */}
-      <TouchableOpacity
-        style={isVintage ? styles.vintageLogoutBtn : styles.logoutBtn}
-        onPress={handleLogout}
-      >
-        <Text style={isVintage ? styles.vintageLogoutText : styles.logoutText}>
-          {t.settings.signOut}
-        </Text>
-      </TouchableOpacity>
+      {user && (
+        <TouchableOpacity
+            style={isVintage ? styles.vintageLogoutBtn : styles.logoutBtn}
+            onPress={handleLogout}
+        >
+            <Text style={isVintage ? styles.vintageLogoutText : styles.logoutText}>
+            {t.settings.signOut}
+            </Text>
+        </TouchableOpacity>
+      )}
 
       <Text style={styles.versionText}>Version 1.0.0</Text>
 
       <PaywallModal visible={showPaywall} onClose={() => setShowPaywall(false)} />
+      <AuthModal visible={showAuthModal} onClose={() => setShowAuthModal(false)} />
     </ScrollView>
   );
 };

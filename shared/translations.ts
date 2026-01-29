@@ -178,6 +178,7 @@ export const TRANSLATIONS = {
       errorInUse: 'Email already in use',
       errorWeak: 'Password too weak (min 6 chars)',
       errorNetwork: 'Network error',
+      errorOperationNotAllowed: 'Sign-in provider not enabled',
     },
   },
   'zh-TW': {
@@ -352,6 +353,7 @@ export const TRANSLATIONS = {
       errorInUse: 'Email 已被註冊',
       errorWeak: '密碼強度不足 (至少6字)',
       errorNetwork: '網路連線失敗',
+      errorOperationNotAllowed: '此登入方式尚未啟用',
     },
   },
 };

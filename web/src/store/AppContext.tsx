@@ -227,6 +227,8 @@ export const AppProvider = ({ children }: React.PropsWithChildren<{}>) => {
   };
 
   const loginApple = async () => {
+    // Debug log to confirm Project ID
+    console.log("[Auth] Attempting Apple Login. Project ID:", auth.app.options.projectId);
     try {
       // Configure Apple provider scopes if needed, e.g. email, name
       appleProvider.addScope('email');
@@ -235,6 +237,10 @@ export const AppProvider = ({ children }: React.PropsWithChildren<{}>) => {
       await signInWithPopup(auth, appleProvider);
     } catch (error: any) {
       console.error("Apple Login failed", error);
+      // Detailed error logging
+      if (error.code === 'auth/operation-not-allowed') {
+         console.error("Check: 1. Apple enabled in Console? 2. Services ID & Key configured in Console? 3. Domain added to Apple 'Return URLs'? 4. Domain added to Firebase 'Authorized Domains'?");
+      }
       toast.error(`Apple Login failed: ${error.message}`);
     }
   };
