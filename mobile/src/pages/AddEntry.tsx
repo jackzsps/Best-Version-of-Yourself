@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -38,8 +38,14 @@ export const AddEntry = () => {
   const [showPaywall, setShowPaywall] = useState(false);
   
   // Local state for editing values before save
-  const [editedCost, setEditedCost] = useState<string>('');
   const [editedName, setEditedName] = useState<string>('');
+  const [editedCost, setEditedCost] = useState<string>('');
+  // Macro States
+  const [editedCalories, setEditedCalories] = useState<string>('');
+  const [editedProtein, setEditedProtein] = useState<string>('');
+  const [editedCarbs, setEditedCarbs] = useState<string>('');
+  const [editedFat, setEditedFat] = useState<string>('');
+  const [activeMode, setActiveMode] = useState<RecordMode>(mode);
 
   const isVintage = theme === 'vintage';
   const colors = isVintage ? {
@@ -71,6 +77,44 @@ export const AddEntry = () => {
     maxHeight: 1024,
     quality: 0.7 as const,
   };
+
+  // Sync state when analysis result or activeMode changes
+  useEffect(() => {
+    if (!analysisResult) return;
+
+    // Helper to extract value based on mode
+    const getVal = (val: number | { min: number; max: number } | null | undefined): string => {
+        if (val === null || val === undefined) return '0';
+        if (typeof val === 'number') return val.toString();
+        return (activeMode === RecordMode.STRICT ? val.max : val.min).toString();
+    };
+
+    // Update fields
+    // Only update name/cost if it's the initial load (to avoid overwriting user edits on mode toggle), 
+    // BUT since we don't track "isDirty", and mode toggle primarily affects macros, 
+    // we will re-calculate macros but keep Name/Cost unless it's a fresh analysis.
+    // For simplicity and to match Web: we update all derived fields when analysis changes.
+    // However, since activeMode ONLY affects macros, we should be careful.
+    
+    // Simplification: We update state whenever analysisResult changes (new scan).
+    // We ALSO update macros whenever activeMode changes.
+    
+    if (analysisResult) {
+        setEditedCalories(getVal(analysisResult.calories));
+        setEditedProtein(getVal(analysisResult.macros?.protein));
+        setEditedCarbs(getVal(analysisResult.macros?.carbs));
+        setEditedFat(getVal(analysisResult.macros?.fat));
+    }
+
+  }, [analysisResult, activeMode]);
+
+  // Initial load of Name/Cost when analysisResult is first set
+  useEffect(() => {
+    if (analysisResult) {
+        setEditedName(analysisResult.itemName || '');
+        setEditedCost(analysisResult.cost ? analysisResult.cost.toString() : '0');
+    }
+  }, [analysisResult]);
   
   // Check permission before launching AI
   const checkPermission = (): boolean => {
@@ -129,6 +173,10 @@ export const AddEntry = () => {
     setAnalysisResult(defaultResult);
     setEditedName('');
     setEditedCost('');
+    setEditedCalories('');
+    setEditedProtein('');
+    setEditedCarbs('');
+    setEditedFat('');
   };
 
   const processImage = async (asset: any) => {
@@ -142,8 +190,7 @@ export const AddEntry = () => {
     try {
       const result = await analyzeImage(asset.base64);
       setAnalysisResult(result);
-      setEditedName(result.itemName || '');
-      setEditedCost(result.cost ? result.cost.toString() : '0');
+      // State updates handled by useEffect
     } catch (error: any) {
       // Replaced Alert with Toast for better UX and consistency with Web
       if (error.isNetworkError) {
@@ -172,18 +219,6 @@ export const AddEntry = () => {
         finalImageUrl = await uploadImage(imageUri, user.uid);
       }
 
-      const getFinalValue = (
-        val: number | { min: number; max: number } | null | undefined,
-      ): number => {
-        if (val === null || val === undefined) {
-          return 0;
-        }
-        if (typeof val === 'number') {
-          return val;
-        }
-        return mode === RecordMode.STRICT ? val.max : val.min;
-      };
-
       // Date Logic Normalization (Parity with Web: Noon 12:00:00)
       const now = new Date();
       const dateAtNoon = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 12, 0, 0);
@@ -198,11 +233,12 @@ export const AddEntry = () => {
         paymentMethod: 'cash' as PaymentMethod,
         usage: (analysisResult.usage as UsageCategory) || 'want',
         cost: parseFloat(editedCost) || 0,
-        calories: getFinalValue(analysisResult.calories),
-        protein: getFinalValue(analysisResult.macros?.protein),
-        carbs: getFinalValue(analysisResult.macros?.carbs),
-        fat: getFinalValue(analysisResult.macros?.fat),
-        modeUsed: mode,
+        // Use edited values
+        calories: parseFloat(editedCalories) || 0,
+        protein: parseFloat(editedProtein) || 0,
+        carbs: parseFloat(editedCarbs) || 0,
+        fat: parseFloat(editedFat) || 0,
+        modeUsed: activeMode, // Save the mode used for this specific entry
         note: analysisResult.reasoning,
       };
 
@@ -216,6 +252,10 @@ export const AddEntry = () => {
       setAnalysisResult(null);
       setEditedName('');
       setEditedCost('');
+      setEditedCalories('');
+      setEditedProtein('');
+      setEditedCarbs('');
+      setEditedFat('');
     } catch (error) {
       console.error('Save failed:', error);
       // Replaced Alert with Toast
@@ -224,6 +264,9 @@ export const AddEntry = () => {
       setIsSubmitting(false);
     }
   };
+
+  const isDiet = analysisResult?.recordType === 'diet' || analysisResult?.recordType === 'combined';
+  const isExpense = analysisResult?.recordType === 'expense' || analysisResult?.recordType === 'combined';
 
   return (
     <ScrollView contentContainerStyle={[styles.container, { backgroundColor: colors.bg }]}>
@@ -299,20 +342,94 @@ export const AddEntry = () => {
             />
           </View>
 
-          <View style={styles.inputGroup}>
-            <Text style={[styles.label, { color: colors.text, fontFamily: isVintage ? 'Courier' : undefined }]}>{t.addEntry.cost}</Text>
-            <TextInput
-              style={[styles.input, { backgroundColor: colors.inputBg, borderColor: colors.line, color: colors.text, fontFamily: isVintage ? 'Courier' : undefined, borderRadius: isVintage ? 0 : 8 }]}
-              value={editedCost}
-              onChangeText={setEditedCost}
-              keyboardType="numeric"
-              placeholder="0"
-              placeholderTextColor={colors.subText}
-            />
-          </View>
+          {isExpense && (
+            <View style={styles.inputGroup}>
+              <Text style={[styles.label, { color: colors.text, fontFamily: isVintage ? 'Courier' : undefined }]}>{t.addEntry.cost}</Text>
+              <TextInput
+                style={[styles.input, { backgroundColor: colors.inputBg, borderColor: colors.line, color: colors.text, fontFamily: isVintage ? 'Courier' : undefined, borderRadius: isVintage ? 0 : 8 }]}
+                value={editedCost}
+                onChangeText={setEditedCost}
+                keyboardType="numeric"
+                placeholder="0"
+                placeholderTextColor={colors.subText}
+              />
+            </View>
+          )}
           
+          {/* --- Diet Section (Strict/Conservative Toggle + Inputs) --- */}
+          {isDiet && (
+             <View style={[styles.dietContainer, { borderColor: colors.line, borderTopWidth: 1, paddingTop: 16, marginTop: 8 }]}>
+                {/* Mode Toggle */}
+                <View style={[styles.modeToggle, { borderColor: colors.line, borderRadius: isVintage ? 0 : 8, backgroundColor: isVintage ? 'transparent' : colors.line }]}>
+                   <TouchableOpacity 
+                      style={[styles.modeButton, activeMode === RecordMode.STRICT && { backgroundColor: isVintage ? colors.text : '#fff', shadowOpacity: 0.1 }]} 
+                      onPress={() => setActiveMode(RecordMode.STRICT)}
+                   >
+                      <Text style={[styles.modeText, activeMode === RecordMode.STRICT ? { color: isVintage ? colors.bg : '#000', fontWeight: 'bold' } : { color: colors.subText }, isVintage && { fontFamily: 'Courier' }]}>{t.addEntry.modeStrict}</Text>
+                   </TouchableOpacity>
+                   <View style={{ width: 1, backgroundColor: colors.line }} />
+                   <TouchableOpacity 
+                      style={[styles.modeButton, activeMode === RecordMode.CONSERVATIVE && { backgroundColor: isVintage ? colors.leather : '#fff', shadowOpacity: 0.1 }]} 
+                      onPress={() => setActiveMode(RecordMode.CONSERVATIVE)}
+                   >
+                      <Text style={[styles.modeText, activeMode === RecordMode.CONSERVATIVE ? { color: isVintage ? colors.bg : '#000', fontWeight: 'bold' } : { color: colors.subText }, isVintage && { fontFamily: 'Courier' }]}>{t.addEntry.modeConservative}</Text>
+                   </TouchableOpacity>
+                </View>
+
+                {/* Calories Input */}
+                <View style={styles.inputGroup}>
+                    <Text style={[styles.label, { color: colors.text, fontFamily: isVintage ? 'Courier' : undefined }]}>{t.addEntry.calories}</Text>
+                    <TextInput
+                      style={[styles.input, { backgroundColor: colors.inputBg, borderColor: colors.line, color: colors.text, fontFamily: isVintage ? 'Courier' : undefined, borderRadius: isVintage ? 0 : 8 }]}
+                      value={editedCalories}
+                      onChangeText={setEditedCalories}
+                      keyboardType="numeric"
+                      placeholder="0"
+                      placeholderTextColor={colors.subText}
+                    />
+                </View>
+
+                {/* Macros Row */}
+                <View style={styles.macrosRow}>
+                   <View style={styles.macroInput}>
+                      <Text style={[styles.label, { color: colors.text, fontFamily: isVintage ? 'Courier' : undefined, fontSize: 12 }]}>{t.addEntry.protein}</Text>
+                      <TextInput
+                        style={[styles.input, { backgroundColor: colors.inputBg, borderColor: colors.line, color: colors.text, fontFamily: isVintage ? 'Courier' : undefined, borderRadius: isVintage ? 0 : 8 }]}
+                        value={editedProtein}
+                        onChangeText={setEditedProtein}
+                        keyboardType="numeric"
+                        placeholder="g"
+                        placeholderTextColor={colors.subText}
+                      />
+                   </View>
+                   <View style={styles.macroInput}>
+                      <Text style={[styles.label, { color: colors.text, fontFamily: isVintage ? 'Courier' : undefined, fontSize: 12 }]}>{t.addEntry.carbs}</Text>
+                      <TextInput
+                        style={[styles.input, { backgroundColor: colors.inputBg, borderColor: colors.line, color: colors.text, fontFamily: isVintage ? 'Courier' : undefined, borderRadius: isVintage ? 0 : 8 }]}
+                        value={editedCarbs}
+                        onChangeText={setEditedCarbs}
+                        keyboardType="numeric"
+                        placeholder="g"
+                        placeholderTextColor={colors.subText}
+                      />
+                   </View>
+                   <View style={styles.macroInput}>
+                      <Text style={[styles.label, { color: colors.text, fontFamily: isVintage ? 'Courier' : undefined, fontSize: 12 }]}>{t.addEntry.fat}</Text>
+                      <TextInput
+                        style={[styles.input, { backgroundColor: colors.inputBg, borderColor: colors.line, color: colors.text, fontFamily: isVintage ? 'Courier' : undefined, borderRadius: isVintage ? 0 : 8 }]}
+                        value={editedFat}
+                        onChangeText={setEditedFat}
+                        keyboardType="numeric"
+                        placeholder="g"
+                        placeholderTextColor={colors.subText}
+                      />
+                   </View>
+                </View>
+             </View>
+          )}
+
           {/* Display read-only info (Mocked for manual entry as default) */}
-          <View style={styles.infoRow}>
+          <View style={[styles.infoRow, { marginTop: 12 }]}>
              <Text style={[styles.infoLabel, { color: colors.subText, fontFamily: isVintage ? 'Courier' : undefined }]}>{t.addEntry.category}:</Text>
              <Text style={[styles.infoValue, { color: colors.text, fontFamily: isVintage ? 'Courier' : undefined }]}>{analysisResult.category}</Text>
           </View>
@@ -468,6 +585,31 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     padding: 10,
     fontSize: 16,
+  },
+  dietContainer: {
+      marginBottom: 12,
+  },
+  modeToggle: {
+      flexDirection: 'row',
+      marginBottom: 16,
+      overflow: 'hidden',
+  },
+  modeButton: {
+      flex: 1,
+      padding: 10,
+      alignItems: 'center',
+      justifyContent: 'center',
+  },
+  modeText: {
+      fontSize: 12,
+      fontWeight: '600',
+  },
+  macrosRow: {
+      flexDirection: 'row',
+      gap: 12,
+  },
+  macroInput: {
+      flex: 1,
   },
   infoRow: {
     flexDirection: 'row',
