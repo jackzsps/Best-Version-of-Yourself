@@ -4,7 +4,10 @@
     "postinstall": "cd web && npm install && cd ../functions && npm install"
   },
   "dependencies": {
+    "@react-native-async-storage/async-storage": "^2.2.0",
+    "@react-native-community/netinfo": "^11.4.1",
     "firebase": "^12.8.0",
-    "react-native-iap": "^14.7.6"
+    "react-native-iap": "^14.7.6",
+    "react-native-toast-message": "^2.3.3"
   }
 }

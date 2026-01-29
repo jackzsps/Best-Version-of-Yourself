@@ -6,6 +6,7 @@ import firestore from '@react-native-firebase/firestore';
 import auth, { FirebaseAuthTypes } from '@react-native-firebase/auth';
 import { GoogleSignin } from '@react-native-google-signin/google-signin';
 import { appleAuth } from '@invertase/react-native-apple-authentication';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 // Note: This file is a React Native specific implementation of AppContext.
 // It uses @react-native-firebase which provides native bindings and better offline support (SQLite).
@@ -57,6 +58,24 @@ export const AppProvider = ({ children }: React.PropsWithChildren<{}>) => {
     
     return expiry > now;
   })();
+  
+  // 0. Load persisted settings on mount
+  useEffect(() => {
+    const loadSettings = async () => {
+      try {
+        const savedMode = await AsyncStorage.getItem('bvoy_mode');
+        const savedLang = await AsyncStorage.getItem('bvoy_language');
+        const savedTheme = await AsyncStorage.getItem('bvoy_theme');
+        
+        if (savedMode) setMode(savedMode as RecordMode);
+        if (savedLang) setLanguage(savedLang as Language);
+        if (savedTheme) setTheme(savedTheme as Theme);
+      } catch (e) {
+        console.error("Failed to load local settings", e);
+      }
+    };
+    loadSettings();
+  }, []);
 
   // 1. Auth Listener
   useEffect(() => {
@@ -245,6 +264,20 @@ export const AppProvider = ({ children }: React.PropsWithChildren<{}>) => {
       db.collection('users').doc(user.uid).set({ subscription: sub }, { merge: true });
   }
 
+  // Wrapper setters to persist to AsyncStorage
+  const updateMode = (m: RecordMode) => { 
+      setMode(m); 
+      AsyncStorage.setItem('bvoy_mode', m).catch(console.error); 
+  };
+  const updateLanguage = (l: Language) => { 
+      setLanguage(l); 
+      AsyncStorage.setItem('bvoy_language', l).catch(console.error); 
+  };
+  const updateTheme = (t: Theme) => { 
+      setTheme(t); 
+      AsyncStorage.setItem('bvoy_theme', t).catch(console.error); 
+  };
+
   const t = TRANSLATIONS[language];
 
   return (
@@ -261,9 +294,9 @@ export const AppProvider = ({ children }: React.PropsWithChildren<{}>) => {
         addEntry,
         updateEntry,
         deleteEntry,
-        setMode,
-        setLanguage,
-        setTheme,
+        setMode: updateMode,
+        setLanguage: updateLanguage,
+        setTheme: updateTheme,
         loginGoogle,
         loginApple,
         loginEmail,

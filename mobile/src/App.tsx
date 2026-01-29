@@ -4,6 +4,7 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { AppProvider, useApp } from './store/AppContext';
+import { ToastProvider } from './store/ToastContext'; // Import ToastProvider
 import { Dashboard } from './pages/Dashboard';
 import { AddEntry } from './pages/AddEntry';
 import { Settings } from './pages/Settings';
@@ -59,14 +60,16 @@ const App = () => {
   return (
     <SafeAreaProvider>
       <ErrorBoundary>
-        <AppProvider>
-          <NavigationContainer>
-            <Stack.Navigator screenOptions={{ headerShown: false }}>
-              <Stack.Screen name="MainTabs" component={TabNavigator} />
-              <Stack.Screen name="PrivacyPolicy" component={PrivacyPolicy} />
-            </Stack.Navigator>
-          </NavigationContainer>
-        </AppProvider>
+        <ToastProvider> 
+          <AppProvider>
+            <NavigationContainer>
+              <Stack.Navigator screenOptions={{ headerShown: false }}>
+                <Stack.Screen name="MainTabs" component={TabNavigator} />
+                <Stack.Screen name="PrivacyPolicy" component={PrivacyPolicy} />
+              </Stack.Navigator>
+            </NavigationContainer>
+          </AppProvider>
+        </ToastProvider>
       </ErrorBoundary>
     </SafeAreaProvider>
   );

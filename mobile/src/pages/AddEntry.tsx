@@ -13,6 +13,7 @@ import {
 } from 'react-native';
 import { launchCamera, launchImageLibrary, ImageLibraryOptions, CameraOptions } from 'react-native-image-picker';
 import { useApp } from '../store/AppContext';
+import { useToast } from '../store/ToastContext'; // Import useToast
 import { analyzeImage } from '../services/geminiService';
 import { uploadImage } from '../services/storageService';
 import {
@@ -29,6 +30,7 @@ import { PaywallModal } from '../components/PaywallModal';
 
 export const AddEntry = () => {
   const { t, addEntry, mode, user, isPro, subscription } = useApp();
+  const toast = useToast(); // Initialize toast
   const [imageUri, setImageUri] = useState<string | null>(null);
   const [analyzing, setAnalyzing] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -95,8 +97,14 @@ export const AddEntry = () => {
       setAnalysisResult(result);
       setEditedName(result.itemName || '');
       setEditedCost(result.cost ? result.cost.toString() : '0');
-    } catch (error) {
-      Alert.alert(t.common.error, t.addEntry.analysisFailed);
+    } catch (error: any) {
+      // Replaced Alert with Toast for better UX and consistency with Web
+      if (error.isNetworkError) {
+          toast.info(t.common.offline || "No Internet", "Image will be processed later (mock)."); // Mock message as logic differs
+      } else {
+          toast.error(t.common.error, t.addEntry.analysisFailed);
+      }
+      console.error("Analysis Error:", error);
     } finally {
       setAnalyzing(false);
     }
@@ -148,7 +156,9 @@ export const AddEntry = () => {
       };
 
       addEntry(newEntry);
-      Alert.alert(t.common.save, t.addEntry.entrySaved);
+      
+      // Replaced Alert with Toast
+      toast.success(t.common.save, t.addEntry.entrySaved);
       
       // Reset state
       setImageUri(null);
@@ -157,7 +167,8 @@ export const AddEntry = () => {
       setEditedCost('');
     } catch (error) {
       console.error('Save failed:', error);
-      Alert.alert(t.common.error, 'Failed to save entry. Please try again.');
+      // Replaced Alert with Toast
+      toast.error(t.common.error, 'Failed to save entry. Please try again.');
     } finally {
       setIsSubmitting(false);
     }
@@ -355,8 +366,7 @@ const styles = StyleSheet.create({
   },
   resultHeader: {
     fontSize: 20,
-    fontWeight: 'bold',
-    marginBottom: 16,
+    fontWeight: 'bold',    marginBottom: 16,
     color: '#000',
   },
   inputGroup: {
