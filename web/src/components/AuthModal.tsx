@@ -79,9 +79,7 @@ const useStyles = (isVintage: boolean) => ({
     googleButton: isVintage
         ? 'w-full py-3 border-2 border-vintage-ink font-typewriter font-bold flex items-center justify-center gap-2 hover:bg-vintage-ink/10 transition-colors'
         : 'w-full py-3 rounded-lg bg-white border border-gray-300 text-gray-700 font-semibold shadow-sm hover:bg-gray-50 flex items-center justify-center gap-2 transition-all',
-    appleButton: isVintage
-        ? 'w-full py-3 border-2 border-vintage-ink font-typewriter font-bold flex items-center justify-center gap-2 hover:bg-vintage-ink/10 transition-colors mt-3'
-        : 'w-full py-3 rounded-lg bg-black text-white font-semibold shadow-sm hover:bg-gray-800 flex items-center justify-center gap-2 transition-all mt-3',
+    appleButton: 'w-full py-3 rounded-lg bg-black text-white font-semibold shadow-sm hover:bg-gray-800 flex items-center justify-center gap-2 transition-all mt-3',
     title: `text-2xl font-bold mb-8 text-center ${isVintage ? 'font-typewriter text-vintage-ink' : 'text-gray-900'}`,
     switchButton: `text-sm hover:underline transition-all ${isVintage ? 'text-vintage-leather font-typewriter' : 'text-brand-600 font-medium'}`,
     divider: isVintage ? 'border-vintage-ink/30' : 'border-gray-200',

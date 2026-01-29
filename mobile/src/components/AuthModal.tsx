@@ -7,7 +7,6 @@ import {
   TouchableOpacity,
   TextInput,
   ActivityIndicator,
-  Alert,
   Platform,
 } from 'react-native';
 import { useApp } from '../store/AppContext';
@@ -28,15 +27,7 @@ const initialState = {
 };
 
 export const AuthModal = ({ visible, onClose }: AuthModalProps) => {
-  const {
-    loginEmail,
-    registerEmail,
-    loginGoogle,
-    loginApple,
-    theme,
-    t,
-  } = useApp();
-  
+  const { loginEmail, registerEmail, loginGoogle, loginApple, theme, t } = useApp();
   const [state, setState] = useState(initialState);
   const { isLogin, email, password, name, error, isLoading } = state;
   const isVintage = theme === 'vintage';
@@ -52,20 +43,19 @@ export const AuthModal = ({ visible, onClose }: AuthModalProps) => {
   };
 
   const getErrorMessage = (err: any) => {
-    // Map Firebase auth errors to localized strings
     if (err.code === 'auth/invalid-email') return t.auth.errorEmail;
     if (err.code === 'auth/invalid-credential') return t.auth.errorCredential;
     if (err.code === 'auth/email-already-in-use') return t.auth.errorInUse;
     if (err.code === 'auth/weak-password') return t.auth.errorWeak;
     if (err.code === 'auth/network-request-failed') return t.auth.errorNetwork;
-    if (err.code === 'auth/operation-not-allowed') return t.auth.errorOperationNotAllowed;
+    if (err.code === 'auth/operation-not-allowed')
+      return t.auth.errorOperationNotAllowed;
     return err.message || t.common.error;
   };
 
   const handleEmailAuth = async () => {
     updateState('error', '');
     updateState('isLoading', true);
-    
     try {
       if (isLogin) {
         await loginEmail(email, password);
@@ -74,7 +64,6 @@ export const AuthModal = ({ visible, onClose }: AuthModalProps) => {
       }
       onClose();
     } catch (err: any) {
-      console.error('Auth Error:', err);
       updateState('error', getErrorMessage(err));
     } finally {
       updateState('isLoading', false);
@@ -88,7 +77,6 @@ export const AuthModal = ({ visible, onClose }: AuthModalProps) => {
       await loginGoogle();
       onClose();
     } catch (err: any) {
-      console.error('Google Auth Error:', err);
       updateState('error', getErrorMessage(err));
     } finally {
       updateState('isLoading', false);
@@ -102,7 +90,6 @@ export const AuthModal = ({ visible, onClose }: AuthModalProps) => {
       await loginApple();
       onClose();
     } catch (err: any) {
-      console.error('Apple Auth Error:', err);
       updateState('error', getErrorMessage(err));
     } finally {
       updateState('isLoading', false);
@@ -113,8 +100,8 @@ export const AuthModal = ({ visible, onClose }: AuthModalProps) => {
     <Modal visible={visible} animationType="slide" transparent>
       <View style={styles.overlay}>
         <View style={[styles.container, isVintage && styles.vintageContainer]}>
-          <TouchableOpacity 
-            style={styles.closeBtn} 
+          <TouchableOpacity
+            style={styles.closeBtn}
             onPress={onClose}
             hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
           >
@@ -138,20 +125,26 @@ export const AuthModal = ({ visible, onClose }: AuthModalProps) => {
               onPress={handleGoogleAuth}
               disabled={isLoading}
             >
-              <Icon name="google" size={20} color={isVintage ? '#2d2a26' : '#000'} />
-              <Text style={[styles.socialBtnText, isVintage && styles.vintageBtnText]}>
+              <Icon
+                name="google"
+                size={20}
+                color={isVintage ? '#2d2a26' : '#000'}
+              />
+              <Text
+                style={[styles.socialBtnText, isVintage && styles.vintageBtnText]}
+              >
                 {isLogin ? 'Sign in with Google' : 'Sign up with Google'}
               </Text>
             </TouchableOpacity>
 
             {Platform.OS === 'ios' && (
               <TouchableOpacity
-                style={[styles.socialBtn, styles.appleBtn, isVintage && styles.vintageSocialBtn]}
+                style={[styles.socialBtn, styles.appleBtn]} // Removed vintage style
                 onPress={handleAppleAuth}
                 disabled={isLoading}
               >
-                <Icon name="apple" size={20} color={isVintage ? '#2d2a26' : '#fff'} />
-                <Text style={[styles.socialBtnText, isVintage ? styles.vintageBtnText : styles.appleBtnText]}>
+                <Icon name="apple" size={20} color="#fff" /> // Forced white color
+                <Text style={[styles.socialBtnText, styles.appleBtnText]}> // Removed vintage style
                   {isLogin ? 'Sign in with Apple' : 'Sign up with Apple'}
                 </Text>
               </TouchableOpacity>
@@ -159,8 +152,18 @@ export const AuthModal = ({ visible, onClose }: AuthModalProps) => {
           </View>
 
           <View style={styles.dividerContainer}>
-            <View style={[styles.dividerLine, isVintage && styles.vintageDividerLine]} />
-            <Text style={[styles.dividerText, isVintage && styles.vintageDividerText]}>
+            <View
+              style={[
+                styles.dividerLine,
+                isVintage && styles.vintageDividerLine,
+              ]}
+            />
+            <Text
+              style={[
+                styles.dividerText,
+                isVintage && styles.vintageDividerText,
+              ]}
+            >
               {t.common.or || 'OR'}
             </Text>
           </View>
@@ -199,7 +202,7 @@ export const AuthModal = ({ visible, onClose }: AuthModalProps) => {
               style={[
                 styles.submitBtn,
                 isVintage && styles.vintageSubmitBtn,
-                isLoading && styles.disabledBtn
+                isLoading && styles.disabledBtn,
               ]}
               onPress={handleEmailAuth}
               disabled={isLoading}
@@ -207,7 +210,12 @@ export const AuthModal = ({ visible, onClose }: AuthModalProps) => {
               {isLoading ? (
                 <ActivityIndicator color={isVintage ? '#fdfbf7' : '#fff'} />
               ) : (
-                <Text style={[styles.submitBtnText, isVintage && styles.vintageSubmitBtnText]}>
+                <Text
+                  style={[
+                    styles.submitBtnText,
+                    isVintage && styles.vintageSubmitBtnText,
+                  ]}
+                >
                   {isLogin ? t.auth.loginBtn : t.auth.registerBtn}
                 </Text>
               )}
@@ -218,11 +226,15 @@ export const AuthModal = ({ visible, onClose }: AuthModalProps) => {
             style={styles.switchModeBtn}
             onPress={() => updateState('isLogin', !isLogin)}
           >
-            <Text style={[styles.switchModeText, isVintage && styles.vintageSwitchModeText]}>
+            <Text
+              style={[
+                styles.switchModeText,
+                isVintage && styles.vintageSwitchModeText,
+              ]}
+            >
               {isLogin ? t.auth.toRegister : t.auth.toLogin}
             </Text>
           </TouchableOpacity>
-
         </View>
       </View>
     </Modal>
