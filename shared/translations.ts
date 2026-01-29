@@ -137,6 +137,7 @@ export const TRANSLATIONS = {
     settings: {
       title: 'Settings',
       account: 'Account Settings',
+      preferences: 'Preferences',
       signIn: 'Sign In / Register',
       signOut: 'Sign Out',
       logoutWarning:
@@ -315,6 +316,7 @@ export const TRANSLATIONS = {
     settings: {
       title: '設定',
       account: '帳號設定',
+      preferences: '偏好設定',
       signIn: '登入 / 註冊',
       signOut: '登出',
       logoutWarning: '正在寫入資料，請稍後再登出。',
