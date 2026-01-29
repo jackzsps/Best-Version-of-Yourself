@@ -141,11 +141,6 @@ export const Settings = () => {
                 <Text style={isVintage ? styles.vintageValue : styles.value}>
                    Guest
                 </Text>
-                <Icon
-                  name="arrowRight"
-                  size={16}
-                  color={isVintage ? '#2d2a26' : '#9CA3AF'}
-                />
              </View>
           </TouchableOpacity>
         )}

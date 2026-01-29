@@ -395,7 +395,6 @@ const Settings = () => {
                <>
                  <p className={styles.textBody}>{t.settings.authDesc}</p>
                  <button onClick={() => setShowAuthModal(true)} className={`w-full py-3 px-4 rounded-xl text-sm font-bold transition-all flex items-center justify-center gap-2 ${styles.buttonPrimary}`}>
-                    <Icon name="google" className="w-5 h-5" />
                     {t.settings.signIn}
                  </button>
                </>
