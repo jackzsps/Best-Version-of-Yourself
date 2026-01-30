@@ -64,11 +64,11 @@ target 'BestVersionOfYourself' do
 
     # Fix for gRPC-Core and related pods build error in Xcode 15+
     # Targeted fixing for: basic_seq.h:103:38 A template argument list is expected...
-    grpc_pods = ['gRPC-Core', 'gRPC-C++', 'gRPC']
     installer.pods_project.targets.each do |target|
-      if grpc_pods.include? target.name
+      # Match any target starting with gRPC (e.g., gRPC-Core, gRPC-C++, gRPC)
+      if target.name.start_with?('gRPC')
         target.build_configurations.each do |config|
-          # Using gnu++17 is often safer than c++17 for legacy code compatibility
+          # Force C++17 standard to resolve template syntax issues in newer Clang
           config.build_settings['CLANG_CXX_LANGUAGE_STANDARD'] = 'gnu++17'
         end
       end
