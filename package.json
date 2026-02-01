@@ -9,5 +9,9 @@
     "firebase": "^12.8.0",
     "react-native-iap": "^14.7.6",
     "react-native-toast-message": "^2.3.3"
+  },
+  "devDependencies": {
+    "patch-package": "^8.0.1",
+    "postinstall-postinstall": "^2.1.0"
   }
 }
