@@ -32,7 +32,7 @@ target 'BestVersionOfYourself' do
   config = use_native_modules!
 
   # Override boost with local podspec to fix checksum issue
-  # pod 'boost', :podspec => './LocalBoost.podspec'
+  pod 'boost', :podspec => './LocalBoost.podspec'
 
   # Flags change depending on the env values.
   flags = get_default_flags()
