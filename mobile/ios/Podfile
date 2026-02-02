@@ -23,6 +23,10 @@ end
 target 'BestVersionOfYourself' do
   config = use_native_modules!
 
+  # [強制修復] 明確指定使用 node_modules 中的 boost.podspec (v1.84.0)
+  # 這會覆蓋任何可能嘗試安裝舊版 Boost 的潛在依賴
+  pod 'boost', :podspec => "#{config[:reactNativePath]}/third-party-podspecs/boost.podspec"
+
   # Flags change depending on the env values.
   flags = get_default_flags()
 
