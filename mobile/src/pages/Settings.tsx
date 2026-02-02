@@ -6,8 +6,10 @@ import {
   TouchableOpacity,
   ScrollView,
   Alert,
+  ActivityIndicator,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
+import functions from '@react-native-firebase/functions';
 import { useApp } from '../store/AppContext';
 import { Icon } from '../components/Icons';
 import { PaywallModal } from '../components/PaywallModal';
@@ -31,6 +33,7 @@ export const Settings = () => {
   const isVintage = theme === 'vintage';
   const [showPaywall, setShowPaywall] = useState(false);
   const [showAuthModal, setShowAuthModal] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const handleLogout = () => {
     Alert.alert(t.settings.signOut, t.settings.logoutWarning, [
@@ -47,6 +50,36 @@ export const Settings = () => {
         },
       },
     ]);
+  };
+
+  const handleDeleteAccount = () => {
+    Alert.alert(
+      t.settings.deleteAccount,
+      t.settings.deleteAccountWarning,
+      [
+        { text: t.common.cancel, style: 'cancel' },
+        {
+          text: t.settings.deleteAccount,
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              setIsDeleting(true);
+              const deleteAccountFn = functions().httpsCallable('deleteAccount');
+              await deleteAccountFn();
+              
+              // Logout locally after successful backend deletion
+              await logout();
+              Alert.alert('Success', 'Your account has been deleted.');
+            } catch (error: any) {
+              console.error('Delete account failed', error);
+              Alert.alert('Error', error.message || 'Failed to delete account. Please try logging in again.');
+            } finally {
+              setIsDeleting(false);
+            }
+          },
+        },
+      ]
+    );
   };
   
   const getSubscriptionStatusText = () => {
@@ -198,16 +231,32 @@ export const Settings = () => {
         />
       </View>
 
-      {/* Logout */}
+      {/* Logout & Delete Account */}
       {user && (
-        <TouchableOpacity
-            style={isVintage ? styles.vintageLogoutBtn : styles.logoutBtn}
-            onPress={handleLogout}
-        >
-            <Text style={isVintage ? styles.vintageLogoutText : styles.logoutText}>
-            {t.settings.signOut}
-            </Text>
-        </TouchableOpacity>
+        <>
+            <TouchableOpacity
+                style={isVintage ? styles.vintageLogoutBtn : styles.logoutBtn}
+                onPress={handleLogout}
+            >
+                <Text style={isVintage ? styles.vintageLogoutText : styles.logoutText}>
+                {t.settings.signOut}
+                </Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+                style={isVintage ? styles.vintageDeleteBtn : styles.deleteBtn}
+                onPress={handleDeleteAccount}
+                disabled={isDeleting}
+            >
+                {isDeleting ? (
+                    <ActivityIndicator color="#FF3B30" />
+                ) : (
+                    <Text style={isVintage ? styles.vintageDeleteText : styles.deleteText}>
+                        {t.settings.deleteAccount || "Delete Account"}
+                    </Text>
+                )}
+            </TouchableOpacity>
+        </>
       )}
 
       <Text style={styles.versionText}>Version 1.0.0</Text>
@@ -355,6 +404,33 @@ const styles = StyleSheet.create({
     color: '#b91c1c',
     fontWeight: 'bold',
     fontFamily: 'Courier',
+  },
+  deleteBtn: {
+    marginTop: 12,
+    marginHorizontal: 16,
+    backgroundColor: 'transparent',
+    padding: 16,
+    borderRadius: 10,
+    alignItems: 'center',
+  },
+  vintageDeleteBtn: {
+    marginTop: 12,
+    marginHorizontal: 16,
+    backgroundColor: 'transparent',
+    padding: 14,
+    alignItems: 'center',
+  },
+  deleteText: {
+    fontSize: 15,
+    color: '#FF3B30',
+    fontWeight: '400',
+  },
+  vintageDeleteText: {
+    fontSize: 15,
+    color: '#b91c1c',
+    fontWeight: '400',
+    fontFamily: 'Courier',
+    textDecorationLine: 'underline',
   },
   versionText: {
     textAlign: 'center',

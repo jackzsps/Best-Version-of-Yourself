@@ -5,22 +5,14 @@ require Pod::Executable.execute_command('node', ['-p',
     {paths: [process.argv[1]]},
   )', __dir__]).strip
 
-platform :ios, min_ios_version_supported
+platform :ios, '15.1'
 prepare_react_native_project!
 
 # 解決 Firebase Swift 依賴的 Static Library 問題
 use_modular_headers!
 
-# If you are using a `react-native-flipper` your iOS build will fail when `NO_FLIPPER=1` is set.
-# because `react-native-flipper` depends on (FlipperKit,...) that will be excluded
-#
-# To fix this you can also exclude `react-native-flipper` using a `react-native.config.js`
-# ```js
-# module.exports = {
-#   dependencies: {
-#     ...(process.env.NO_FLIPPER ? { 'react-native-flipper': { platforms: { ios: null } } } : {}),
-# ```
-flipper_config = ENV['NO_FLIPPER'] == "1" ? FlipperConfiguration.disabled : FlipperConfiguration.enabled
+# Enable New Architecture
+ENV['RCT_NEW_ARCH_ENABLED'] = '1'
 
 linkage = ENV['USE_FRAMEWORKS']
 if linkage != nil
@@ -31,9 +23,6 @@ end
 target 'BestVersionOfYourself' do
   config = use_native_modules!
 
-  # Override boost with local podspec to fix checksum issue
-  # pod 'boost', :podspec => './boost.podspec'
-
   # Flags change depending on the env values.
   flags = get_default_flags()
 
@@ -42,11 +31,6 @@ target 'BestVersionOfYourself' do
     # Hermes is now enabled by default. Disable by setting this flag to false.
     :hermes_enabled => flags[:hermes_enabled],
     :fabric_enabled => flags[:fabric_enabled],
-    # Enables Flipper.
-    #
-    # Note that if you have use_frameworks! enabled, Flipper will not work and
-    # you should disable the next line.
-    :flipper_configuration => flipper_config,
     # An absolute path to your application root.
     :app_path => "#{Pod::Config.instance.installation_root}/.."
   )
@@ -63,18 +47,5 @@ target 'BestVersionOfYourself' do
       config[:reactNativePath],
       :mac_catalyst_enabled => false
     )
-    __apply_Xcode_12_5_M1_post_install_workaround(installer)
-
-    # Fix for gRPC-Core and related pods build error in Xcode 15+
-    # Targeted fixing for: basic_seq.h:103:38 A template argument list is expected...
-    installer.pods_project.targets.each do |target|
-      # Match any target starting with gRPC (e.g., gRPC-Core, gRPC-C++, gRPC)
-      if target.name.start_with?('gRPC')
-        target.build_configurations.each do |config|
-          # Force C++17 standard to resolve template syntax issues in newer Clang
-          config.build_settings['CLANG_CXX_LANGUAGE_STANDARD'] = 'gnu++17'
-        end
-      end
-    end
   end
 end

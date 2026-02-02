@@ -34,15 +34,6 @@ admin.initializeApp();
 // The error TS2554: Expected 0-1 arguments, but got 2. suggests admin.firestore() does not take 2 args.
 // Let's try to get the database correctly.
 const db = admin.firestore();
-try {
-    // If bvoy is a named database, we might need a different initialization or access pattern.
-    // However, the prompt says "bvoy" should be the *default* database or we must use it.
-    // In Admin SDK, usually `admin.firestore()` connects to the default database of the project.
-    // If we need to connect to a specific database:
-    // const db = getFirestore(app, 'bvoy'); // This is for modular SDK, but admin uses `admin.firestore()`.
-} catch (e) {
-    console.error(e);
-}
 
 //設定 v2 全域選項 (主要影響 analyzeImage)
 setGlobalOptions({ region: "asia-east1" });
