@@ -47,5 +47,23 @@ target 'BestVersionOfYourself' do
       config[:reactNativePath],
       :mac_catalyst_enabled => false
     )
+    
+    # [FIX] gRPC-C++ module map not found issue in Archive/Release builds
+    # This forces the headers to be found by overriding the module map path logic
+    installer.pods_project.targets.each do |target|
+      if target.name.start_with?('gRPC-C++') || target.name.start_with?('gRPC-Core')
+        target.build_configurations.each do |config|
+           config.build_settings['CLANG_MODULES_AUTOLINK'] = 'YES'
+        end
+      end
+      
+      # Fix for React-Codegen missing header search paths
+      if target.name == 'React-Codegen'
+        target.build_configurations.each do |config|
+          config.build_settings['HEADER_SEARCH_PATHS'] ||= '$(inherited)'
+          config.build_settings['HEADER_SEARCH_PATHS'] << ' "${PODS_ROOT}/Headers/Private/React-Core"'
+        end
+      end
+    end
   end
 end
