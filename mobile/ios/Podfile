@@ -23,6 +23,10 @@ end
 target 'BestVersionOfYourself' do
   config = use_native_modules!
 
+  # [FIX 1] 明確指定 gRPC 使用 Modular Headers (回應你的建議)
+  pod 'gRPC-Core', :modular_headers => true
+  pod 'gRPC-C++', :modular_headers => true
+
   # Flags change depending on the env values.
   flags = get_default_flags()
 
@@ -40,6 +44,16 @@ target 'BestVersionOfYourself' do
     # Pods for testing
   end
 
+  # [FIX 2] 終極解法：強制移除 gRPC-Core 的 Module Map 設定
+  # 這能避免 Archive 時找不到 modulemap 檔案的錯誤
+  pre_install do |installer|
+    podspec = installer.pod_targets.find { |t| t.name == "gRPC-Core" }&.root_spec
+    if podspec
+        # 移除 MODULEMAP_FILE 設定，強迫 Xcode 使用傳統 Header Search Path
+        podspec.pod_target_xcconfig["MODULEMAP_FILE"] = nil
+    end
+  end
+
   post_install do |installer|
     # https://github.com/facebook/react-native/blob/main/packages/react-native/scripts/react-native-pods.rb#L197-L202
     react_native_post_install(
@@ -48,20 +62,11 @@ target 'BestVersionOfYourself' do
       :mac_catalyst_enabled => false
     )
     
-    # [FIX] gRPC-C++ module map not found issue in Archive/Release builds
-    # This forces the headers to be found by overriding the module map path logic
+    # [FIX 3] 確保 gRPC 的標頭檔能被找到
     installer.pods_project.targets.each do |target|
       if target.name.start_with?('gRPC-C++') || target.name.start_with?('gRPC-Core')
         target.build_configurations.each do |config|
-           config.build_settings['CLANG_MODULES_AUTOLINK'] = 'YES'
-        end
-      end
-      
-      # Fix for React-Codegen missing header search paths
-      if target.name == 'React-Codegen'
-        target.build_configurations.each do |config|
-          config.build_settings['HEADER_SEARCH_PATHS'] ||= '$(inherited)'
-          config.build_settings['HEADER_SEARCH_PATHS'] << ' "${PODS_ROOT}/Headers/Private/React-Core"'
+           config.build_settings['CLANG_ALLOW_NON_MODULAR_INCLUDES_IN_FRAMEWORK_MODULES'] = 'YES'
         end
       end
     end
