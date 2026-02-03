@@ -23,7 +23,7 @@ end
 target 'BestVersionOfYourself' do
   config = use_native_modules!
 
-  # [FIX 1] 明確指定 gRPC 使用 Modular Headers (回應你的建議)
+  # [FIX 1] 明確指定 gRPC 使用 Modular Headers
   pod 'gRPC-Core', :modular_headers => true
   pod 'gRPC-C++', :modular_headers => true
 
@@ -44,17 +44,9 @@ target 'BestVersionOfYourself' do
     # Pods for testing
   end
 
-  # [FIX 2] 終極解法：強制移除 gRPC-Core 的 Module Map 設定
-  # 這能避免 Archive 時找不到 modulemap 檔案的錯誤
-  pre_install do |installer|
-    podspec = installer.pod_targets.find { |t| t.name == "gRPC-Core" }&.root_spec
-    if podspec
-        # 移除 MODULEMAP_FILE 設定，強迫 Xcode 使用傳統 Header Search Path
-        podspec.pod_target_xcconfig["MODULEMAP_FILE"] = nil
-    end
-  end
-
+  # ✅ 正確的 post_install 寫法：合併所有邏輯
   post_install do |installer|
+    # 1. 執行 React Native 預設的 post_install 邏輯
     # https://github.com/facebook/react-native/blob/main/packages/react-native/scripts/react-native-pods.rb#L197-L202
     react_native_post_install(
       installer,
@@ -62,11 +54,16 @@ target 'BestVersionOfYourself' do
       :mac_catalyst_enabled => false
     )
     
-    # [FIX 3] 確保 gRPC 的標頭檔能被找到
+    # 2. [FIX] gRPC 標頭檔修復 (合併你的建議)
     installer.pods_project.targets.each do |target|
-      if target.name.start_with?('gRPC-C++') || target.name.start_with?('gRPC-Core')
-        target.build_configurations.each do |config|
-           config.build_settings['CLANG_ALLOW_NON_MODULAR_INCLUDES_IN_FRAMEWORK_MODULES'] = 'YES'
+      target.build_configurations.each do |config|
+        # 解決 gRPC-Core.modulemap not found 的關鍵設定
+        # 允許在 Framework Module 中引用非模組化的標頭
+        config.build_settings['CLANG_ALLOW_NON_MODULAR_INCLUDES_IN_FRAMEWORK_MODULES'] = 'YES'
+        
+        # 加強版修復：如果還是找不到，強制移除 MODULEMAP_FILE 設定 (針對 gRPC-Core)
+        if target.name == "gRPC-Core"
+           config.build_settings.delete('MODULEMAP_FILE')
         end
       end
     end
