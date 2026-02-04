@@ -5,14 +5,13 @@ require Pod::Executable.execute_command('node', ['-p',
     {paths: [process.argv[1]]},
   )', __dir__]).strip
 
-# ⚠️ 配合 React Native 0.76 與 Xcode 26，最低版本設為 15.1
+# ⚠️ 配合 Xcode 26 / SDK 26，鎖定 iOS 版本
 platform :ios, '15.1'
 prepare_react_native_project!
 
 # 解決 Firebase Swift 依賴問題
 use_modular_headers!
 
-# Enable New Architecture
 ENV['RCT_NEW_ARCH_ENABLED'] = '1'
 
 linkage = ENV['USE_FRAMEWORKS']
@@ -24,12 +23,11 @@ end
 target 'BestVersionOfYourself' do
   config = use_native_modules!
 
-  # 1. 關閉模組生成 (解決 module map not found)
+  # [Fix 1] 關閉模組生成，避免 Xcode 26 找不到 module map
   pod 'gRPC-Core', :modular_headers => false
   pod 'gRPC-C++', :modular_headers => false
   pod 'BoringSSL-GRPC', :modular_headers => false
 
-  # Flags change depending on the env values.
   flags = get_default_flags()
 
   use_react_native!(
@@ -41,7 +39,6 @@ target 'BestVersionOfYourself' do
 
   target 'BestVersionOfYourselfTests' do
     inherit! :complete
-    # Pods for testing
   end
 
   post_install do |installer|
@@ -56,38 +53,27 @@ target 'BestVersionOfYourself' do
     # ---------------------------------------------------------
     installer.pods_project.targets.each do |target|
       target.build_configurations.each do |config|
-        # [Fix 0] 強制統一 iOS 版本，避免舊版 SDK 干擾
-        config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'] = '15.1'
-
         # [Fix 1] 允許非模組化引用 (解決 module map not found)
         config.build_settings['CLANG_ALLOW_NON_MODULAR_INCLUDES_IN_FRAMEWORK_MODULES'] = 'YES'
         
-        # 取得目前的定義 (確保它是陣列，避免字串串接錯誤)
+        # [Fix 2] 解決 C++ 標準庫相容性
         defs = config.build_settings['GCC_PREPROCESSOR_DEFINITIONS']
         defs = defs.is_a?(String) ? [defs] : (defs || [])
-        
-        # 確保繼承設定存在
         defs << '$(inherited)' unless defs.include?('$(inherited)')
-
-        # [Fix 2] 解決 C++ 標準庫相容性
-        unless defs.include?('_LIBCPP_ENABLE_CXX17_REMOVED_UNARY_BINARY_FUNCTION')
-          defs << '_LIBCPP_ENABLE_CXX17_REMOVED_UNARY_BINARY_FUNCTION'
-        end
-
-        # [Fix 3] 針對 gRPC 的 zlib 誤判環境問題 (解決 _stdio.h fdopen 錯誤)
+        defs << '_LIBCPP_ENABLE_CXX17_REMOVED_UNARY_BINARY_FUNCTION' unless defs.include?('_LIBCPP_ENABLE_CXX17_REMOVED_UNARY_BINARY_FUNCTION')
+        
+        # [Fix 3] 針對 gRPC 的 zlib 誤判環境問題
         if target.name.include?('gRPC')
-            # 透過 Preprocessor 定義
+            # 注入 Preprocessor 定義
             defs << 'HAVE_UNISTD_H=1' unless defs.include?('HAVE_UNISTD_H=1')
             defs << 'HAVE_STDARG_H=1' unless defs.include?('HAVE_STDARG_H=1')
             
-            # [Fix 3.5] 加強版：直接透過 CFLAGS 注入，確保 C 編譯器也能吃到
-            # 這是之前缺少的關鍵！
+            # 注入 CFLAGS (你的版本做得很好，這裡保留)
             cflags = config.build_settings['OTHER_CFLAGS'] || '$(inherited)'
             cflags = cflags + ' -D_XOPEN_SOURCE=700'
             config.build_settings['OTHER_CFLAGS'] = cflags
         end
-
-        # 將修正後的陣列寫回設定
+        
         config.build_settings['GCC_PREPROCESSOR_DEFINITIONS'] = defs
 
         # [Fix 4] 刪除模組地圖設定
@@ -95,6 +81,25 @@ target 'BestVersionOfYourself' do
           config.build_settings.delete('MODULEMAP_FILE')
           config.build_settings['CLANG_ENABLE_MODULES'] = 'NO'
         end
+      end
+    end
+
+    # ---------------------------------------------------------
+    # [關鍵保險] 直接修正 gRPC-Core 原始碼 (Source Patch)
+    # 這是為了防止 Flags 被 zlib 忽略，直接把問題代碼註解掉
+    # ---------------------------------------------------------
+    puts "Applying gRPC-Core zlib patch for Xcode 26 compatibility..."
+    Dir.glob("Pods/gRPC-Core/third_party/zlib/**/*.h").each do |file|
+      begin
+        content = File.read(file)
+        if content.include?("# define fdopen(fd,mode) NULL")
+          puts "  - Patching broken fdopen macro in #{file}"
+          # 將錯誤的定義註解掉
+          new_content = content.gsub("# define fdopen(fd,mode) NULL", "/* patched: fdopen */")
+          File.open(file, "w") { |f| f.write(new_content) }
+        end
+      rescue => e
+        puts "  - Failed to patch #{file}: #{e.message}"
       end
     end
   end
