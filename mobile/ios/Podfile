@@ -1,11 +1,9 @@
-# Resolve react_native_pods.rb with node to allow for hoisting
 require Pod::Executable.execute_command('node', ['-p',
   'require.resolve(
     "react-native/scripts/react_native_pods.rb",
     {paths: [process.argv[1]]},
   )', __dir__]).strip
 
-# ⚠️ 配合 Xcode 26 / SDK 26，鎖定 iOS 版本
 platform :ios, '15.1'
 prepare_react_native_project!
 
@@ -16,30 +14,23 @@ ENV['RCT_NEW_ARCH_ENABLED'] = '1'
 
 linkage = ENV['USE_FRAMEWORKS']
 if linkage != nil
-  Pod::UI.puts "Configuring Pod with #{linkage}ally linked Frameworks".green
   use_frameworks! :linkage => linkage.to_sym
 end
 
+# 定義 Target 名稱 (這行非常重要，不能遺漏)
 target 'BestVersionOfYourself' do
   config = use_native_modules!
 
-  # [Fix 1] 關閉模組生成，避免 Xcode 26 找不到 module map
+  # 1. 針對 gRPC 系列強制關閉 Modular Headers
   pod 'gRPC-Core', :modular_headers => false
   pod 'gRPC-C++', :modular_headers => false
   pod 'BoringSSL-GRPC', :modular_headers => false
 
-  flags = get_default_flags()
-
+  # 2. 引入 React Native 核心依賴 (這行就是最重要的 dependency)
   use_react_native!(
     :path => config[:reactNativePath],
-    :hermes_enabled => flags[:hermes_enabled],
-    :fabric_enabled => flags[:fabric_enabled],
     :app_path => "#{Pod::Config.instance.installation_root}/.."
   )
-
-  target 'BestVersionOfYourselfTests' do
-    inherit! :complete
-  end
 
   post_install do |installer|
     react_native_post_install(
@@ -48,58 +39,75 @@ target 'BestVersionOfYourself' do
       :mac_catalyst_enabled => false
     )
 
-    # ---------------------------------------------------------
-    # [終極修復] 針對 Xcode 26.2 / SDK 26 的綜合修正
-    # ---------------------------------------------------------
-    installer.pods_project.targets.each do |target|
-      target.build_configurations.each do |config|
-        # [Fix 1] 允許非模組化引用 (解決 module map not found)
-        config.build_settings['CLANG_ALLOW_NON_MODULAR_INCLUDES_IN_FRAMEWORK_MODULES'] = 'YES'
-        
-        # [Fix 2] 解決 C++ 標準庫相容性
-        defs = config.build_settings['GCC_PREPROCESSOR_DEFINITIONS']
-        defs = defs.is_a?(String) ? [defs] : (defs || [])
-        defs << '$(inherited)' unless defs.include?('$(inherited)')
-        defs << '_LIBCPP_ENABLE_CXX17_REMOVED_UNARY_BINARY_FUNCTION' unless defs.include?('_LIBCPP_ENABLE_CXX17_REMOVED_UNARY_BINARY_FUNCTION')
-        
-        # [Fix 3] 針對 gRPC 的 zlib 誤判環境問題
-        if target.name.include?('gRPC')
-            # 注入 Preprocessor 定義
-            defs << 'HAVE_UNISTD_H=1' unless defs.include?('HAVE_UNISTD_H=1')
-            defs << 'HAVE_STDARG_H=1' unless defs.include?('HAVE_STDARG_H=1')
-            
-            # 注入 CFLAGS (你的版本做得很好，這裡保留)
-            cflags = config.build_settings['OTHER_CFLAGS'] || '$(inherited)'
-            cflags = cflags + ' -D_XOPEN_SOURCE=700'
-            config.build_settings['OTHER_CFLAGS'] = cflags
-        end
-        
-        config.build_settings['GCC_PREPROCESSOR_DEFINITIONS'] = defs
+    # =================================================================
+    #  [原始碼強力修補區] 解決 Xcode 26+ 與 glog/leveldb/gRPC 的衝突
+    # =================================================================
+    
+    puts "Applying aggressive patches for Xcode 26+..."
 
-        # [Fix 4] 刪除模組地圖設定
-        if target.name.include?('gRPC') || target.name.include?('BoringSSL')
-          config.build_settings.delete('MODULEMAP_FILE')
-          config.build_settings['CLANG_ENABLE_MODULES'] = 'NO'
-        end
+    # --- Fix 1: glog (SYS_gettid & syscall issues) ---
+    Dir.glob("Pods/glog/src/**/*.cc").each do |file|
+      content = File.read(file)
+      original_length = content.length
+      
+      # 移除對 syscall.h 的依賴
+      content = content.gsub(/#include <syscall.h>/, '// #include <syscall.h>')
+      content = content.gsub(/#include <sys\/syscall.h>/, '// #include <sys/syscall.h>')
+
+      # 替換 SYS_gettid
+      if content.include?("SYS_gettid")
+        puts "  - Patching SYS_gettid in #{file}"
+        content = content.gsub(/syscall\(SYS_gettid\)/, '(pid_t)0 /* patched */') 
+        content = content.gsub(/SYS_gettid/, '0')
+      end
+
+      # 針對 utilities.cc 可能出現的 undeclared identifier 'SYS_gettid'
+      content = content.gsub(/return syscall\(SYS_gettid\);/, 'return (pid_t)0;')
+
+      File.open(file, "w") { |f| f.write(content) } if content.length != original_length
+    end
+
+    # --- Fix 2: leveldb-library (mmap argument 0) ---
+    Dir.glob("Pods/leveldb-library/util/env_posix.cc").each do |file|
+      content = File.read(file)
+      if content.match(/mmap\(\s*nullptr\s*,\s*map_size\s*,/)
+        puts "  - Patching leveldb mmap in #{file}"
+        new_content = content.gsub(
+          /mmap\(\s*nullptr\s*,\s*map_size\s*,/, 
+          'mmap(nullptr, (map_size > 0 ? map_size : 1),'
+        )
+        File.open(file, "w") { |f| f.write(new_content) }
       end
     end
 
-    # ---------------------------------------------------------
-    # [關鍵保險] 直接修正 gRPC-Core 原始碼 (Source Patch)
-    # 這是為了防止 Flags 被 zlib 忽略，直接把問題代碼註解掉
-    # ---------------------------------------------------------
-    puts "Applying gRPC-Core zlib patch for Xcode 26 compatibility..."
-    Dir.glob("Pods/gRPC-Core/third_party/zlib/**/*.h").each do |file|
-      begin
-        content = File.read(file)
-        if content.include?("# define fdopen(fd,mode) NULL")
-          puts "  - Patching broken fdopen macro in #{file}"
-          # 將錯誤的定義註解掉
-          new_content = content.gsub("# define fdopen(fd,mode) NULL", "/* patched: fdopen */")
-          File.open(file, "w") { |f| f.write(new_content) }
+    # =================================================================
+    #  [Build Settings 調整]
+    # =================================================================
+    min_ios_version_supported = '15.1'
+
+    installer.pods_project.targets.each do |target|
+      target.build_configurations.each do |config|
+        
+        # 1. 統一 Deployment Target
+        current_target = config.build_settings['IPHONEOS_DEPLOYMENT_TARGET']
+        if current_target.to_f < min_ios_version_supported.to_f
+          config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'] = min_ios_version_supported
         end
-      rescue => e
-        puts "  - Failed to patch #{file}: #{e.message}"
+
+        # 2. gRPC-Core 修復
+        if target.name == 'gRPC-Core'
+          config.build_settings['GCC_PREPROCESSOR_DEFINITIONS'] ||= ['$(inherited)']
+          config.build_settings['GCC_PREPROCESSOR_DEFINITIONS'] << 'HAVE_UNISTD_H=1'
+          config.build_settings['GCC_PREPROCESSOR_DEFINITIONS'] << 'HAVE_STDARG_H=1'
+        end
+
+        # 3. C++ 標準庫相容性
+        defs = config.build_settings['GCC_PREPROCESSOR_DEFINITIONS']
+        defs = defs.is_a?(String) ? [defs] : (defs || [])
+        defs << '$(inherited)' unless defs.include?('$(inherited)')
+        defs << '_LIBCPP_ENABLE_CXX17_REMOVED_UNARY_BINARY_FUNCTION'
+        config.build_settings['GCC_PREPROCESSOR_DEFINITIONS'] = defs
+
       end
     end
   end
