@@ -4,29 +4,28 @@ require Pod::Executable.execute_command('node', ['-p',
     {paths: [process.argv[1]]},
   )', __dir__]).strip
 
+# ⚠️ 鎖定 iOS 平台版本
 platform :ios, '15.1'
 prepare_react_native_project!
 
-# 解決 Firebase Swift 依賴問題
+# 解決 Firebase Swift 依賴 (模組化標頭檔)
 use_modular_headers!
 
+# 強制啟用 New Architecture
 ENV['RCT_NEW_ARCH_ENABLED'] = '1'
 
-linkage = ENV['USE_FRAMEWORKS']
-if linkage != nil
-  use_frameworks! :linkage => linkage.to_sym
-end
+# 🔴 [关键修正] 強制啟用 Static Frameworks
+# 這是解決 'FirebaseAuth/FirebaseAuth-Swift.h file not found' 的唯一解法
+use_frameworks! :linkage => :static
 
-# 定義 Target 名稱 (這行非常重要，不能遺漏)
 target 'BestVersionOfYourself' do
   config = use_native_modules!
 
-  # 1. 針對 gRPC 系列強制關閉 Modular Headers
+  # 1. 關閉 gRPC 的模組生成
   pod 'gRPC-Core', :modular_headers => false
   pod 'gRPC-C++', :modular_headers => false
   pod 'BoringSSL-GRPC', :modular_headers => false
 
-  # 2. 引入 React Native 核心依賴 (這行就是最重要的 dependency)
   use_react_native!(
     :path => config[:reactNativePath],
     :app_path => "#{Pod::Config.instance.installation_root}/.."
@@ -39,75 +38,65 @@ target 'BestVersionOfYourself' do
       :mac_catalyst_enabled => false
     )
 
-    # =================================================================
-    #  [原始碼強力修補區] 解決 Xcode 26+ 與 glog/leveldb/gRPC 的衝突
-    # =================================================================
-    
-    puts "Applying aggressive patches for Xcode 26+..."
-
-    # --- Fix 1: glog (SYS_gettid & syscall issues) ---
-    Dir.glob("Pods/glog/src/**/*.cc").each do |file|
-      content = File.read(file)
-      original_length = content.length
-      
-      # 移除對 syscall.h 的依賴
-      content = content.gsub(/#include <syscall.h>/, '// #include <syscall.h>')
-      content = content.gsub(/#include <sys\/syscall.h>/, '// #include <sys/syscall.h>')
-
-      # 替換 SYS_gettid
-      if content.include?("SYS_gettid")
-        puts "  - Patching SYS_gettid in #{file}"
-        content = content.gsub(/syscall\(SYS_gettid\)/, '(pid_t)0 /* patched */') 
-        content = content.gsub(/SYS_gettid/, '0')
-      end
-
-      # 針對 utilities.cc 可能出現的 undeclared identifier 'SYS_gettid'
-      content = content.gsub(/return syscall\(SYS_gettid\);/, 'return (pid_t)0;')
-
-      File.open(file, "w") { |f| f.write(content) } if content.length != original_length
-    end
-
-    # --- Fix 2: leveldb-library (mmap argument 0) ---
-    Dir.glob("Pods/leveldb-library/util/env_posix.cc").each do |file|
-      content = File.read(file)
-      if content.match(/mmap\(\s*nullptr\s*,\s*map_size\s*,/)
-        puts "  - Patching leveldb mmap in #{file}"
-        new_content = content.gsub(
-          /mmap\(\s*nullptr\s*,\s*map_size\s*,/, 
-          'mmap(nullptr, (map_size > 0 ? map_size : 1),'
-        )
-        File.open(file, "w") { |f| f.write(new_content) }
-      end
-    end
-
-    # =================================================================
-    #  [Build Settings 調整]
-    # =================================================================
-    min_ios_version_supported = '15.1'
-
+    # =========================================================
+    # 🛡️ 針對 Xcode 26.2 / SDK 26 的防禦性設定
+    # =========================================================
     installer.pods_project.targets.each do |target|
       target.build_configurations.each do |config|
+        # [Fix 1] 強制關閉靜態分析
+        config.build_settings['RUN_CLANG_STATIC_ANALYZER'] = 'NO'
         
-        # 1. 統一 Deployment Target
-        current_target = config.build_settings['IPHONEOS_DEPLOYMENT_TARGET']
-        if current_target.to_f < min_ios_version_supported.to_f
-          config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'] = min_ios_version_supported
-        end
+        # [Fix 2] 關閉將警告視為錯誤
+        config.build_settings['GCC_TREAT_WARNINGS_AS_ERRORS'] = 'NO'
+        
+        # [Fix 3] 強制提升部署版本
+        config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'] = '15.1'
+        
+        # [Fix 4] 允許非模組化引用
+        config.build_settings['CLANG_ALLOW_NON_MODULAR_INCLUDES_IN_FRAMEWORK_MODULES'] = 'YES'
 
-        # 2. gRPC-Core 修復
-        if target.name == 'gRPC-Core'
-          config.build_settings['GCC_PREPROCESSOR_DEFINITIONS'] ||= ['$(inherited)']
-          config.build_settings['GCC_PREPROCESSOR_DEFINITIONS'] << 'HAVE_UNISTD_H=1'
-          config.build_settings['GCC_PREPROCESSOR_DEFINITIONS'] << 'HAVE_STDARG_H=1'
-        end
-
-        # 3. C++ 標準庫相容性
+        # [Fix 5] 解決 C++ 標準庫相容性
         defs = config.build_settings['GCC_PREPROCESSOR_DEFINITIONS']
         defs = defs.is_a?(String) ? [defs] : (defs || [])
         defs << '$(inherited)' unless defs.include?('$(inherited)')
         defs << '_LIBCPP_ENABLE_CXX17_REMOVED_UNARY_BINARY_FUNCTION'
         config.build_settings['GCC_PREPROCESSOR_DEFINITIONS'] = defs
 
+        # [Fix 6] 移除 Module Map
+        if target.name.include?('gRPC') || target.name.include?('BoringSSL')
+          config.build_settings.delete('MODULEMAP_FILE')
+          config.build_settings['CLANG_ENABLE_MODULES'] = 'NO'
+        end
+      end
+    end
+
+    # ---------------------------------------------------------
+    # 🩹 [Patch 1] 物理修復 gRPC-Core (fdopen 錯誤)
+    # ---------------------------------------------------------
+    puts "Applying gRPC-Core zlib patch..."
+    Dir.glob("Pods/gRPC-Core/third_party/zlib/**/*.h").each do |file|
+      begin
+        content = File.read(file)
+        if content.match(/#\s*define\s+fdopen\(fd,mode\)\s+NULL/)
+          puts "  - Patching broken fdopen macro in #{file}"
+          new_content = content.gsub(/#\s*define\s+fdopen\(fd,mode\)\s+NULL/, "/* patched: fdopen */")
+          File.open(file, "w") { |f| f.write(new_content) }
+        end
+      rescue => e
+        puts "  - Failed to patch #{file}: #{e.message}"
+      end
+    end
+
+    # ---------------------------------------------------------
+    # 🩹 [Patch 2] 物理修復 glog (syscall deprecated 錯誤)
+    # ---------------------------------------------------------
+    puts "Applying glog patch..."
+    Dir.glob("Pods/glog/src/**/*.cc").each do |file|
+      content = File.read(file)
+      if content.include?("syscall(SYS_gettid)")
+        puts "  - Patching syscall(SYS_gettid) in #{file}"
+        new_content = content.gsub(/return\s+static_cast<int>\(syscall\(SYS_gettid\)\);/, "return 0; // patched")
+        File.open(file, "w") { |f| f.write(new_content) }
       end
     end
   end

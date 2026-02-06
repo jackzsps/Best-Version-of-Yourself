@@ -1,5 +1,5 @@
 diff --git a/node_modules/react-native-reanimated/RNReanimated.podspec b/node_modules/react-native-reanimated/RNReanimated.podspec
-index 7cfa13e..76e0f98 100644
+index dba0fad..60bb4e8 100644
 --- a/node_modules/react-native-reanimated/RNReanimated.podspec
 +++ b/node_modules/react-native-reanimated/RNReanimated.podspec
 @@ -3,7 +3,7 @@ require_relative './scripts/reanimated_utils'
@@ -10,4 +10,4 @@ index 7cfa13e..76e0f98 100644
 +# assert_minimal_react_native_version($config)
  
  $new_arch_enabled = ENV['RCT_NEW_ARCH_ENABLED'] != '0'
- 
+ assert_new_architecture_enabled($new_arch_enabled)
