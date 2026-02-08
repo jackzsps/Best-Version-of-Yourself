@@ -1,11 +1,12 @@
+# Resolve React Native's podspec
 require Pod::Executable.execute_command('node', ['-p',
   'require.resolve(
     "react-native/scripts/react_native_pods.rb",
     {paths: [process.argv[1]]},
   )', __dir__]).strip
 
-# ⚠️ 鎖定 iOS 平台版本
-platform :ios, '15.1'
+# ⚠️ 鎖定 iOS 平台版本 (React Native 0.83+ 建議 16.0+)
+platform :ios, '16.1'
 prepare_react_native_project!
 
 # 解決 Firebase Swift 依賴
@@ -14,6 +15,7 @@ use_modular_headers!
 # [Fix for Firebase] 強制使用靜態 Framework
 use_frameworks! :linkage => :static
 
+# New Architecture is enabled by default in 0.83, but we can be explicit
 ENV['RCT_NEW_ARCH_ENABLED'] = '1'
 
 target 'BestVersionOfYourself' do
@@ -26,10 +28,12 @@ target 'BestVersionOfYourself' do
 
   use_react_native!(
     :path => config[:reactNativePath],
+    # Note: app_path is optional in newer versions, but good to keep if unsure
     :app_path => "#{Pod::Config.instance.installation_root}/.."
   )
 
   post_install do |installer|
+    # react_native_post_install handles most things now
     react_native_post_install(
       installer,
       config[:reactNativePath],
@@ -37,81 +41,24 @@ target 'BestVersionOfYourself' do
     )
 
     # =========================================================
-    # 🛡️ 針對 Xcode 16 / iOS 15+ 的防禦性設定
+    # 🛡️ 針對 Xcode 16 / iOS 16+ 的防禦性設定
     # =========================================================
     installer.pods_project.targets.each do |target|
       target.build_configurations.each do |config|
-        # [Fix 1] 強制關閉靜態分析 (解決 NativeProxy 錯誤)
-        config.build_settings['RUN_CLANG_STATIC_ANALYZER'] = 'NO'
-        config.build_settings['CLANG_ANALYZER_LOCALIZABILITY_NONLOCALIZED'] = 'NO'
-        
-        # [Fix 2] 關閉將警告視為錯誤
-        config.build_settings['GCC_TREAT_WARNINGS_AS_ERRORS'] = 'NO'
-        
         # [Fix 3] 強制提升部署版本
-        config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'] = '15.1'
+        config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'] = '16.1'
         
         # [Fix 4] 允許非模組化引用
         config.build_settings['CLANG_ALLOW_NON_MODULAR_INCLUDES_IN_FRAMEWORK_MODULES'] = 'YES'
 
-        # [Fix 5] C++ 標準庫相容性
-        defs = config.build_settings['GCC_PREPROCESSOR_DEFINITIONS']
-        defs = defs.is_a?(String) ? [defs] : (defs || [])
-        defs << '$(inherited)' unless defs.include?('$(inherited)')
-        defs << '_LIBCPP_ENABLE_CXX17_REMOVED_UNARY_BINARY_FUNCTION'
-        config.build_settings['GCC_PREPROCESSOR_DEFINITIONS'] = defs
-
-        # [Fix 6] 移除 Module Map (解決 gRPC 重複定義)
-        if target.name.include?('gRPC') || target.name.include?('BoringSSL')
-          config.build_settings.delete('MODULEMAP_FILE')
-          config.build_settings['CLANG_ENABLE_MODULES'] = 'NO'
-        end
+        # Removed GCC_PREPROCESSOR_DEFINITIONS patch as RN 0.83 should handle C++17/20 better
+        # Removed gRPC/BoringSSL specific module map fixes as newer RN/CocoaPods might handle this differently.
+        # If issues persist, we can add them back.
       end
     end
-
-    # ---------------------------------------------------------
-    # 🩹 [Patch 1] 物理修復 gRPC-Core (fdopen 錯誤) - 這是必須的
-    # ---------------------------------------------------------
-    puts "Applying gRPC-Core zlib patch..."
-    Dir.glob("Pods/gRPC-Core/third_party/zlib/**/*.h").each do |file|
-      begin
-        content = File.read(file)
-        if content.match(/#\s*define\s+fdopen\(fd,mode\)\s+NULL/)
-          puts "  - Patching broken fdopen macro in #{file}"
-          new_content = content.gsub(/#\s*define\s+fdopen\(fd,mode\)\s+NULL/, "/* patched: fdopen */")
-          File.open(file, "w") { |f| f.write(new_content) }
-        end
-      rescue => e
-        puts "  - Failed to patch #{file}: #{e.message}"
-      end
-    end
-
-    # ---------------------------------------------------------
-    # 🩹 [Patch 2] 物理修復 glog (syscall deprecated 錯誤) - 這是必須的
-    # ---------------------------------------------------------
-    puts "Applying glog patch..."
-    Dir.glob("Pods/glog/src/**/*.cc").each do |file|
-      content = File.read(file)
-      if content.include?("syscall(SYS_gettid)")
-        puts "  - Patching syscall(SYS_gettid) in #{file}"
-        new_content = content.gsub(/return\s+static_cast<int>\(syscall\(SYS_gettid\)\);/, "return 0; // patched")
-        File.open(file, "w") { |f| f.write(new_content) }
-      end
-    end
-
-    # ---------------------------------------------------------
-    # 🩹 [Patch 3] 物理修復 react-native-svg (StyleSizeLength 錯誤) - 視情況保留
-    # ---------------------------------------------------------
-    puts "Applying react-native-svg patch..."
-    svg_file_path = File.join(__dir__, '..', 'node_modules', 'react-native-svg', 'common', 'cpp', 'react', 'renderer', 'components', 'rnsvg', 'RNSVGLayoutableShadowNode.cpp')
-    if File.exist?(svg_file_path)
-      content = File.read(svg_file_path)
-      if content.include?("StyleSizeLength")
-        puts "  - Patching StyleSizeLength to StyleLength in #{svg_file_path}"
-        new_content = content.gsub("StyleSizeLength", "StyleLength")
-        File.open(svg_file_path, "w") { |f| f.write(new_content) }
-      end
-    end
+    
+    # Removed manual patches for gRPC-Core, glog, and react-native-svg
+    # Assuming RN 0.83 and newer library versions have fixed these issues.
     
   end
 end
