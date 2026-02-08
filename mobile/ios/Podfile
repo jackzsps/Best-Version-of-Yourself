@@ -8,20 +8,18 @@ require Pod::Executable.execute_command('node', ['-p',
 platform :ios, '15.1'
 prepare_react_native_project!
 
-# 解決 Firebase Swift 依賴 (模組化標頭檔)
+# 解決 Firebase Swift 依賴
 use_modular_headers!
 
-# 強制啟用 New Architecture
-ENV['RCT_NEW_ARCH_ENABLED'] = '1'
-
-# 🔴 [关键修正] 強制啟用 Static Frameworks
-# 這是解決 'FirebaseAuth/FirebaseAuth-Swift.h file not found' 的唯一解法
+# [Fix for Firebase] 強制使用靜態 Framework
 use_frameworks! :linkage => :static
+
+ENV['RCT_NEW_ARCH_ENABLED'] = '1'
 
 target 'BestVersionOfYourself' do
   config = use_native_modules!
 
-  # 1. 關閉 gRPC 的模組生成
+  # 1. 關閉模組生成 (解決 gRPC 衝突)
   pod 'gRPC-Core', :modular_headers => false
   pod 'gRPC-C++', :modular_headers => false
   pod 'BoringSSL-GRPC', :modular_headers => false
@@ -39,12 +37,13 @@ target 'BestVersionOfYourself' do
     )
 
     # =========================================================
-    # 🛡️ 針對 Xcode 26.2 / SDK 26 的防禦性設定
+    # 🛡️ 針對 Xcode 16 / iOS 15+ 的防禦性設定
     # =========================================================
     installer.pods_project.targets.each do |target|
       target.build_configurations.each do |config|
-        # [Fix 1] 強制關閉靜態分析
+        # [Fix 1] 強制關閉靜態分析 (解決 NativeProxy 錯誤)
         config.build_settings['RUN_CLANG_STATIC_ANALYZER'] = 'NO'
+        config.build_settings['CLANG_ANALYZER_LOCALIZABILITY_NONLOCALIZED'] = 'NO'
         
         # [Fix 2] 關閉將警告視為錯誤
         config.build_settings['GCC_TREAT_WARNINGS_AS_ERRORS'] = 'NO'
@@ -55,14 +54,14 @@ target 'BestVersionOfYourself' do
         # [Fix 4] 允許非模組化引用
         config.build_settings['CLANG_ALLOW_NON_MODULAR_INCLUDES_IN_FRAMEWORK_MODULES'] = 'YES'
 
-        # [Fix 5] 解決 C++ 標準庫相容性
+        # [Fix 5] C++ 標準庫相容性
         defs = config.build_settings['GCC_PREPROCESSOR_DEFINITIONS']
         defs = defs.is_a?(String) ? [defs] : (defs || [])
         defs << '$(inherited)' unless defs.include?('$(inherited)')
         defs << '_LIBCPP_ENABLE_CXX17_REMOVED_UNARY_BINARY_FUNCTION'
         config.build_settings['GCC_PREPROCESSOR_DEFINITIONS'] = defs
 
-        # [Fix 6] 移除 Module Map
+        # [Fix 6] 移除 Module Map (解決 gRPC 重複定義)
         if target.name.include?('gRPC') || target.name.include?('BoringSSL')
           config.build_settings.delete('MODULEMAP_FILE')
           config.build_settings['CLANG_ENABLE_MODULES'] = 'NO'
@@ -71,7 +70,7 @@ target 'BestVersionOfYourself' do
     end
 
     # ---------------------------------------------------------
-    # 🩹 [Patch 1] 物理修復 gRPC-Core (fdopen 錯誤)
+    # 🩹 [Patch 1] 物理修復 gRPC-Core (fdopen 錯誤) - 這是必須的
     # ---------------------------------------------------------
     puts "Applying gRPC-Core zlib patch..."
     Dir.glob("Pods/gRPC-Core/third_party/zlib/**/*.h").each do |file|
@@ -88,7 +87,7 @@ target 'BestVersionOfYourself' do
     end
 
     # ---------------------------------------------------------
-    # 🩹 [Patch 2] 物理修復 glog (syscall deprecated 錯誤)
+    # 🩹 [Patch 2] 物理修復 glog (syscall deprecated 錯誤) - 這是必須的
     # ---------------------------------------------------------
     puts "Applying glog patch..."
     Dir.glob("Pods/glog/src/**/*.cc").each do |file|
@@ -99,5 +98,20 @@ target 'BestVersionOfYourself' do
         File.open(file, "w") { |f| f.write(new_content) }
       end
     end
+
+    # ---------------------------------------------------------
+    # 🩹 [Patch 3] 物理修復 react-native-svg (StyleSizeLength 錯誤) - 視情況保留
+    # ---------------------------------------------------------
+    puts "Applying react-native-svg patch..."
+    svg_file_path = File.join(__dir__, '..', 'node_modules', 'react-native-svg', 'common', 'cpp', 'react', 'renderer', 'components', 'rnsvg', 'RNSVGLayoutableShadowNode.cpp')
+    if File.exist?(svg_file_path)
+      content = File.read(svg_file_path)
+      if content.include?("StyleSizeLength")
+        puts "  - Patching StyleSizeLength to StyleLength in #{svg_file_path}"
+        new_content = content.gsub("StyleSizeLength", "StyleLength")
+        File.open(svg_file_path, "w") { |f| f.write(new_content) }
+      end
+    end
+    
   end
 end
