@@ -32,7 +32,6 @@
     "react-native-screens": "^4.6.0",
     "react-native-skeleton-placeholder": "^5.2.4",
     "react-native-svg": "^15.12.1",
-    "react-native-worklets-core": "^1.6.2",
     "tailwind-merge": "^2.0.0"
   },
   "devDependencies": {
