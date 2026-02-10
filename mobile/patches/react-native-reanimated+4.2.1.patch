@@ -11,31 +11,3 @@ index dba0fad..6e042bb 100644
  
  $new_arch_enabled = ENV['RCT_NEW_ARCH_ENABLED'] != '0'
  assert_new_architecture_enabled($new_arch_enabled)
-@@ -34,7 +34,8 @@ Pod::Spec.new do |s|
-   s.platforms    = { :ios => ios_min_version, :tvos => "9.0", :osx => "10.14", :visionos => "1.0" }
-   s.source       = { :git => "https://github.com/software-mansion/react-native-reanimated.git", :tag => "#{s.version}" }
- 
--  s.dependency "RNWorklets"
-+  # patched dependency name
-+  s.dependency "react-native-worklets-core"
- 
-   s.subspec "reanimated" do |ss|
-     ss.source_files = "Common/cpp/reanimated/**/*.{cpp,h}"
-@@ -60,7 +61,7 @@ Pod::Spec.new do |s|
-       '"$(PODS_ROOT)/DoubleConversion"',
-       '"$(PODS_ROOT)/Headers/Private/React-Core"',
-       '"$(PODS_ROOT)/Headers/Private/Yoga"',
--      '"$(PODS_ROOT)/Headers/Public/RNWorklets"',
-+      '"$(PODS_ROOT)/Headers/Public/react-native-worklets-core"', # patched header path
-     ].join(' '),
-     "FRAMEWORK_SEARCH_PATHS" => '"${PODS_CONFIGURATION_BUILD_DIR}/React-hermes"',
-     "CLANG_CXX_LANGUAGE_STANDARD" => "c++20",
-@@ -76,7 +77,7 @@ Pod::Spec.new do |s|
-       '"$(PODS_ROOT)/RCT-Folly"',
-       '"$(PODS_ROOT)/Headers/Public/React-hermes"',
-       '"$(PODS_ROOT)/Headers/Public/hermes-engine"',
--      '"$(PODS_ROOT)/Headers/Public/RNWorklets"',
-+      '"$(PODS_ROOT)/Headers/Public/react-native-worklets-core"', # patched header path
-       "\"$(PODS_ROOT)/#{$config[:react_native_common_dir]}\"",
-       "\"$(PODS_ROOT)/#{$config[:dynamic_frameworks_reanimated_dir]}/apple\"",
-       "\"$(PODS_ROOT)/#{$config[:dynamic_frameworks_reanimated_dir]}/Common/cpp\"",

@@ -1,10 +1,11 @@
 import React from 'react';
+import { GestureHandlerRootView } from 'react-native-gesture-handler'; // 🔥 關鍵修改 1：引入這個
 import { NavigationContainer } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { AppProvider, useApp } from './store/AppContext';
-import { ToastProvider } from './store/ToastContext'; // Import ToastProvider
+import { ToastProvider } from './store/ToastContext';
 import { Dashboard } from './pages/Dashboard';
 import { AddEntry } from './pages/AddEntry';
 import { Settings } from './pages/Settings';
@@ -58,20 +59,23 @@ const TabNavigator = () => {
 
 const App = () => {
   return (
-    <SafeAreaProvider>
-      <ErrorBoundary>
-        <ToastProvider> 
-          <AppProvider>
-            <NavigationContainer>
-              <Stack.Navigator screenOptions={{ headerShown: false }}>
-                <Stack.Screen name="MainTabs" component={TabNavigator} />
-                <Stack.Screen name="PrivacyPolicy" component={PrivacyPolicy} />
-              </Stack.Navigator>
-            </NavigationContainer>
-          </AppProvider>
-        </ToastProvider>
-      </ErrorBoundary>
-    </SafeAreaProvider>
+    // 🔥 關鍵修改 2：這一層必須包在最外面，且設定 flex: 1
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <SafeAreaProvider>
+        <ErrorBoundary>
+          <ToastProvider> 
+            <AppProvider>
+              <NavigationContainer>
+                <Stack.Navigator screenOptions={{ headerShown: false }}>
+                  <Stack.Screen name="MainTabs" component={TabNavigator} />
+                  <Stack.Screen name="PrivacyPolicy" component={PrivacyPolicy} />
+                </Stack.Navigator>
+              </NavigationContainer>
+            </AppProvider>
+          </ToastProvider>
+        </ErrorBoundary>
+      </SafeAreaProvider>
+    </GestureHandlerRootView>
   );
 };
 

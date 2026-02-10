@@ -51,14 +51,21 @@ target 'BestVersionOfYourself' do
         # [Fix 4] 允許非模組化引用
         config.build_settings['CLANG_ALLOW_NON_MODULAR_INCLUDES_IN_FRAMEWORK_MODULES'] = 'YES'
 
-        # Removed GCC_PREPROCESSOR_DEFINITIONS patch as RN 0.83 should handle C++17/20 better
-        # Removed gRPC/BoringSSL specific module map fixes as newer RN/CocoaPods might handle this differently.
-        # If issues persist, we can add them back.
+        # =========================================================
+        # 🏆 [關鍵修復] Reanimated v4 + Folly C++20 協程衝突
+        # =========================================================
+        if target.name == "RNReanimated"
+          # 確保 GCC_PREPROCESSOR_DEFINITIONS 是個陣列，避免 nil 錯誤
+          config.build_settings['GCC_PREPROCESSOR_DEFINITIONS'] ||= ['$(inherited)']
+          
+          # 強制注入 FOLLY_NO_COROUTINES=1
+          # 這會告訴編譯器：「雖然用 C++20，但請不要開啟 Folly 的協程功能」
+          # 從而避開找不到 folly/coro/Coroutine.h 的錯誤
+          config.build_settings['GCC_PREPROCESSOR_DEFINITIONS'] << 'FOLLY_NO_COROUTINES=1'
+        end
+
       end
     end
-    
-    # Removed manual patches for gRPC-Core, glog, and react-native-svg
-    # Assuming RN 0.83 and newer library versions have fixed these issues.
     
   end
 end
