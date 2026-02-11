@@ -116,7 +116,7 @@ export const AppProvider = ({ children }: React.PropsWithChildren<{}>) => {
             ...doc.data(),
             // Metadata allows us to show "Syncing..." UI state if needed
             isSyncing: doc.metadata.hasPendingWrites,
-          })) as Entry[];
+          })) as unknown as Entry[];
 
           setEntries(newEntries);
         },
@@ -158,7 +158,14 @@ export const AppProvider = ({ children }: React.PropsWithChildren<{}>) => {
     // Check if your device supports Google Play
     await GoogleSignin.hasPlayServices({ showPlayServicesUpdateDialog: true });
     // Get the users ID token
-    const { idToken } = await GoogleSignin.signIn();
+    const signInResult = await GoogleSignin.signIn();
+    // Try to get idToken from the result object, handling potential nulls
+    const idToken = (signInResult as any).data?.idToken || (signInResult as any).idToken;
+    
+    if (!idToken) {
+        throw new Error('No ID token found');
+    }
+
     // Create a Google credential with the token
     const googleCredential = auth.GoogleAuthProvider.credential(idToken);
     // Sign-in the user with the credential
@@ -182,7 +189,7 @@ export const AppProvider = ({ children }: React.PropsWithChildren<{}>) => {
     const appleCredential = auth.AppleAuthProvider.credential(identityToken, nonce);
   
     // Sign the user in with the credential
-    return auth().signInWithCredential(appleCredential);
+    await auth().signInWithCredential(appleCredential);
   };
 
   const loginEmail = async (email: string, pass: string) => {
@@ -190,10 +197,12 @@ export const AppProvider = ({ children }: React.PropsWithChildren<{}>) => {
   };
 
   const registerEmail = async (email: string, pass: string, name: string) => {
+    // Manually create the user
     const userCredential = await auth().createUserWithEmailAndPassword(
       email,
       pass,
     );
+    
     if (userCredential.user) {
       await userCredential.user.updateProfile({ displayName: name });
       // setUser(auth().currentUser); // Force update state if needed, but onAuthStateChanged handles it

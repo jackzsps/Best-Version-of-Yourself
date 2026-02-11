@@ -14,6 +14,7 @@ import { useApp } from '../store/AppContext';
 import { Icon } from '../components/Icons';
 import { PaywallModal } from '../components/PaywallModal';
 import { AuthModal } from '../components/AuthModal';
+import { RecordMode } from '../types';
 
 export const Settings = () => {
   const navigation = useNavigation();
@@ -201,11 +202,11 @@ export const Settings = () => {
         <SettingItem
           label={t.settings.standard}
           value={
-            mode === 'strict'
+            mode === RecordMode.STRICT
               ? t.settings.strict
               : t.settings.conservative
           }
-          onPress={() => setMode(mode === 'strict' ? 'conservative' : 'strict')}
+          onPress={() => setMode(mode === RecordMode.STRICT ? RecordMode.CONSERVATIVE : RecordMode.STRICT)}
         />
         {/* Subscription Test Button */}
         {user && (
@@ -218,7 +219,7 @@ export const Settings = () => {
         )}
       </View>
       <Text style={isVintage ? styles.vintageHint : styles.hint}>
-        {mode === 'strict' ? t.settings.strictDesc : t.settings.conservativeDesc}
+        {mode === RecordMode.STRICT ? t.settings.strictDesc : t.settings.conservativeDesc}
       </Text>
 
       {/* About Section */}
@@ -252,7 +253,7 @@ export const Settings = () => {
                     <ActivityIndicator color="#FF3B30" />
                 ) : (
                     <Text style={isVintage ? styles.vintageDeleteText : styles.deleteText}>
-                        {t.settings.deleteAccount || "Delete Account"}
+                        {t.settings.deleteAccount}
                     </Text>
                 )}
             </TouchableOpacity>

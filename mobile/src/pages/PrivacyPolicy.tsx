@@ -4,16 +4,18 @@ import { useNavigation } from '@react-navigation/native';
 import { useApp } from '../store/AppContext';
 import { Icon } from '../components/Icons';
 import { PRIVACY_POLICY_TEXT } from '../../../shared/privacyPolicyData';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { RootStackParamList } from '../types';
 
 export const PrivacyPolicy = () => {
-  const navigation = useNavigation();
+  const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const { theme, t, language } = useApp();
   const isVintage = theme === 'vintage';
 
   const rawText =
     language === 'zh-TW'
       ? PRIVACY_POLICY_TEXT['zh-TW']
-      : PRIVACY_POLICY_TEXT['en'];
+      : PRIVACY_POLICY_TEXT.en;
 
   // Simple Markdown cleanup for React Native Text
   const policyText = rawText

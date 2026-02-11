@@ -139,12 +139,12 @@ export const AuthModal = ({ visible, onClose }: AuthModalProps) => {
 
             {Platform.OS === 'ios' && (
               <TouchableOpacity
-                style={[styles.socialBtn, styles.appleBtn]} // Removed vintage style
+                style={[styles.socialBtn, styles.appleBtn]}
                 onPress={handleAppleAuth}
                 disabled={isLoading}
               >
-                <Icon name="apple" size={20} color="#fff" /> // Forced white color
-                <Text style={[styles.socialBtnText, styles.appleBtnText]}> // Removed vintage style
+                <Icon name="apple" size={20} color="#fff" />
+                <Text style={[styles.socialBtnText, styles.appleBtnText]}>
                   {isLogin ? 'Sign in with Apple' : 'Sign up with Apple'}
                 </Text>
               </TouchableOpacity>

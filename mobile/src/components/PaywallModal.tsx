@@ -13,7 +13,7 @@ import { useApp } from '../store/AppContext';
 import { Icon } from './Icons';
 import * as RNIap from 'react-native-iap';
 import firestore from '@react-native-firebase/firestore';
-import { SubscriptionStatus, UserSubscription } from '../types';
+import { UserSubscription } from '../types';
 
 const ITEM_SKUS = Platform.select({
   ios: ['com.bestversion.monthly'], // 替換為實際的 Product ID
@@ -26,14 +26,10 @@ interface PaywallModalProps {
 }
 
 export const PaywallModal = ({ visible, onClose }: PaywallModalProps) => {
-  const { t, theme, setSubscription, subscription, isPro } = useApp();
+  const { theme, setSubscription } = useApp(); // removed subscription and isPro
   const [loading, setLoading] = useState(false);
-  const [products, setProducts] = useState<RNIap.Product[]>([]);
   const isVintage = theme === 'vintage';
   
-  // Test Button for Simulator only (since IAP doesn't work on Simulator)
-  const isSimulator = Platform.OS === 'ios' && !Platform.isTV && !Platform.isPad; // Rough check, better to use DeviceInfo.isEmulator()
-
   useEffect(() => {
     if (visible) {
       initIAP();
@@ -49,54 +45,10 @@ export const PaywallModal = ({ visible, onClose }: PaywallModalProps) => {
       setLoading(true);
       await RNIap.initConnection();
       if (ITEM_SKUS) {
-          const products = await RNIap.getProducts({ skus: ITEM_SKUS });
-          setProducts(products);
+          await RNIap.fetchProducts({ skus: ITEM_SKUS });
       }
     } catch (err) {
       console.warn(err);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handlePurchase = async () => {
-    if (products.length === 0) {
-        Alert.alert('Error', 'No products available');
-        return;
-    }
-    
-    setLoading(true);
-    try {
-      const purchase = await RNIap.requestPurchase({ sku: products[0].productId });
-      
-      if (purchase) {
-         // Verify receipt here if you have a backend
-         console.log('Purchase Successful', purchase);
-         
-         // Update global state with status='pro'
-         const newExpiry = new Date();
-         newExpiry.setMonth(newExpiry.getMonth() + 1); // Add 1 month
-         
-         const newSub: UserSubscription = {
-             status: 'pro',
-             expiryDate: firestore.Timestamp.fromDate(newExpiry) as any,
-             productId: purchase.productId,
-             transactionId: purchase.transactionId,
-             purchaseDate: purchase.transactionDate,
-         }
-         
-         setSubscription(newSub);
-
-         Alert.alert('Success', 'Subscription Successful!');
-         onClose();
-      }
-    } catch (err: any) {
-      if (err.code === 'E_USER_CANCELLED') {
-          // User cancelled
-      } else {
-        console.warn(err);
-        Alert.alert('Purchase Failed', err.message);
-      }
     } finally {
       setLoading(false);
     }
@@ -117,9 +69,9 @@ export const PaywallModal = ({ visible, onClose }: PaywallModalProps) => {
                   status: 'pro',
                   expiryDate: firestore.Timestamp.fromDate(newExpiry) as any,
                   productId: hasPro.productId,
-                  transactionId: hasPro.transactionId,
+                  transactionId: hasPro.transactionId ?? undefined,
                   purchaseDate: hasPro.transactionDate,
-                  originalTransactionId: hasPro.originalTransactionIdIOS
+                  // Removed originalTransactionIdIOS
               };
               
               setSubscription(newSub);
@@ -137,13 +89,8 @@ export const PaywallModal = ({ visible, onClose }: PaywallModalProps) => {
   }
   
   const handleTestUpgrade = () => {
-      const isExpired = !isPro && subscription.status === 'pro'; // Was pro but expired
-      
       const newExpiry = new Date();
       newExpiry.setDate(newExpiry.getDate() + 14); // Extend 14 days
-      
-      // If currently trial, upgrade to Pro (Test)
-      // If currently Pro (expired), renew Pro
       
       const newSub: UserSubscription = {
           status: 'pro',

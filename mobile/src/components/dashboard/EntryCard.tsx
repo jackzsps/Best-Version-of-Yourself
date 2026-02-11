@@ -2,7 +2,6 @@ import React from 'react';
 import { View, Text, StyleSheet, Image } from 'react-native';
 import { Entry, UsageCategory, Theme } from '../../types';
 import { useApp } from '../../store/AppContext';
-import { Icon } from '../Icons';
 
 // Helper to format date
 const formatDate = (

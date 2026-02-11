@@ -75,4 +75,20 @@ export type SubscriptionStatus = 'trial' | 'pro' | 'basic';
 export interface UserSubscription {
   status: SubscriptionStatus;
   expiryDate?: FirestoreTimestamp; // Use timestamp for expiry
+  productId?: string;
+  transactionId?: string;
+  purchaseDate?: number; // timestamp ms
+  originalTransactionIdIOS?: string;
 }
+
+// Add these new types for React Navigation v7
+export type RootStackParamList = {
+  MainTabs: undefined;
+  PrivacyPolicy: undefined;
+};
+
+export type TabParamList = {
+  Home: undefined;
+  Add: undefined;
+  Settings: undefined;
+};

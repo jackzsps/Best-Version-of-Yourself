@@ -9,11 +9,10 @@ import {
   Image,
   ActivityIndicator,
   TextInput,
-  Button
 } from 'react-native';
 import { launchCamera, launchImageLibrary, ImageLibraryOptions, CameraOptions } from 'react-native-image-picker';
 import { useApp } from '../store/AppContext';
-import { useToast } from '../store/ToastContext'; // Import useToast
+import { useToast } from '../store/ToastContext';
 import { analyzeImage } from '../services/geminiService';
 import { uploadImage } from '../services/storageService';
 import {
@@ -29,8 +28,8 @@ import firestore from '@react-native-firebase/firestore';
 import { PaywallModal } from '../components/PaywallModal';
 
 export const AddEntry = () => {
-  const { t, addEntry, mode, user, isPro, subscription, theme } = useApp();
-  const toast = useToast(); // Initialize toast
+  const { t, addEntry, mode, user, isPro, theme } = useApp();
+  const toast = useToast();
   const [imageUri, setImageUri] = useState<string | null>(null);
   const [analyzing, setAnalyzing] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -89,16 +88,6 @@ export const AddEntry = () => {
         return (activeMode === RecordMode.STRICT ? val.max : val.min).toString();
     };
 
-    // Update fields
-    // Only update name/cost if it's the initial load (to avoid overwriting user edits on mode toggle), 
-    // BUT since we don't track "isDirty", and mode toggle primarily affects macros, 
-    // we will re-calculate macros but keep Name/Cost unless it's a fresh analysis.
-    // For simplicity and to match Web: we update all derived fields when analysis changes.
-    // However, since activeMode ONLY affects macros, we should be careful.
-    
-    // Simplification: We update state whenever analysisResult changes (new scan).
-    // We ALSO update macros whenever activeMode changes.
-    
     if (analysisResult) {
         setEditedCalories(getVal(analysisResult.calories));
         setEditedProtein(getVal(analysisResult.macros?.protein));
@@ -532,8 +521,7 @@ const styles = StyleSheet.create({
   proHintContainer: {
       marginTop: 8,
       padding: 8,
-      borderRadius: 8,
-  },
+      borderRadius: 8,  },
   proHintText: {
       fontSize: 12,
       fontWeight: '600',

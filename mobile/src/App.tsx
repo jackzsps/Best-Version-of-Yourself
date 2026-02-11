@@ -1,5 +1,5 @@
 import React from 'react';
-import { GestureHandlerRootView } from 'react-native-gesture-handler'; // 🔥 關鍵修改 1：引入這個
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { NavigationContainer } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
@@ -11,28 +11,29 @@ import { AddEntry } from './pages/AddEntry';
 import { Settings } from './pages/Settings';
 import { PrivacyPolicy } from './pages/PrivacyPolicy';
 import ErrorBoundary from './components/ErrorBoundary';
-import { Icon } from './components/Icons';
+import { Icon, IconName } from './components/Icons'; // Import IconName
+import { RootStackParamList, TabParamList } from './types'; // Import the new types
 
-const Tab = createBottomTabNavigator();
-const Stack = createNativeStackNavigator();
+const Tab = createBottomTabNavigator<TabParamList>();
+const Stack = createNativeStackNavigator<RootStackParamList>();
 
 const TabNavigator = () => {
   const { t } = useApp();
+
+  // Map route names to icon names for type safety
+  const iconMapping: Record<keyof TabParamList, IconName> = {
+    Home: 'home',
+    Add: 'plusCircle',
+    Settings: 'settings',
+  };
   
   return (
     <Tab.Navigator
       screenOptions={({ route }) => ({
         headerShown: false,
         tabBarIcon: ({ color, size }) => {
-          let iconName;
-          if (route.name === 'Home') {
-            iconName = 'home';
-          } else if (route.name === 'Add') {
-            iconName = 'plusCircle';
-          } else if (route.name === 'Settings') {
-            iconName = 'settings';
-          }
-          return <Icon name={iconName as any} size={size} color={color} />;
+          const iconName = iconMapping[route.name];
+          return <Icon name={iconName} size={size} color={color} />;
         },
         tabBarActiveTintColor: '#000',
         tabBarInactiveTintColor: 'gray',
@@ -59,7 +60,6 @@ const TabNavigator = () => {
 
 const App = () => {
   return (
-    // 🔥 關鍵修改 2：這一層必須包在最外面，且設定 flex: 1
     <GestureHandlerRootView style={{ flex: 1 }}>
       <SafeAreaProvider>
         <ErrorBoundary>

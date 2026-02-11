@@ -14,6 +14,7 @@ export const TRANSLATIONS = {
       untitled: 'Untitled',
       or: 'OR',
       saved: 'Saved successfully!',
+      offline: 'You are offline',
     },
     nav: {
       home: 'Home',
@@ -163,6 +164,8 @@ export const TRANSLATIONS = {
       about: 'About',
       poweredBy: 'Powered by Google Gemini',
       privacyPolicy: 'Privacy Policy',
+      deleteAccount: 'Delete Account',
+      deleteAccountWarning: 'This action is irreversible. All your data will be permanently deleted.',
     },
     auth: {
       loginTitle: 'Welcome Back',
@@ -197,6 +200,7 @@ export const TRANSLATIONS = {
       untitled: '未命名',
       or: '或',
       saved: '儲存成功！',
+      offline: '您目前處於離線狀態',
     },
     nav: {
       home: '首頁',
@@ -339,6 +343,8 @@ export const TRANSLATIONS = {
       about: '關於',
       poweredBy: 'Powered by Google Gemini',
       privacyPolicy: '隱私權政策',
+      deleteAccount: '刪除帳號',
+      deleteAccountWarning: '此動作無法復原。您的所有資料將被永久刪除。',
     },
     auth: {
       loginTitle: '登入帳號',
