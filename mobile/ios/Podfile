@@ -21,6 +21,9 @@ ENV['RCT_NEW_ARCH_ENABLED'] = '1'
 target 'BestVersionOfYourself' do
   config = use_native_modules!
 
+  # Manually add NitroModules
+  pod 'NitroModules', :path => '../node_modules/react-native-nitro-modules'
+
   # 1. 關閉模組生成 (解決 gRPC 衝突)
   pod 'gRPC-Core', :modular_headers => false
   pod 'gRPC-C++', :modular_headers => false

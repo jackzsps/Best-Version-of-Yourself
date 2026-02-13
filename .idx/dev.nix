@@ -3,6 +3,7 @@
   packages = [
     pkgs.nodejs_22
     pkgs.jdk17
+    pkgs.cocoapods
   ];
   idx.extensions = [
     "svelte.svelte-vscode"
