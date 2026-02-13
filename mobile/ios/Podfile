@@ -67,6 +67,14 @@ target 'BestVersionOfYourself' do
           config.build_settings['GCC_PREPROCESSOR_DEFINITIONS'] << 'FOLLY_NO_COROUTINES=1'
         end
 
+        # =========================================================
+        # 🏆 [關鍵修復] NitroModules header search paths
+        # =========================================================
+        if target.name == "NitroModules"
+          config.build_settings['HEADER_SEARCH_PATHS'] ||= ['$(inherited)']
+          config.build_settings['HEADER_SEARCH_PATHS'] << '"${PODS_CONFIGURATION_BUILD_DIR}/React-Codegen/React_Codegen.framework/Headers"'
+        end
+
       end
     end
     
