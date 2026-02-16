@@ -1,0 +1,6 @@
+framework module intersectionobservernativemodule {
+  umbrella header "React-intersectionobservernativemodule-umbrella.h"
+
+  export *
+  module * { export * }
+}

@@ -13,9 +13,19 @@
   return [super application:application didFinishLaunchingWithOptions:launchOptions];
 }
 
+// 👇 修改重點：這裡加入了偵探日誌
 - (NSURL *)sourceURLForBridge:(RCTBridge *)bridge
 {
-  return [self bundleURL];
+  NSURL *bundleURL = [self bundleURL];
+  
+  // 🕵️‍♂️ [偵探報告] 這兩行會把真實的運作狀況印在 Xcode 控制台
+  if (bundleURL == nil) {
+      NSLog(@"🔍 [偵探報告] 嚴重錯誤！bundleURL 是 nil。React Native 不知道去哪裡找 Metro。");
+  } else {
+      NSLog(@"🔍 [偵探報告] App 正在嘗試連線到: %@", bundleURL);
+  }
+  
+  return bundleURL;
 }
 
 - (NSURL *)bundleURL

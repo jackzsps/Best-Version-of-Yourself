@@ -1,0 +1,6 @@
+framework module webperformancenativemodule {
+  umbrella header "React-webperformancenativemodule-umbrella.h"
+
+  export *
+  module * { export * }
+}

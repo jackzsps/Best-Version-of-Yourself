@@ -1,0 +1,6 @@
+framework module NitroIap {
+  umbrella header "NitroIap-umbrella.h"
+
+  export *
+  module * { export * }
+}

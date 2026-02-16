@@ -5,78 +5,103 @@ require Pod::Executable.execute_command('node', ['-p',
     {paths: [process.argv[1]]},
   )', __dir__]).strip
 
-# ⚠️ 鎖定 iOS 平台版本 (React Native 0.83+ 建議 16.0+)
+# ⚠️ 鎖定 iOS 平台版本
 platform :ios, '16.1'
 prepare_react_native_project!
 
 # 解決 Firebase Swift 依賴
 use_modular_headers!
-
-# [Fix for Firebase] 強制使用靜態 Framework
 use_frameworks! :linkage => :static
 
-# New Architecture is enabled by default in 0.83, but we can be explicit
 ENV['RCT_NEW_ARCH_ENABLED'] = '1'
 
 target 'BestVersionOfYourself' do
   config = use_native_modules!
 
-  # Manually add NitroModules
-  pod 'NitroModules', :path => '../node_modules/react-native-nitro-modules'
-
-  # 1. 關閉模組生成 (解決 gRPC 衝突)
+  # 1. 關閉模組生成
   pod 'gRPC-Core', :modular_headers => false
   pod 'gRPC-C++', :modular_headers => false
   pod 'BoringSSL-GRPC', :modular_headers => false
 
+  # 💡 [大師修正點] 指定 podspec 路徑，解決 "multiple dependencies" 錯誤
+  pod 'RCT-Folly', :podspec => '../node_modules/react-native/third-party-podspecs/RCT-Folly.podspec', :modular_headers => false
+
   use_react_native!(
     :path => config[:reactNativePath],
-    # Note: app_path is optional in newer versions, but good to keep if unsure
     :app_path => "#{Pod::Config.instance.installation_root}/.."
   )
 
   post_install do |installer|
-    # react_native_post_install handles most things now
+    # 標準 RN 後處理
     react_native_post_install(
       installer,
       config[:reactNativePath],
       :mac_catalyst_enabled => false
     )
 
-    # =========================================================
-    # 🛡️ 針對 Xcode 16 / iOS 16+ 的防禦性設定
-    # =========================================================
+    # ---------------------------------------------------------
+    # PART 1: 修改 Pods (第三方套件) 的設定
+    # ---------------------------------------------------------
     installer.pods_project.targets.each do |target|
       target.build_configurations.each do |config|
-        # [Fix 3] 強制提升部署版本
         config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'] = '16.1'
-        
-        # [Fix 4] 允許非模組化引用
         config.build_settings['CLANG_ALLOW_NON_MODULAR_INCLUDES_IN_FRAMEWORK_MODULES'] = 'YES'
 
-        # =========================================================
-        # 🏆 [關鍵修復] Reanimated v4 + Folly C++20 協程衝突
-        # =========================================================
-        if target.name == "RNReanimated"
-          # 確保 GCC_PREPROCESSOR_DEFINITIONS 是個陣列，避免 nil 錯誤
-          config.build_settings['GCC_PREPROCESSOR_DEFINITIONS'] ||= ['$(inherited)']
-          
-          # 強制注入 FOLLY_NO_COROUTINES=1
-          # 這會告訴編譯器：「雖然用 C++20，但請不要開啟 Folly 的協程功能」
-          # 從而避開找不到 folly/coro/Coroutine.h 的錯誤
-          config.build_settings['GCC_PREPROCESSOR_DEFINITIONS'] << 'FOLLY_NO_COROUTINES=1'
+        # 🏆 [強制] 全局統一使用 C++20 標準
+        config.build_settings['CLANG_CXX_LANGUAGE_STANDARD'] = 'c++20'
+
+        # [修復 Folly] 禁用協程 (Coroutines)
+        config.build_settings['GCC_PREPROCESSOR_DEFINITIONS'] ||= ['$(inherited)']
+        config.build_settings['GCC_PREPROCESSOR_DEFINITIONS'] << 'FOLLY_NO_COROUTINES=1'
+        config.build_settings['GCC_PREPROCESSOR_DEFINITIONS'] << 'FOLLY_CFG_NO_COROUTINES=1'
+
+        config.build_settings['OTHER_CPLUSPLUSFLAGS'] ||= ['$(inherited)']
+        config.build_settings['OTHER_CPLUSPLUSFLAGS'] << '-DFOLLY_NO_COROUTINES=1'
+        config.build_settings['OTHER_CPLUSPLUSFLAGS'] << '-DFOLLY_CFG_NO_COROUTINES=1'
+
+        # 🏆 [關鍵修復] 針對 RCT-Folly 的特殊處理 (解決 New.h 報錯)
+        if target.name == "RCT-Folly"
+          # 1. 關閉 Clang Modules (雙重保險，配合上面的 :modular_headers => false)
+          config.build_settings['CLANG_ENABLE_MODULES'] = 'NO'
+          # 2. 強制開啟對齊分配支援
+          config.build_settings['OTHER_CPLUSPLUSFLAGS'] << ' -faligned-allocation'
         end
 
-        # =========================================================
-        # 🏆 [關鍵修復] NitroModules header search paths
-        # =========================================================
+        # [NitroModules] 修正標頭檔路徑
         if target.name == "NitroModules"
           config.build_settings['HEADER_SEARCH_PATHS'] ||= ['$(inherited)']
           config.build_settings['HEADER_SEARCH_PATHS'] << '"${PODS_CONFIGURATION_BUILD_DIR}/React-Codegen/React_Codegen.framework/Headers"'
         end
-
       end
     end
+
+    # ---------------------------------------------------------
+    # PART 2: 自動修改主 App 設定
+    # ---------------------------------------------------------
+    project_path = File.join(__dir__, 'BestVersionOfYourself.xcodeproj')
+    project = Xcodeproj::Project.open(project_path)
     
+    project.targets.each do |target|
+      if target.name == 'BestVersionOfYourself'
+        puts "  👉 Updating User Project target: #{target.name}..."
+        target.build_configurations.each do |config|
+          # 注入 Preprocessor Macro
+          config.build_settings['GCC_PREPROCESSOR_DEFINITIONS'] ||= ['$(inherited)']
+          ['FOLLY_NO_COROUTINES=1', 'FOLLY_CFG_NO_COROUTINES=1'].each do |flag|
+            unless config.build_settings['GCC_PREPROCESSOR_DEFINITIONS'].include?(flag)
+               config.build_settings['GCC_PREPROCESSOR_DEFINITIONS'] << flag
+            end
+          end
+          # 注入 C++ Flags
+          config.build_settings['OTHER_CPLUSPLUSFLAGS'] ||= ['$(inherited)']
+          ['-DFOLLY_NO_COROUTINES=1', '-DFOLLY_CFG_NO_COROUTINES=1'].each do |flag|
+             unless config.build_settings['OTHER_CPLUSPLUSFLAGS'].include?(flag)
+                config.build_settings['OTHER_CPLUSPLUSFLAGS'] << flag
+             end
+          end
+        end
+      end
+    end
+    project.save
   end
 end
