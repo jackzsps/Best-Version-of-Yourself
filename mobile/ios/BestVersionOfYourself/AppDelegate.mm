@@ -13,7 +13,15 @@
   return [super application:application didFinishLaunchingWithOptions:launchOptions];
 }
 
-// 👇 修改重點：這裡加入了偵探日誌
+// 👇👇👇 [關鍵修正] 強制關閉 Bridgeless 模式 👇👇👇
+// 這會解決 "RCTEventEmitter" 找不到模組的崩潰問題
+- (BOOL)bridgelessEnabled
+{
+    return NO;
+}
+// 👆👆👆 [關鍵修正] 結束 👆👆👆
+
+// 👇 你的偵探日誌 (保留)
 - (NSURL *)sourceURLForBridge:(RCTBridge *)bridge
 {
   NSURL *bundleURL = [self bundleURL];

@@ -1,9 +1,9 @@
 const {getDefaultConfig, mergeConfig} = require('@react-native/metro-config');
 const path = require('path');
 
-// 1. 定義路徑：取得 mobile 資料夾與上一層的 shared 資料夾
+// 1. 定義路徑
 const projectRoot = __dirname;
-const sharedRoot = path.resolve(projectRoot, '../shared');
+const workspaceRoot = path.resolve(projectRoot, '../');
 
 /**
  * Metro configuration
@@ -12,18 +12,27 @@ const sharedRoot = path.resolve(projectRoot, '../shared');
  * @type {import('metro-config').MetroConfig}
  */
 const config = {
-  // 2. 告訴 Metro: "請把 shared 資料夾也納入監控範圍"
-  watchFolders: [sharedRoot],
+  // 2. 修正：只監聽真正存在的 shared 資料夾
+  // (移除了原本導致崩潰的 node_modules 設定)
+  watchFolders: [
+    path.resolve(workspaceRoot, 'shared')
+  ],
 
   resolver: {
-    // 3. 避免 React 版本衝突的重要設定
-    // 讓 shared 資料夾內的程式碼在尋找 node_modules 時，強制指回 mobile 的 node_modules
-    extraNodeModules: new Proxy(
-      {},
-      {
-        get: (target, name) => path.join(process.cwd(), 'node_modules', name),
-      },
-    ),
+    // 3. 設定 node_modules 搜尋路徑
+    // 只找 mobile 裡面的 node_modules
+    nodeModulesPaths: [
+      path.resolve(projectRoot, 'node_modules')
+    ],
+
+    // 4. 防止 React 版本衝突
+    extraNodeModules: {
+      'react': path.resolve(projectRoot, 'node_modules/react'),
+      'react-native': path.resolve(projectRoot, 'node_modules/react-native'),
+    },
+    
+    // 5. 支援副檔名
+    sourceExts: ['js', 'jsx', 'json', 'ts', 'tsx'],
   },
 };
 

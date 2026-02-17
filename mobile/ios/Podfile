@@ -23,7 +23,7 @@ target 'BestVersionOfYourself' do
   pod 'gRPC-C++', :modular_headers => false
   pod 'BoringSSL-GRPC', :modular_headers => false
 
-  # 💡 [大師修正點] 指定 podspec 路徑，解決 "multiple dependencies" 錯誤
+  # 💡 [大師修正點] 指定 podspec 路徑
   pod 'RCT-Folly', :podspec => '../node_modules/react-native/third-party-podspecs/RCT-Folly.podspec', :modular_headers => false
 
   use_react_native!(
@@ -46,31 +46,42 @@ target 'BestVersionOfYourself' do
       target.build_configurations.each do |config|
         config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'] = '16.1'
         config.build_settings['CLANG_ALLOW_NON_MODULAR_INCLUDES_IN_FRAMEWORK_MODULES'] = 'YES'
-
-        # 🏆 [強制] 全局統一使用 C++20 標準
         config.build_settings['CLANG_CXX_LANGUAGE_STANDARD'] = 'c++20'
 
-        # [修復 Folly] 禁用協程 (Coroutines)
-        config.build_settings['GCC_PREPROCESSOR_DEFINITIONS'] ||= ['$(inherited)']
-        config.build_settings['GCC_PREPROCESSOR_DEFINITIONS'] << 'FOLLY_NO_COROUTINES=1'
-        config.build_settings['GCC_PREPROCESSOR_DEFINITIONS'] << 'FOLLY_CFG_NO_COROUTINES=1'
+        # 🛠 [修復重點 1] 安全處理 GCC_PREPROCESSOR_DEFINITIONS
+        # 先讀取，如果是字串就轉成陣列，如果是 nil 就給預設值
+        current_defs = config.build_settings['GCC_PREPROCESSOR_DEFINITIONS']
+        current_defs = [current_defs] if current_defs.is_a?(String)
+        current_defs ||= ['$(inherited)']
+        
+        # 加入 Folly Flags 並去除重複 (.uniq 是解決 NDEBUG redefined 的關鍵)
+        config.build_settings['GCC_PREPROCESSOR_DEFINITIONS'] = (current_defs + ['FOLLY_NO_COROUTINES=1', 'FOLLY_CFG_NO_COROUTINES=1']).uniq
 
-        config.build_settings['OTHER_CPLUSPLUSFLAGS'] ||= ['$(inherited)']
-        config.build_settings['OTHER_CPLUSPLUSFLAGS'] << '-DFOLLY_NO_COROUTINES=1'
-        config.build_settings['OTHER_CPLUSPLUSFLAGS'] << '-DFOLLY_CFG_NO_COROUTINES=1'
-
-        # 🏆 [關鍵修復] 針對 RCT-Folly 的特殊處理 (解決 New.h 報錯)
+        # 🛠 [修復重點 2] 安全處理 OTHER_CPLUSPLUSFLAGS
+        # 這能解決 "requires whitespace" 問題，因為陣列會自動被正確分隔
+        current_cpp = config.build_settings['OTHER_CPLUSPLUSFLAGS']
+        current_cpp = [current_cpp] if current_cpp.is_a?(String)
+        current_cpp ||= ['$(inherited)']
+        
+        # 先準備好要加的 Flags
+        extra_cpp_flags = ['-DFOLLY_NO_COROUTINES=1', '-DFOLLY_CFG_NO_COROUTINES=1']
+        
+        # 針對 RCT-Folly 的特殊處理
         if target.name == "RCT-Folly"
-          # 1. 關閉 Clang Modules (雙重保險，配合上面的 :modular_headers => false)
           config.build_settings['CLANG_ENABLE_MODULES'] = 'NO'
-          # 2. 強制開啟對齊分配支援
-          config.build_settings['OTHER_CPLUSPLUSFLAGS'] << ' -faligned-allocation'
+          extra_cpp_flags << '-faligned-allocation'
         end
+
+        # 合併並去重
+        config.build_settings['OTHER_CPLUSPLUSFLAGS'] = (current_cpp + extra_cpp_flags).uniq
 
         # [NitroModules] 修正標頭檔路徑
         if target.name == "NitroModules"
-          config.build_settings['HEADER_SEARCH_PATHS'] ||= ['$(inherited)']
-          config.build_settings['HEADER_SEARCH_PATHS'] << '"${PODS_CONFIGURATION_BUILD_DIR}/React-Codegen/React_Codegen.framework/Headers"'
+          header_paths = config.build_settings['HEADER_SEARCH_PATHS']
+          header_paths = [header_paths] if header_paths.is_a?(String)
+          header_paths ||= ['$(inherited)']
+          header_paths << '"${PODS_CONFIGURATION_BUILD_DIR}/React-Codegen/React_Codegen.framework/Headers"'
+          config.build_settings['HEADER_SEARCH_PATHS'] = header_paths
         end
       end
     end
@@ -85,20 +96,19 @@ target 'BestVersionOfYourself' do
       if target.name == 'BestVersionOfYourself'
         puts "  👉 Updating User Project target: #{target.name}..."
         target.build_configurations.each do |config|
-          # 注入 Preprocessor Macro
-          config.build_settings['GCC_PREPROCESSOR_DEFINITIONS'] ||= ['$(inherited)']
-          ['FOLLY_NO_COROUTINES=1', 'FOLLY_CFG_NO_COROUTINES=1'].each do |flag|
-            unless config.build_settings['GCC_PREPROCESSOR_DEFINITIONS'].include?(flag)
-               config.build_settings['GCC_PREPROCESSOR_DEFINITIONS'] << flag
-            end
-          end
-          # 注入 C++ Flags
-          config.build_settings['OTHER_CPLUSPLUSFLAGS'] ||= ['$(inherited)']
-          ['-DFOLLY_NO_COROUTINES=1', '-DFOLLY_CFG_NO_COROUTINES=1'].each do |flag|
-             unless config.build_settings['OTHER_CPLUSPLUSFLAGS'].include?(flag)
-                config.build_settings['OTHER_CPLUSPLUSFLAGS'] << flag
-             end
-          end
+          
+          # 1. 主專案 Preprocessor Definitions (安全去重版)
+          current_defs = config.build_settings['GCC_PREPROCESSOR_DEFINITIONS']
+          current_defs = [current_defs] if current_defs.is_a?(String)
+          current_defs ||= ['$(inherited)']
+          config.build_settings['GCC_PREPROCESSOR_DEFINITIONS'] = (current_defs + ['FOLLY_NO_COROUTINES=1', 'FOLLY_CFG_NO_COROUTINES=1']).uniq
+
+          # 2. 主專案 C++ Flags (安全去重版)
+          current_cpp = config.build_settings['OTHER_CPLUSPLUSFLAGS']
+          current_cpp = [current_cpp] if current_cpp.is_a?(String)
+          current_cpp ||= ['$(inherited)']
+          config.build_settings['OTHER_CPLUSPLUSFLAGS'] = (current_cpp + ['-DFOLLY_NO_COROUTINES=1', '-DFOLLY_CFG_NO_COROUTINES=1']).uniq
+          
         end
       end
     end
