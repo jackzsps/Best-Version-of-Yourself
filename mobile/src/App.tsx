@@ -26,7 +26,7 @@ const TabNavigator = () => {
     Add: 'plusCircle',
     Settings: 'settings',
   };
-  
+
   return (
     <Tab.Navigator
       screenOptions={({ route }) => ({
@@ -39,33 +39,44 @@ const TabNavigator = () => {
         tabBarInactiveTintColor: 'gray',
       })}
     >
-      <Tab.Screen 
-        name="Home" 
-        component={Dashboard} 
+      <Tab.Screen
+        name="Home"
+        component={Dashboard}
         options={{ title: t.nav.home }}
       />
-      <Tab.Screen 
-        name="Add" 
-        component={AddEntry} 
+      <Tab.Screen
+        name="Add"
+        component={AddEntry}
         options={{ title: t.nav.add }}
       />
-      <Tab.Screen 
-        name="Settings" 
-        component={Settings} 
+      <Tab.Screen
+        name="Settings"
+        component={Settings}
         options={{ title: t.nav.settings }}
       />
     </Tab.Navigator>
   );
 };
 
+import { enableScreens } from 'react-native-screens';
+
+// 啟用 react-native-screens 原生優化 (New Architecture 建議顯式呼叫)
+enableScreens(true);
+
+console.log('🚀 [App.tsx] Module Loaded');
+
 const App = () => {
+  console.log('🚀 [App.tsx] App Component Rendering (Full App - No SafeAreaProvider)');
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
-      <SafeAreaProvider>
+      <SafeAreaProvider style={{ flex: 1 }}>
         <ErrorBoundary>
-          <ToastProvider> 
+          <ToastProvider>
             <AppProvider>
-              <NavigationContainer>
+              <NavigationContainer
+                onReady={() => console.log('✅ [App.tsx] NavigationContainer is READY')}
+                onStateChange={(state) => console.log('🧭 [App.tsx] Navigation State Changed:', state?.routes[state.index].name)}
+              >
                 <Stack.Navigator screenOptions={{ headerShown: false }}>
                   <Stack.Screen name="MainTabs" component={TabNavigator} />
                   <Stack.Screen name="PrivacyPolicy" component={PrivacyPolicy} />

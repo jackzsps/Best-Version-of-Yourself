@@ -1,0 +1,119 @@
+
+                        ▒▒▓▓▓▓▒▒
+                     ▒▓▓▓▒▒░░▒▒▓▓▓▒
+                  ▒▓▓▓▓░░░▒▒▒▒░░░▓▓▓▓▒
+                 ▓▓▒▒▒▓▓▓▓▓▓▓▓▓▓▓▓▒▒▒▓▓
+                 ▓▓░░░░░▒▓▓▓▓▓▓▒░░░░░▓▓
+                 ▓▓░░▓▓▒░░░▒▒░░░▒▓▒░░▓▓
+                 ▓▓░░▓▓▓▓▓▒▒▒▒▓▓▓▓▒░░▓▓
+                 ▓▓░░▓▓▓▓▓▓▓▓▓▓▓▓▓▒░░▓▓
+                 ▓▓▒░░▒▒▓▓▓▓▓▓▓▓▒░░░▒▓▓
+                  ▒▓▓▓▒░░░▒▓▓▒░░░▒▓▓▓▒
+                     ▒▓▓▓▒░░░░▒▓▓▓▒
+                        ▒▒▓▓▓▓▒▒
+
+
+                Welcome to Metro v0.83.3
+              Fast - Scalable - Integrated
+
+
+error index.js: Duplicate plugin/preset detected.
+If you'd like to use two separate instances of a plugin,
+they need separate names, e.g.
+
+  plugins: [
+    ['some-plugin', {}],
+    ['some-plugin', {}, 'some unique name'],
+  ]
+
+Duplicates detected are:
+[
+  {
+    "alias": "/Users/kuo/Documents/Best-Version-of-Yourself/mobile/node_modules/react-native-worklets/plugin/index.js",
+    "dirname": "/Users/kuo/Documents/Best-Version-of-Yourself/mobile",
+    "ownPass": false,
+    "file": {
+      "request": "react-native-worklets/plugin",
+      "resolved": "/Users/kuo/Documents/Best-Version-of-Yourself/mobile/node_modules/react-native-worklets/plugin/index.js"
+    }
+  },
+  {
+    "alias": "/Users/kuo/Documents/Best-Version-of-Yourself/mobile/node_modules/react-native-reanimated/plugin/index.js",
+    "dirname": "/Users/kuo/Documents/Best-Version-of-Yourself/mobile",
+    "ownPass": false,
+    "file": {
+      "request": "react-native-reanimated/plugin",
+      "resolved": "/Users/kuo/Documents/Best-Version-of-Yourself/mobile/node_modules/react-native-reanimated/plugin/index.js"
+    }
+  }
+].
+Error: Duplicate plugin/preset detected.
+If you'd like to use two separate instances of a plugin,
+they need separate names, e.g.
+
+  plugins: [
+    ['some-plugin', {}],
+    ['some-plugin', {}, 'some unique name'],
+  ]
+
+Duplicates detected are:
+[
+  {
+    "alias": "/Users/kuo/Documents/Best-Version-of-Yourself/mobile/node_modules/react-native-worklets/plugin/index.js",
+    "dirname": "/Users/kuo/Documents/Best-Version-of-Yourself/mobile",
+    "ownPass": false,
+    "file": {
+      "request": "react-native-worklets/plugin",
+      "resolved": "/Users/kuo/Documents/Best-Version-of-Yourself/mobile/node_modules/react-native-worklets/plugin/index.js"
+    }
+  },
+  {
+    "alias": "/Users/kuo/Documents/Best-Version-of-Yourself/mobile/node_modules/react-native-reanimated/plugin/index.js",
+    "dirname": "/Users/kuo/Documents/Best-Version-of-Yourself/mobile",
+    "ownPass": false,
+    "file": {
+      "request": "react-native-reanimated/plugin",
+      "resolved": "/Users/kuo/Documents/Best-Version-of-Yourself/mobile/node_modules/react-native-reanimated/plugin/index.js"
+    }
+  }
+]
+    at assertNoDuplicates (/Users/kuo/Documents/Best-Version-of-Yourself/mobile/node_modules/@babel/core/lib/config/config-descriptors.js:183:13)
+    at createDescriptors (/Users/kuo/Documents/Best-Version-of-Yourself/mobile/node_modules/@babel/core/lib/config/config-descriptors.js:107:3)
+    at createDescriptors.next (<anonymous>)
+    at createPluginDescriptors (/Users/kuo/Documents/Best-Version-of-Yourself/mobile/node_modules/@babel/core/lib/config/config-descriptors.js:99:17)
+    at createPluginDescriptors.next (<anonymous>)
+    at /Users/kuo/Documents/Best-Version-of-Yourself/mobile/node_modules/@babel/core/lib/gensync-utils/functional.js:22:27
+    at Generator.next (<anonymous>)
+    at mergeChainOpts (/Users/kuo/Documents/Best-Version-of-Yourself/mobile/node_modules/@babel/core/lib/config/config-chain.js:349:34)
+    at mergeChainOpts.next (<anonymous>)
+    at chainWalker (/Users/kuo/Documents/Best-Version-of-Yourself/mobile/node_modules/@babel/core/lib/config/config-chain.js:316:14)
+    at chainWalker.next (<anonymous>)
+    at loadFileChain (/Users/kuo/Documents/Best-Version-of-Yourself/mobile/node_modules/@babel/core/lib/config/config-chain.js:191:24)
+    at loadFileChain.next (<anonymous>)
+    at mergeExtendsChain (/Users/kuo/Documents/Best-Version-of-Yourself/mobile/node_modules/@babel/core/lib/config/config-chain.js:328:28)
+    at mergeExtendsChain.next (<anonymous>)
+    at chainWalker (/Users/kuo/Documents/Best-Version-of-Yourself/mobile/node_modules/@babel/core/lib/config/config-chain.js:312:20)
+    at chainWalker.next (<anonymous>)
+    at buildRootChain (/Users/kuo/Documents/Best-Version-of-Yourself/mobile/node_modules/@babel/core/lib/config/config-chain.js:56:36)
+    at buildRootChain.next (<anonymous>)
+    at loadPrivatePartialConfig (/Users/kuo/Documents/Best-Version-of-Yourself/mobile/node_modules/@babel/core/lib/config/partial.js:72:62)
+    at loadPrivatePartialConfig.next (<anonymous>)
+    at loadFullConfig (/Users/kuo/Documents/Best-Version-of-Yourself/mobile/node_modules/@babel/core/lib/config/full.js:36:46)
+    at loadFullConfig.next (<anonymous>)
+    at parse (/Users/kuo/Documents/Best-Version-of-Yourself/mobile/node_modules/@babel/core/lib/parse.js:21:44)
+    at parse.next (<anonymous>)
+    at evaluateSync (/Users/kuo/Documents/Best-Version-of-Yourself/mobile/node_modules/gensync/index.js:251:28)
+    at sync (/Users/kuo/Documents/Best-Version-of-Yourself/mobile/node_modules/gensync/index.js:89:14)
+    at stopHiding - secret - don't use this - v1 (/Users/kuo/Documents/Best-Version-of-Yourself/mobile/node_modules/@babel/core/lib/errors/rewrite-stack-trace.js:47:12)
+    at parseSync (/Users/kuo/Documents/Best-Version-of-Yourself/mobile/node_modules/@babel/core/lib/parse.js:38:72)
+    at Object.transform (/Users/kuo/Documents/Best-Version-of-Yourself/mobile/node_modules/@react-native/metro-babel-transformer/src/index.js:209:11)
+    at transformJSWithBabel (/Users/kuo/Documents/Best-Version-of-Yourself/mobile/node_modules/metro-transform-worker/src/index.js:350:45)
+    at Object.transform (/Users/kuo/Documents/Best-Version-of-Yourself/mobile/node_modules/metro-transform-worker/src/index.js:495:16)
+    at transformFile (/Users/kuo/Documents/Best-Version-of-Yourself/mobile/node_modules/metro/src/DeltaBundler/Worker.flow.js:67:36)
+    at Object.transform (/Users/kuo/Documents/Best-Version-of-Yourself/mobile/node_modules/metro/src/DeltaBundler/Worker.flow.js:42:10)
+    at execFunction (/Users/kuo/Documents/Best-Version-of-Yourself/mobile/node_modules/jest-worker/build/workers/processChild.js:149:17)
+    at execHelper (/Users/kuo/Documents/Best-Version-of-Yourself/mobile/node_modules/jest-worker/build/workers/processChild.js:137:5)
+    at execMethod (/Users/kuo/Documents/Best-Version-of-Yourself/mobile/node_modules/jest-worker/build/workers/processChild.js:140:5)
+    at process.messageListener (/Users/kuo/Documents/Best-Version-of-Yourself/mobile/node_modules/jest-worker/build/workers/processChild.js:44:7)
+    at process.emit (node:events:508:20)
+    at emit (node:internal/child_process:932:14)

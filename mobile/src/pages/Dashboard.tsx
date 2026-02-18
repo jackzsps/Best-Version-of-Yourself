@@ -11,6 +11,13 @@ export const Dashboard = () => {
   const [showAuthModal, setShowAuthModal] = useState(false);
   const isVintage = theme === 'vintage';
 
+  console.log('📊 [Dashboard] Rendering... User:', !!user, 'Entries:', entries?.length);
+
+  React.useEffect(() => {
+    console.log('✅ [Dashboard] Mounted!');
+    return () => console.log('👋 [Dashboard] Unmounted');
+  }, []);
+
   return (
     <SafeAreaView style={isVintage ? styles.vintageContainer : styles.container}>
       <View style={[styles.header, isVintage && styles.vintageHeader]}>

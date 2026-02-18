@@ -14,6 +14,8 @@ module.exports = {
         },
       },
     ],
+    // 💡 [修正] 移除重複的 Worklets 插件，Reanimated 插件已包含此功能
+    // 'react-native-worklets/plugin',
     // 如果你有用 Reanimated，這個必須放在最後
     'react-native-reanimated/plugin',
   ],

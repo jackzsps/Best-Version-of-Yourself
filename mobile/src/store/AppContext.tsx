@@ -37,6 +37,7 @@ interface AppState {
 const AppContext = createContext<AppState | undefined>(undefined);
 
 export const AppProvider = ({ children }: React.PropsWithChildren<{}>) => {
+  console.log('🏗️ [AppContext] Provider initializing...');
   const [entries, setEntries] = useState<Entry[]>([]);
   const [mode, setMode] = useState<RecordMode>(DEFAULT_MODE);
   const [language, setLanguage] = useState<Language>(DEFAULT_LANGUAGE);
@@ -48,17 +49,17 @@ export const AppProvider = ({ children }: React.PropsWithChildren<{}>) => {
   const isPro = (() => {
     if (subscription.status !== 'pro' && subscription.status !== 'trial') return false;
     if (!subscription.expiryDate) return false;
-    
+
     // Convert Firestore Timestamp to Date for comparison
     const now = new Date();
     // Handle both Firestore Timestamp (has seconds/nanoseconds) and generic object cases
     // React Native Firebase Timestamp often behaves slightly differently but usually has toDate() or seconds
     const expirySeconds = (subscription.expiryDate as any).seconds ?? 0;
     const expiry = new Date(expirySeconds * 1000);
-    
+
     return expiry > now;
   })();
-  
+
   // 0. Load persisted settings on mount
   useEffect(() => {
     const loadSettings = async () => {
@@ -66,7 +67,7 @@ export const AppProvider = ({ children }: React.PropsWithChildren<{}>) => {
         const savedMode = await AsyncStorage.getItem('bvoy_mode');
         const savedLang = await AsyncStorage.getItem('bvoy_language');
         const savedTheme = await AsyncStorage.getItem('bvoy_theme');
-        
+
         if (savedMode) setMode(savedMode as RecordMode);
         if (savedLang) setLanguage(savedLang as Language);
         if (savedTheme) setTheme(savedTheme as Theme);
@@ -99,7 +100,7 @@ export const AppProvider = ({ children }: React.PropsWithChildren<{}>) => {
     // Use specific database instance 'bvoy'
     // In React Native Firebase, you might not be able to name instances like in web if not configured.
     // Usually firestore() is enough if using default app. If using named app, firestore(app)
-    const db = firestore(); 
+    const db = firestore();
 
     const unsubscribe = db
       .collection('users')
@@ -124,7 +125,7 @@ export const AppProvider = ({ children }: React.PropsWithChildren<{}>) => {
           console.error('Firestore snapshot error:', error);
         },
       );
-    
+
     // Sync Subscription Status (assuming it's stored in user document)
     // We listen to the user document itself
     const userUnsubscribe = db
@@ -136,12 +137,12 @@ export const AppProvider = ({ children }: React.PropsWithChildren<{}>) => {
             const data = doc.data();
             // Check if subscription field exists and has status
             if (data?.subscription?.status) {
-               setSubscriptionState(data.subscription as UserSubscription);
+              setSubscriptionState(data.subscription as UserSubscription);
             } else {
-               // Fallback/Default for existing users who don't have this field yet
-               // If no subscription data, consider it basic or check if we should init trial
-               // Here we keep it basic to avoid infinite loops or overwrites without user action
-               setSubscriptionState({ status: 'basic' });
+              // Fallback/Default for existing users who don't have this field yet
+              // If no subscription data, consider it basic or check if we should init trial
+              // Here we keep it basic to avoid infinite loops or overwrites without user action
+              setSubscriptionState({ status: 'basic' });
             }
           }
         },
@@ -161,9 +162,9 @@ export const AppProvider = ({ children }: React.PropsWithChildren<{}>) => {
     const signInResult = await GoogleSignin.signIn();
     // Try to get idToken from the result object, handling potential nulls
     const idToken = (signInResult as any).data?.idToken || (signInResult as any).idToken;
-    
+
     if (!idToken) {
-        throw new Error('No ID token found');
+      throw new Error('No ID token found');
     }
 
     // Create a Google credential with the token
@@ -178,16 +179,16 @@ export const AppProvider = ({ children }: React.PropsWithChildren<{}>) => {
       requestedOperation: appleAuth.Operation.LOGIN,
       requestedScopes: [appleAuth.Scope.EMAIL, appleAuth.Scope.FULL_NAME],
     });
-  
+
     // Ensure Apple returned a user identityToken
     if (!appleAuthRequestResponse.identityToken) {
       throw new Error('Apple Sign-In failed - no identify token returned');
     }
-  
+
     // Create a Firebase credential from the response
     const { identityToken, nonce } = appleAuthRequestResponse;
     const appleCredential = auth.AppleAuthProvider.credential(identityToken, nonce);
-  
+
     // Sign the user in with the credential
     await auth().signInWithCredential(appleCredential);
   };
@@ -202,19 +203,19 @@ export const AppProvider = ({ children }: React.PropsWithChildren<{}>) => {
       email,
       pass,
     );
-    
+
     if (userCredential.user) {
       await userCredential.user.updateProfile({ displayName: name });
       // setUser(auth().currentUser); // Force update state if needed, but onAuthStateChanged handles it
-      
+
       // Initialize 14-day trial
       const trialExpiry = new Date();
       trialExpiry.setDate(trialExpiry.getDate() + 14);
       const initialSub: UserSubscription = {
-           status: 'trial',
-           expiryDate: firestore.Timestamp.fromDate(trialExpiry) as any
+        status: 'trial',
+        expiryDate: firestore.Timestamp.fromDate(trialExpiry) as any
       };
-      
+
       const db = firestore();
       await db.collection('users').doc(userCredential.user.uid).set({ subscription: initialSub }, { merge: true });
       setSubscriptionState(initialSub);
@@ -263,28 +264,28 @@ export const AppProvider = ({ children }: React.PropsWithChildren<{}>) => {
 
     db.collection('users').doc(user.uid).collection('entries').doc(id).delete();
   };
-  
+
   const updateSubscription = (sub: UserSubscription) => {
-      if (!user) return;
-      setSubscriptionState(sub); // Optimistic update
-      
-      const db = firestore();
-      // Merge: true ensures we don't overwrite other user fields (like email, name if stored there)
-      db.collection('users').doc(user.uid).set({ subscription: sub }, { merge: true });
+    if (!user) return;
+    setSubscriptionState(sub); // Optimistic update
+
+    const db = firestore();
+    // Merge: true ensures we don't overwrite other user fields (like email, name if stored there)
+    db.collection('users').doc(user.uid).set({ subscription: sub }, { merge: true });
   }
 
   // Wrapper setters to persist to AsyncStorage
-  const updateMode = (m: RecordMode) => { 
-      setMode(m); 
-      AsyncStorage.setItem('bvoy_mode', m).catch(console.error); 
+  const updateMode = (m: RecordMode) => {
+    setMode(m);
+    AsyncStorage.setItem('bvoy_mode', m).catch(console.error);
   };
-  const updateLanguage = (l: Language) => { 
-      setLanguage(l); 
-      AsyncStorage.setItem('bvoy_language', l).catch(console.error); 
+  const updateLanguage = (l: Language) => {
+    setLanguage(l);
+    AsyncStorage.setItem('bvoy_language', l).catch(console.error);
   };
-  const updateTheme = (t: Theme) => { 
-      setTheme(t); 
-      AsyncStorage.setItem('bvoy_theme', t).catch(console.error); 
+  const updateTheme = (t: Theme) => {
+    setTheme(t);
+    AsyncStorage.setItem('bvoy_theme', t).catch(console.error);
   };
 
   const t = TRANSLATIONS[language];

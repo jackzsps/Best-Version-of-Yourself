@@ -42,9 +42,23 @@ target 'BestVersionOfYourself' do
     # ---------------------------------------------------------
     # PART 1: 修改 Pods (第三方套件) 的設定
     # ---------------------------------------------------------
-    installer.pods_project.targets.each do |target|
+      installer.pods_project.targets.each do |target|
+      puts "  Processing Pod target: #{target.name}"
       target.build_configurations.each do |config|
+        # 強制覆寫 Deployment Target (解決 RNGoogleSignin 10.0 問題)
+        # 特別針對 RNGoogleSignin 確保它被正確設定
+        if target.name == 'RNGoogleSignin'
+          config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'] = '16.1'
+          # 強制開啟 Aligned Allocation 支援
+          cflags = config.build_settings['OTHER_CPLUSPLUSFLAGS'] 
+          cflags = [cflags] if cflags.is_a?(String)
+          cflags ||= ['$(inherited)']
+          cflags << '-faligned-allocation'
+          config.build_settings['OTHER_CPLUSPLUSFLAGS'] = cflags
+        end
+        # 全域強制設定 (保險起見)
         config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'] = '16.1'
+        
         config.build_settings['CLANG_ALLOW_NON_MODULAR_INCLUDES_IN_FRAMEWORK_MODULES'] = 'YES'
         config.build_settings['CLANG_CXX_LANGUAGE_STANDARD'] = 'c++20'
 
@@ -108,6 +122,14 @@ target 'BestVersionOfYourself' do
           current_cpp = [current_cpp] if current_cpp.is_a?(String)
           current_cpp ||= ['$(inherited)']
           config.build_settings['OTHER_CPLUSPLUSFLAGS'] = (current_cpp + ['-DFOLLY_NO_COROUTINES=1', '-DFOLLY_CFG_NO_COROUTINES=1']).uniq
+          
+          # 3. [關鍵修復] 強制加入 React Native Header Search Paths
+          # 這是為了解決 use_frameworks! 導致找不到 RCTAppDelegate.h 的問題
+          header_search_paths = config.build_settings['HEADER_SEARCH_PATHS']
+          header_search_paths = [header_search_paths] if header_search_paths.is_a?(String)
+          header_search_paths ||= ['$(inherited)']
+          header_search_paths << '$(SRCROOT)/../node_modules/react-native/Libraries/AppDelegate'
+          config.build_settings['HEADER_SEARCH_PATHS'] = header_search_paths
           
         end
       end

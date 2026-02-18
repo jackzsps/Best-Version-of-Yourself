@@ -2,33 +2,42 @@
  * @format
  */
 
-// 👇 1. 這一行必須加在最上面，這是解決 Release 版閃退的關鍵
+// 👇 1. 這一行必須加在最上面
 import 'react-native-gesture-handler';
 
-// 👇 2. 引入 React (為了檢查版本)
+// 👇 2. 引入 React
 import React from 'react';
+import { AppRegistry, DeviceEventEmitter, LogBox } from 'react-native';
 
-import { AppRegistry } from 'react-native';
+// 忽略 Deep Import 警告，因為這是修正 New Architecture 崩潰的必要手段
+LogBox.ignoreLogs(['Deep imports from']);
+
+// 👇👇👇 [Runtime Fix] 手動註冊 RCTEventEmitter
+// 某些原生模組 (如 react-native-gesture-handler) 在 New Architecture 下仍會嘗試呼叫舊版 Bridge 的事件
+// 使用內部 registerCallableModule 以同時支援 Bridge 與 Bridgeless 模式
+const registerCallableModule = require('react-native/Libraries/Core/registerCallableModule');
+
+const RCTEventEmitter = {
+  receiveEvent: (tag, eventName, body) => {
+    DeviceEventEmitter.emit(eventName, body);
+  },
+  receiveTouches: (eventTopLevelType, touches, changedIndices) => {
+    // console.log('RCTEventEmitter.receiveTouches', eventTopLevelType);
+  }
+};
+
+registerCallableModule.default('RCTEventEmitter', RCTEventEmitter);
+console.log('🔧 [Patch] RCTEventEmitter registered via registerCallableModule.');
+// 👆👆👆 [Runtime Fix] 結束
+
 import App from './src/App';
 import { name as appName } from './app.json';
 
 // 👇👇👇 [VC 偵探模式] 開始鑑識 👇👇👇
-// 1. 如果你在 Console 沒看到這行，代表 JS 在更早之前(例如 import 階段)就掛了 (兇手三)
 console.log('🚀 [index.js] JS Bundle 開始執行！(JS Bundle Started)');
 
 try {
-  // 2. 檢查 React 版本
   console.log('🕵️‍♂️ [鑑識報告] React 版本:', React.version);
-  
-  // 3. 嘗試取得 React 的真實路徑 (檢查是否有多重實例)
-  // 注意：在 Release 模式下這行可能會報錯或被優化，所以包在 try-catch 裡
-  try {
-    const reactPath = require.resolve('react');
-    console.log('🕵️‍♂️ [鑑識報告] React 真實路徑:', reactPath);
-  } catch (pathError) {
-    console.log('⚠️ [鑑識報告] 無法解析路徑 (這是正常的，只要不是報錯就好)');
-  }
-
 } catch (e) {
   console.error('💥 [鑑識報告] 嚴重錯誤：檢查 React 時發生異常', e);
 }

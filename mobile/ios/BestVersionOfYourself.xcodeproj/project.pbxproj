@@ -444,6 +444,14 @@
 					"FOLLY_NO_COROUTINES=1",
 					"FOLLY_CFG_NO_COROUTINES=1",
 				);
+				HEADER_SEARCH_PATHS = (
+					"$(inherited)",
+					"\"$(SRCROOT)/../node_modules/react-native/Libraries/AppDelegate\"",
+					"\"$(SRCROOT)/../node_modules/react-native/Libraries/AppDelegate\"",
+					"$(SRCROOT)/../node_modules/react-native/Libraries/AppDelegate",
+					"$(SRCROOT)/../node_modules/react-native/Libraries/AppDelegate",
+					"$(SRCROOT)/../node_modules/react-native/Libraries/AppDelegate",
+				);
 				INFOPLIST_FILE = BestVersionOfYourself/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
@@ -480,6 +488,14 @@
 					"$(inherited)",
 					"FOLLY_NO_COROUTINES=1",
 					"FOLLY_CFG_NO_COROUTINES=1",
+				);
+				HEADER_SEARCH_PATHS = (
+					"$(inherited)",
+					"\"$(SRCROOT)/../node_modules/react-native/Libraries/AppDelegate\"",
+					"\"$(SRCROOT)/../node_modules/react-native/Libraries/AppDelegate\"",
+					"$(SRCROOT)/../node_modules/react-native/Libraries/AppDelegate",
+					"$(SRCROOT)/../node_modules/react-native/Libraries/AppDelegate",
+					"$(SRCROOT)/../node_modules/react-native/Libraries/AppDelegate",
 				);
 				INFOPLIST_FILE = BestVersionOfYourself/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
