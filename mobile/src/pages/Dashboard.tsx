@@ -3,23 +3,21 @@ import React, { useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { EntryList } from '../components/dashboard/EntryList';
 import { useApp } from '../store/AppContext';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AuthModal } from '../components/AuthModal';
 
 export const Dashboard = () => {
   const { entries, t, user, theme } = useApp();
   const [showAuthModal, setShowAuthModal] = useState(false);
   const isVintage = theme === 'vintage';
+  const insets = useSafeAreaInsets();
 
-  console.log('📊 [Dashboard] Rendering... User:', !!user, 'Entries:', entries?.length);
-
-  React.useEffect(() => {
-    console.log('✅ [Dashboard] Mounted!');
-    return () => console.log('👋 [Dashboard] Unmounted');
-  }, []);
-
+  console.log('📊 [Dashboard] Rendering... Mode:', isVintage ? 'Vintage' : 'Default');
   return (
-    <SafeAreaView style={isVintage ? styles.vintageContainer : styles.container}>
+    <View style={[
+      isVintage ? styles.vintageContainer : styles.container,
+      { paddingTop: insets.top, paddingBottom: insets.bottom }
+    ]}>
       <View style={[styles.header, isVintage && styles.vintageHeader]}>
         <View>
           <Text style={[styles.title, isVintage && styles.vintageTitle]}>{t.dashboard.title}</Text>
@@ -38,7 +36,7 @@ export const Dashboard = () => {
       </View>
       <EntryList entries={entries} />
       <AuthModal visible={showAuthModal} onClose={() => setShowAuthModal(false)} />
-    </SafeAreaView>
+    </View>
   );
 };
 
