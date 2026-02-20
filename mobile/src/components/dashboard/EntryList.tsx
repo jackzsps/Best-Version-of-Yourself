@@ -5,7 +5,15 @@ import { EntryCard } from './EntryCard';
 import { useApp } from '../../store/AppContext';
 
 // ✅ React Native Optimized List
-export const EntryList = ({ entries, ListHeaderComponent }: { entries: Entry[], ListHeaderComponent?: React.ReactElement }) => {
+export const EntryList = ({
+  entries,
+  ListHeaderComponent,
+  onEntryPress
+}: {
+  entries: Entry[],
+  ListHeaderComponent?: React.ReactElement,
+  onEntryPress?: (entry: Entry) => void
+}) => {
   const { t } = useApp();
 
   const renderEmpty = () => (
@@ -27,8 +35,7 @@ export const EntryList = ({ entries, ListHeaderComponent }: { entries: Entry[], 
       renderItem={({ item }) => (
         <EntryCard
           entry={item}
-        // If you added isSyncing to your Entry type:
-        // status={item.isSyncing ? t.syncing : undefined}
+          onPress={onEntryPress}
         />
       )}
       // Optional: Add ItemSeparatorComponent for consistent spacing

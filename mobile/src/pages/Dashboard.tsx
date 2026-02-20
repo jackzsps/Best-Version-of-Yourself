@@ -2,9 +2,12 @@
 import React, { useState, useMemo } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { EntryList } from '../components/dashboard/EntryList';
+import { InsightCard } from '../components/dashboard/InsightCard';
+import { EditEntryModal } from '../components/dashboard/EditEntryModal';
 import { useApp } from '../store/AppContext';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AuthModal } from '../components/AuthModal';
+import { Entry } from '@shared/types';
 
 const getGreeting = () => {
   const hour = new Date().getHours();
@@ -14,14 +17,29 @@ const getGreeting = () => {
 };
 
 export const Dashboard = () => {
-  const { entries, t, user, theme } = useApp();
+  const { entries, t, user, theme, language, updateEntry, deleteEntry } = useApp();
   const [showAuthModal, setShowAuthModal] = useState(false);
+  const [selectedEntry, setSelectedEntry] = useState<Entry | null>(null);
   const isVintage = theme === 'vintage';
   const insets = useSafeAreaInsets();
 
+  // Calculate today's cost and calories
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const todayStartSeconds = Math.floor(today.getTime() / 1000);
+
+  const todayEntries = entries.filter(e => {
+    // Handle both Firestore Timestamp obj and raw seconds number
+    const entrySeconds = (e.date as any)?.seconds ?? e.date;
+    return entrySeconds >= todayStartSeconds;
+  });
+
+  const todayCost = todayEntries.reduce((sum, e) => sum + (e.cost || 0), 0);
+  const todayCalories = todayEntries.reduce((sum, e) => sum + (e.calories || 0), 0);
+
   const greeting = getGreeting();
   // Optional: Add stats
-  const totalEntries = entries.length;
+  // totalEntries removed as per instruction
 
   const DashboardHeader = useMemo(() => (
     <View style={styles.headerContainer}>
@@ -49,22 +67,46 @@ export const Dashboard = () => {
       {/* Stats Cards Row */}
       <View style={styles.statsRow}>
         <View style={[styles.statCard, isVintage && styles.vintageStatCard]}>
-          <Text style={[styles.statValue, isVintage && styles.vintageStatValue]}>{totalEntries}</Text>
-          <Text style={[styles.statLabel, isVintage && styles.vintageStatLabel]}>Total Entries</Text>
+          <Text style={[styles.statLabel, isVintage && styles.vintageStatLabel]}>
+            {t.dashboard.spent}
+          </Text>
+          <Text style={[styles.statValue, isVintage && styles.vintageStatValue]}>
+            {t.dashboard.unitCurrency}{todayCost.toLocaleString()}
+          </Text>
         </View>
         <View style={[styles.statCard, isVintage && styles.vintageStatCard]}>
-          <Text style={[styles.statValue, isVintage && styles.vintageStatValue]}>🔥</Text>
-          <Text style={[styles.statLabel, isVintage && styles.vintageStatLabel]}>Build your streak</Text>
+          <Text style={[styles.statLabel, isVintage && styles.vintageStatLabel]}>
+            {t.dashboard.calories}
+          </Text>
+          <Text style={[styles.statValue, isVintage && styles.vintageStatValue]}>
+            {todayCalories.toLocaleString()} <Text style={{ fontSize: 14, fontWeight: '500' }}>{t.dashboard.unitCal}</Text>
+          </Text>
         </View>
       </View>
+
+      <InsightCard
+        t={t}
+        theme={theme}
+        insightText={t.dashboard.insights?.generalTip || "Small habits lead to big changes."}
+      />
 
       <Text style={[styles.sectionTitle, isVintage && styles.vintageSectionTitle]}>
         Recent Entries
       </Text>
     </View>
-  ), [user, isVintage, greeting, totalEntries, t]);
+  ), [user, isVintage, greeting, todayCost, todayCalories, t]);
 
   console.log('📊 [Dashboard] Rendering... Mode:', isVintage ? 'Vintage' : 'Default');
+
+  const handleSaveEntry = (updatedEntry: Entry) => {
+    updateEntry(updatedEntry);
+    setSelectedEntry(null);
+  };
+
+  const handleDeleteEntry = (entryToDelete: Entry) => {
+    deleteEntry(entryToDelete);
+    setSelectedEntry(null);
+  };
 
   return (
     <View style={[
@@ -74,8 +116,18 @@ export const Dashboard = () => {
       <EntryList
         entries={entries}
         ListHeaderComponent={DashboardHeader}
+        onEntryPress={(entry) => setSelectedEntry(entry)}
       />
       <AuthModal visible={showAuthModal} onClose={() => setShowAuthModal(false)} />
+      <EditEntryModal
+        visible={!!selectedEntry}
+        onClose={() => setSelectedEntry(null)}
+        entry={selectedEntry}
+        onSave={handleSaveEntry}
+        onDelete={handleDeleteEntry}
+        theme={theme}
+        language={language}
+      />
     </View>
   );
 };
@@ -83,11 +135,11 @@ export const Dashboard = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F9FAFB', // softer, more modern white-gray
+    backgroundColor: '#F5F6F8', // Web Pastel BG
   },
   vintageContainer: {
     flex: 1,
-    backgroundColor: '#F5F0E6', // warmer, authentic paper tone
+    backgroundColor: '#f0e6d2', // Web Vintage Aged Paper BG
   },
   headerContainer: {
     paddingHorizontal: 16,
@@ -153,51 +205,53 @@ const styles = StyleSheet.create({
   statsRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginBottom: 32,
-    gap: 12,
+    marginBottom: 24, // Matches React Web spacing closely
+    gap: 16, // Web uses gap-4 which is 16px
   },
   statCard: {
     flex: 1,
-    backgroundColor: '#fff',
+    backgroundColor: '#ffffff',
     padding: 16,
-    borderRadius: 20,
+    borderRadius: 24, // Bento-style (1.5rem / 24px)
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.05,
-    shadowRadius: 10,
-    elevation: 2,
-    alignItems: 'center',
+    shadowOffset: { width: 0, height: 10 }, // shadow-soft approximation
+    shadowOpacity: 0.08,
+    shadowRadius: 40,
+    elevation: 3,
+    alignItems: 'flex-start', // Web left-aligns stats
   },
   vintageStatCard: {
-    backgroundColor: '#fdfbf7',
-    borderWidth: 1,
-    borderColor: '#d1d5db',
-    borderRadius: 4,
-    shadowColor: '#000',
-    shadowOffset: { width: 4, height: 4 },
+    backgroundColor: '#f9f5eb', // Lighter vintage paper from Tailwind
+    borderWidth: 2,
+    borderColor: '#2c241b', // Vintage Ink
+    borderRadius: 16, // Softer vintage curve
+    shadowColor: '#2c241b',
+    shadowOffset: { width: 3, height: 3 }, // Web css 3px 3px 0px solid
     shadowOpacity: 0.1,
     shadowRadius: 0,
+    elevation: 2,
   },
   statValue: {
     fontSize: 24,
-    fontWeight: '800',
-    color: '#3B82F6', // energetic blue
-    marginBottom: 4,
+    fontWeight: '900', // font-black equivalent
+    color: '#111827', // text-gray-900
+    marginTop: 4,
   },
   vintageStatValue: {
-    color: '#b91c1c', // stamp red
+    color: '#2c241b', // vintage-ink
     fontFamily: 'Courier',
+    fontWeight: 'bold',
   },
   statLabel: {
     fontSize: 12,
-    fontWeight: '600',
+    fontWeight: '700', // Web font-bold
     color: '#9CA3AF',
     textTransform: 'uppercase',
-    letterSpacing: 0.5,
   },
   vintageStatLabel: {
-    color: '#2d2a26',
+    color: '#8b4513', // vintage-leather
     fontFamily: 'Courier',
+    fontWeight: 'bold',
   },
   sectionTitle: {
     fontSize: 18,
@@ -209,5 +263,5 @@ const styles = StyleSheet.create({
     fontFamily: 'Courier',
     color: '#2d2a26',
     textDecorationLine: 'underline',
-  }
+  },
 });

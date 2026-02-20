@@ -7,6 +7,7 @@ import auth, { FirebaseAuthTypes } from '@react-native-firebase/auth';
 import { GoogleSignin } from '@react-native-google-signin/google-signin';
 import { appleAuth } from '@invertase/react-native-apple-authentication';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import storage from '@react-native-firebase/storage';
 
 // Note: This file is a React Native specific implementation of AppContext.
 // It uses @react-native-firebase which provides native bindings and better offline support (SQLite).
@@ -22,7 +23,7 @@ interface AppState {
   t: (typeof TRANSLATIONS)['en'];
   addEntry: (entry: Entry) => void;
   updateEntry: (entry: Entry) => void;
-  deleteEntry: (id: string) => void;
+  deleteEntry: (entry: Entry) => Promise<void>;
   setMode: (mode: RecordMode) => void;
   setLanguage: (lang: Language) => void;
   setTheme: (theme: Theme) => void;
@@ -255,14 +256,35 @@ export const AppProvider = ({ children }: React.PropsWithChildren<{}>) => {
       .update(data);
   };
 
-  const deleteEntry = (id: string) => {
-    if (!user) {
+  const deleteEntry = async (entry: Entry) => {
+    if (!user || !entry?.id) {
       return;
     }
-
     const db = firestore();
 
-    db.collection('users').doc(user.uid).collection('entries').doc(id).delete();
+    try {
+      // 1. Delete associated image from Storage if it exists
+      if (entry.imageUrl) {
+        // Example URL: https://firebasestorage.googleapis.com/.../uploads%2FUSER_ID%2F123456.jpg...
+        // We need to extract the path after /o/ and before ?alt=
+        const urlParts = entry.imageUrl.split('/o/');
+        if (urlParts.length > 1) {
+          const pathPart = urlParts[1].split('?alt=')[0];
+          const decodedPath = decodeURIComponent(pathPart);
+
+          if (decodedPath) {
+            console.log('🗑️ [AppContext] Deleting Image from Storage:', decodedPath);
+            await storage().ref(decodedPath).delete().catch((e: any) => console.log('Image delete error (ignored):', e));
+          }
+        }
+      }
+
+      // 2. Delete Firestore Document
+      await db.collection('users').doc(user.uid).collection('entries').doc(entry.id).delete();
+      console.log('🗑️ [AppContext] Entry deleted successfully:', entry.id);
+    } catch (error) {
+      console.error('❌ [AppContext] Error deleting entry:', error);
+    }
   };
 
   const updateSubscription = (sub: UserSubscription) => {

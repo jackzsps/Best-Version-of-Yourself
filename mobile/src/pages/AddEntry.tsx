@@ -27,7 +27,9 @@ import { Icon } from '../components/Icons';
 import firestore from '@react-native-firebase/firestore';
 import { PaywallModal } from '../components/PaywallModal';
 
-export const AddEntry = () => {
+import { TabParamList } from '../types';
+
+export const AddEntry = ({ setActiveTab }: { setActiveTab?: (tab: keyof TabParamList) => void }) => {
   const { t, addEntry, mode, user, isPro, theme } = useApp();
   const toast = useToast();
   const [imageUri, setImageUri] = useState<string | null>(null);
@@ -35,7 +37,7 @@ export const AddEntry = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [analysisResult, setAnalysisResult] = useState<any>(null);
   const [showPaywall, setShowPaywall] = useState(false);
-  
+
   // Local state for editing values before save
   const [editedName, setEditedName] = useState<string>('');
   const [editedCost, setEditedCost] = useState<string>('');
@@ -48,25 +50,25 @@ export const AddEntry = () => {
 
   const isVintage = theme === 'vintage';
   const colors = isVintage ? {
-      bg: '#F5E6D3', // vintage-bg
-      text: '#2C241B', // vintage-ink
-      card: '#E6D2B5', // vintage-card
-      line: '#8B7355', // vintage-line
-      leather: '#8B4513', // vintage-leather
-      accent: '#8B4513',
-      subText: '#5C4033', // vintage-leather/50 equivalent
-      inputBg: '#F5E6D3', // Same as bg or slightly lighter
-      buttonText: '#F5E6D3',
+    bg: '#F5E6D3', // vintage-bg
+    text: '#2C241B', // vintage-ink
+    card: '#E6D2B5', // vintage-card
+    line: '#8B7355', // vintage-line
+    leather: '#8B4513', // vintage-leather
+    accent: '#8B4513',
+    subText: '#5C4033', // vintage-leather/50 equivalent
+    inputBg: '#F5E6D3', // Same as bg or slightly lighter
+    buttonText: '#F5E6D3',
   } : {
-      bg: '#fff',
-      text: '#000',
-      card: '#f9f9f9',
-      line: '#eee',
-      leather: '#000',
-      accent: '#007AFF',
-      subText: '#666',
-      inputBg: '#fff',
-      buttonText: '#fff',
+    bg: '#fff',
+    text: '#000',
+    card: '#f9f9f9',
+    line: '#eee',
+    leather: '#000',
+    accent: '#007AFF',
+    subText: '#666',
+    inputBg: '#fff',
+    buttonText: '#fff',
   };
 
   const commonOptions = {
@@ -83,16 +85,16 @@ export const AddEntry = () => {
 
     // Helper to extract value based on mode
     const getVal = (val: number | { min: number; max: number } | null | undefined): string => {
-        if (val === null || val === undefined) return '0';
-        if (typeof val === 'number') return val.toString();
-        return (activeMode === RecordMode.STRICT ? val.max : val.min).toString();
+      if (val === null || val === undefined) return '0';
+      if (typeof val === 'number') return val.toString();
+      return (activeMode === RecordMode.STRICT ? val.max : val.min).toString();
     };
 
     if (analysisResult) {
-        setEditedCalories(getVal(analysisResult.calories));
-        setEditedProtein(getVal(analysisResult.macros?.protein));
-        setEditedCarbs(getVal(analysisResult.macros?.carbs));
-        setEditedFat(getVal(analysisResult.macros?.fat));
+      setEditedCalories(getVal(analysisResult.calories));
+      setEditedProtein(getVal(analysisResult.macros?.protein));
+      setEditedCarbs(getVal(analysisResult.macros?.carbs));
+      setEditedFat(getVal(analysisResult.macros?.fat));
     }
 
   }, [analysisResult, activeMode]);
@@ -100,31 +102,31 @@ export const AddEntry = () => {
   // Initial load of Name/Cost when analysisResult is first set
   useEffect(() => {
     if (analysisResult) {
-        setEditedName(analysisResult.itemName || '');
-        setEditedCost(analysisResult.cost ? analysisResult.cost.toString() : '0');
+      setEditedName(analysisResult.itemName || '');
+      setEditedCost(analysisResult.cost ? analysisResult.cost.toString() : '0');
     }
   }, [analysisResult]);
-  
+
   // Check permission before launching AI
   const checkPermission = (): boolean => {
-      // 1. If active pro, allow
-      if (isPro) return true;
-      
-      // 2. If expired pro or basic, block and show paywall with slogan
-      Alert.alert(
-          t.addEntry.subscriptionExpired, 
-          t.addEntry.subscriptionExpiredDesc,
-          [
-             { text: t.common.cancel, style: "cancel" },
-             { text: t.addEntry.upgrade, onPress: () => setShowPaywall(true) }
-          ]
-      );
-      return false;
+    // 1. If active pro, allow
+    if (isPro) return true;
+
+    // 2. If expired pro or basic, block and show paywall with slogan
+    Alert.alert(
+      t.addEntry.subscriptionExpired,
+      t.addEntry.subscriptionExpiredDesc,
+      [
+        { text: t.common.cancel, style: "cancel" },
+        { text: t.addEntry.upgrade, onPress: () => setShowPaywall(true) }
+      ]
+    );
+    return false;
   }
 
   const handleCamera = async () => {
     if (!checkPermission()) return;
-    
+
     const result = await launchCamera(commonOptions as CameraOptions);
     if (result.assets && result.assets[0]) {
       processImage(result.assets[0]);
@@ -144,7 +146,7 @@ export const AddEntry = () => {
     // Manual entry does not require Pro subscription (parity with Web)
     setImageUri(null);
     setAnalyzing(false);
-    
+
     // Create a default/empty analysis result to render the form
     const defaultResult = {
       isFood: false,
@@ -158,7 +160,7 @@ export const AddEntry = () => {
       macros: null,
       reasoning: ''
     };
-    
+
     setAnalysisResult(defaultResult);
     setEditedName('');
     setEditedCost('');
@@ -175,7 +177,7 @@ export const AddEntry = () => {
     setImageUri(asset.uri);
     setAnalyzing(true);
     setAnalysisResult(null); // Clear previous result
-    
+
     try {
       const result = await analyzeImage(asset.base64);
       setAnalysisResult(result);
@@ -183,9 +185,9 @@ export const AddEntry = () => {
     } catch (error: any) {
       // Replaced Alert with Toast for better UX and consistency with Web
       if (error.isNetworkError) {
-          toast.info(t.common.offline || "No Internet", "Image will be processed later (mock)."); // Mock message as logic differs
+        toast.info(t.common.offline || "No Internet", "Image will be processed later (mock)."); // Mock message as logic differs
       } else {
-          toast.error(t.common.error, t.addEntry.analysisFailed);
+        toast.error(t.common.error, t.addEntry.analysisFailed);
       }
       console.error("Analysis Error:", error);
     } finally {
@@ -197,7 +199,7 @@ export const AddEntry = () => {
     if (!analysisResult || !user) {
       return;
     }
-    
+
     setIsSubmitting(true);
 
     try {
@@ -232,10 +234,15 @@ export const AddEntry = () => {
       };
 
       addEntry(newEntry);
-      
+
       // Replaced Alert with Toast
       toast.success(t.common.save, t.addEntry.entrySaved);
-      
+
+      // Navigate to Home
+      if (setActiveTab) {
+        setActiveTab('Home');
+      }
+
       // Reset state
       setImageUri(null);
       setAnalysisResult(null);
@@ -271,7 +278,7 @@ export const AddEntry = () => {
             <Icon name="camera" size={32} color={isVintage ? colors.text : '#fff'} />
           </TouchableOpacity>
           <Text style={[styles.captureText, { color: colors.text, fontFamily: isVintage ? 'Courier' : undefined }]}>{t.addEntry.tapToCapture}</Text>
-          
+
           <View style={styles.secondaryActions}>
             <TouchableOpacity
               style={styles.secondaryButton}
@@ -287,17 +294,17 @@ export const AddEntry = () => {
               onPress={handleManualEntry}
             >
               <View style={styles.manualButtonContent}>
-                 <Icon name="edit" size={16} color={isVintage ? colors.text : colors.accent} /> 
-                 <Text style={[styles.secondaryButtonText, { color: isVintage ? colors.text : colors.accent, fontFamily: isVintage ? 'Courier' : undefined, textDecorationLine: isVintage ? 'underline' : 'none' }]}> {t.addEntry.manual}</Text>
+                <Icon name="edit" size={16} color={isVintage ? colors.text : colors.accent} />
+                <Text style={[styles.secondaryButtonText, { color: isVintage ? colors.text : colors.accent, fontFamily: isVintage ? 'Courier' : undefined, textDecorationLine: isVintage ? 'underline' : 'none' }]}> {t.addEntry.manual}</Text>
               </View>
             </TouchableOpacity>
           </View>
-          
+
           {/* Pro Badge/Hint if needed */}
           {!isPro && (
-              <View style={[styles.proHintContainer, { backgroundColor: isVintage ? colors.card : '#FEF2F2' }]}>
-                  <Text style={[styles.proHintText, { color: isVintage ? colors.text : '#EF4444', fontFamily: isVintage ? 'Courier' : undefined }]}>{t.addEntry.subscriptionExpiredDesc}</Text>
-              </View>
+            <View style={[styles.proHintContainer, { backgroundColor: isVintage ? colors.card : '#FEF2F2' }]}>
+              <Text style={[styles.proHintText, { color: isVintage ? colors.text : '#EF4444', fontFamily: isVintage ? 'Courier' : undefined }]}>{t.addEntry.subscriptionExpiredDesc}</Text>
+            </View>
           )}
         </View>
       )}
@@ -317,9 +324,9 @@ export const AddEntry = () => {
       )}
 
       {!analyzing && analysisResult && (
-        <View style={[styles.resultContainer, { backgroundColor: colors.card, borderColor: colors.line, borderStyle: isVintage ? 'dashed' : 'solid' }]}>
+        <View style={[styles.resultContainer, { backgroundColor: colors.card, borderColor: colors.line, borderStyle: isVintage ? 'solid' : 'solid' }]}>
           <Text style={[styles.resultHeader, { color: colors.text, fontFamily: isVintage ? 'Courier' : undefined }]}>{t.addEntry.reviewTitle}</Text>
-          
+
           <View style={styles.inputGroup}>
             <Text style={[styles.label, { color: colors.text, fontFamily: isVintage ? 'Courier' : undefined }]}>{t.addEntry.itemName}</Text>
             <TextInput
@@ -344,109 +351,109 @@ export const AddEntry = () => {
               />
             </View>
           )}
-          
+
           {/* --- Diet Section (Strict/Conservative Toggle + Inputs) --- */}
           {isDiet && (
-             <View style={[styles.dietContainer, { borderColor: colors.line, borderTopWidth: 1, paddingTop: 16, marginTop: 8 }]}>
-                {/* Mode Toggle */}
-                <View style={[styles.modeToggle, { borderColor: colors.line, borderRadius: isVintage ? 0 : 8, backgroundColor: isVintage ? 'transparent' : colors.line }]}>
-                   <TouchableOpacity 
-                      style={[styles.modeButton, activeMode === RecordMode.STRICT && { backgroundColor: isVintage ? colors.text : '#fff', shadowOpacity: 0.1 }]} 
-                      onPress={() => setActiveMode(RecordMode.STRICT)}
-                   >
-                      <Text style={[styles.modeText, activeMode === RecordMode.STRICT ? { color: isVintage ? colors.bg : '#000', fontWeight: 'bold' } : { color: colors.subText }, isVintage && { fontFamily: 'Courier' }]}>{t.addEntry.modeStrict}</Text>
-                   </TouchableOpacity>
-                   <View style={{ width: 1, backgroundColor: colors.line }} />
-                   <TouchableOpacity 
-                      style={[styles.modeButton, activeMode === RecordMode.CONSERVATIVE && { backgroundColor: isVintage ? colors.leather : '#fff', shadowOpacity: 0.1 }]} 
-                      onPress={() => setActiveMode(RecordMode.CONSERVATIVE)}
-                   >
-                      <Text style={[styles.modeText, activeMode === RecordMode.CONSERVATIVE ? { color: isVintage ? colors.bg : '#000', fontWeight: 'bold' } : { color: colors.subText }, isVintage && { fontFamily: 'Courier' }]}>{t.addEntry.modeConservative}</Text>
-                   </TouchableOpacity>
-                </View>
+            <View style={[styles.dietContainer, { borderColor: colors.line, borderTopWidth: 1, paddingTop: 16, marginTop: 8 }]}>
+              {/* Mode Toggle */}
+              <View style={[styles.modeToggle, { borderColor: colors.line, borderRadius: isVintage ? 0 : 8, backgroundColor: isVintage ? 'transparent' : colors.line }]}>
+                <TouchableOpacity
+                  style={[styles.modeButton, activeMode === RecordMode.STRICT && { backgroundColor: isVintage ? colors.text : '#fff', shadowOpacity: 0.1 }]}
+                  onPress={() => setActiveMode(RecordMode.STRICT)}
+                >
+                  <Text style={[styles.modeText, activeMode === RecordMode.STRICT ? { color: isVintage ? colors.bg : '#000', fontWeight: 'bold' } : { color: colors.subText }, isVintage && { fontFamily: 'Courier' }]}>{t.addEntry.modeStrict}</Text>
+                </TouchableOpacity>
+                <View style={{ width: 1, backgroundColor: colors.line }} />
+                <TouchableOpacity
+                  style={[styles.modeButton, activeMode === RecordMode.CONSERVATIVE && { backgroundColor: isVintage ? colors.leather : '#fff', shadowOpacity: 0.1 }]}
+                  onPress={() => setActiveMode(RecordMode.CONSERVATIVE)}
+                >
+                  <Text style={[styles.modeText, activeMode === RecordMode.CONSERVATIVE ? { color: isVintage ? colors.bg : '#000', fontWeight: 'bold' } : { color: colors.subText }, isVintage && { fontFamily: 'Courier' }]}>{t.addEntry.modeConservative}</Text>
+                </TouchableOpacity>
+              </View>
 
-                {/* Calories Input */}
-                <View style={styles.inputGroup}>
-                    <Text style={[styles.label, { color: colors.text, fontFamily: isVintage ? 'Courier' : undefined }]}>{t.addEntry.calories}</Text>
-                    <TextInput
-                      style={[styles.input, { backgroundColor: colors.inputBg, borderColor: colors.line, color: colors.text, fontFamily: isVintage ? 'Courier' : undefined, borderRadius: isVintage ? 0 : 8 }]}
-                      value={editedCalories}
-                      onChangeText={setEditedCalories}
-                      keyboardType="numeric"
-                      placeholder="0"
-                      placeholderTextColor={colors.subText}
-                    />
-                </View>
+              {/* Calories Input */}
+              <View style={styles.inputGroup}>
+                <Text style={[styles.label, { color: colors.text, fontFamily: isVintage ? 'Courier' : undefined }]}>{t.addEntry.calories}</Text>
+                <TextInput
+                  style={[styles.input, { backgroundColor: colors.inputBg, borderColor: colors.line, color: colors.text, fontFamily: isVintage ? 'Courier' : undefined, borderRadius: isVintage ? 0 : 8 }]}
+                  value={editedCalories}
+                  onChangeText={setEditedCalories}
+                  keyboardType="numeric"
+                  placeholder="0"
+                  placeholderTextColor={colors.subText}
+                />
+              </View>
 
-                {/* Macros Row */}
-                <View style={styles.macrosRow}>
-                   <View style={styles.macroInput}>
-                      <Text style={[styles.label, { color: colors.text, fontFamily: isVintage ? 'Courier' : undefined, fontSize: 12 }]}>{t.addEntry.protein}</Text>
-                      <TextInput
-                        style={[styles.input, { backgroundColor: colors.inputBg, borderColor: colors.line, color: colors.text, fontFamily: isVintage ? 'Courier' : undefined, borderRadius: isVintage ? 0 : 8 }]}
-                        value={editedProtein}
-                        onChangeText={setEditedProtein}
-                        keyboardType="numeric"
-                        placeholder="g"
-                        placeholderTextColor={colors.subText}
-                      />
-                   </View>
-                   <View style={styles.macroInput}>
-                      <Text style={[styles.label, { color: colors.text, fontFamily: isVintage ? 'Courier' : undefined, fontSize: 12 }]}>{t.addEntry.carbs}</Text>
-                      <TextInput
-                        style={[styles.input, { backgroundColor: colors.inputBg, borderColor: colors.line, color: colors.text, fontFamily: isVintage ? 'Courier' : undefined, borderRadius: isVintage ? 0 : 8 }]}
-                        value={editedCarbs}
-                        onChangeText={setEditedCarbs}
-                        keyboardType="numeric"
-                        placeholder="g"
-                        placeholderTextColor={colors.subText}
-                      />
-                   </View>
-                   <View style={styles.macroInput}>
-                      <Text style={[styles.label, { color: colors.text, fontFamily: isVintage ? 'Courier' : undefined, fontSize: 12 }]}>{t.addEntry.fat}</Text>
-                      <TextInput
-                        style={[styles.input, { backgroundColor: colors.inputBg, borderColor: colors.line, color: colors.text, fontFamily: isVintage ? 'Courier' : undefined, borderRadius: isVintage ? 0 : 8 }]}
-                        value={editedFat}
-                        onChangeText={setEditedFat}
-                        keyboardType="numeric"
-                        placeholder="g"
-                        placeholderTextColor={colors.subText}
-                      />
-                   </View>
+              {/* Macros Row */}
+              <View style={styles.macrosRow}>
+                <View style={styles.macroInput}>
+                  <Text style={[styles.label, { color: colors.text, fontFamily: isVintage ? 'Courier' : undefined, fontSize: 12 }]}>{t.addEntry.protein}</Text>
+                  <TextInput
+                    style={[styles.input, { backgroundColor: colors.inputBg, borderColor: colors.line, color: colors.text, fontFamily: isVintage ? 'Courier' : undefined, borderRadius: isVintage ? 0 : 8 }]}
+                    value={editedProtein}
+                    onChangeText={setEditedProtein}
+                    keyboardType="numeric"
+                    placeholder="g"
+                    placeholderTextColor={colors.subText}
+                  />
                 </View>
-             </View>
+                <View style={styles.macroInput}>
+                  <Text style={[styles.label, { color: colors.text, fontFamily: isVintage ? 'Courier' : undefined, fontSize: 12 }]}>{t.addEntry.carbs}</Text>
+                  <TextInput
+                    style={[styles.input, { backgroundColor: colors.inputBg, borderColor: colors.line, color: colors.text, fontFamily: isVintage ? 'Courier' : undefined, borderRadius: isVintage ? 0 : 8 }]}
+                    value={editedCarbs}
+                    onChangeText={setEditedCarbs}
+                    keyboardType="numeric"
+                    placeholder="g"
+                    placeholderTextColor={colors.subText}
+                  />
+                </View>
+                <View style={styles.macroInput}>
+                  <Text style={[styles.label, { color: colors.text, fontFamily: isVintage ? 'Courier' : undefined, fontSize: 12 }]}>{t.addEntry.fat}</Text>
+                  <TextInput
+                    style={[styles.input, { backgroundColor: colors.inputBg, borderColor: colors.line, color: colors.text, fontFamily: isVintage ? 'Courier' : undefined, borderRadius: isVintage ? 0 : 8 }]}
+                    value={editedFat}
+                    onChangeText={setEditedFat}
+                    keyboardType="numeric"
+                    placeholder="g"
+                    placeholderTextColor={colors.subText}
+                  />
+                </View>
+              </View>
+            </View>
           )}
 
           {/* Display read-only info (Mocked for manual entry as default) */}
           <View style={[styles.infoRow, { marginTop: 12 }]}>
-             <Text style={[styles.infoLabel, { color: colors.subText, fontFamily: isVintage ? 'Courier' : undefined }]}>{t.addEntry.category}:</Text>
-             <Text style={[styles.infoValue, { color: colors.text, fontFamily: isVintage ? 'Courier' : undefined }]}>{analysisResult.category}</Text>
+            <Text style={[styles.infoLabel, { color: colors.subText, fontFamily: isVintage ? 'Courier' : undefined }]}>{t.addEntry.category}:</Text>
+            <Text style={[styles.infoValue, { color: colors.text, fontFamily: isVintage ? 'Courier' : undefined }]}>{analysisResult.category}</Text>
           </View>
           <View style={styles.infoRow}>
-             <Text style={[styles.infoLabel, { color: colors.subText, fontFamily: isVintage ? 'Courier' : undefined }]}>{t.addEntry.usage}:</Text>
-             <Text style={[styles.infoValue, { color: colors.text, fontFamily: isVintage ? 'Courier' : undefined }]}>{analysisResult.usage}</Text>
+            <Text style={[styles.infoLabel, { color: colors.subText, fontFamily: isVintage ? 'Courier' : undefined }]}>{t.addEntry.usage}:</Text>
+            <Text style={[styles.infoValue, { color: colors.text, fontFamily: isVintage ? 'Courier' : undefined }]}>{analysisResult.usage}</Text>
           </View>
 
           <View style={{ marginTop: 20, gap: 10 }}>
             {isSubmitting ? (
               <ActivityIndicator size="small" color={colors.text} />
             ) : (
-               <>
-                 <TouchableOpacity style={[styles.saveButton, { backgroundColor: isVintage ? colors.leather : '#000', borderRadius: isVintage ? 4 : 12 }]} onPress={handleSave}>
-                    <Text style={[styles.saveButtonText, { color: colors.buttonText, fontFamily: isVintage ? 'Courier' : undefined }]}>{t.addEntry.saveEntry}</Text>
-                 </TouchableOpacity>
-                 <TouchableOpacity style={[styles.cancelButton, { borderColor: colors.line, borderRadius: isVintage ? 4 : 12 }]} onPress={() => {
-                     setAnalysisResult(null);
-                     setImageUri(null);
-                 }}>
-                    <Text style={[styles.cancelButtonText, { color: colors.subText, fontFamily: isVintage ? 'Courier' : undefined }]}>{t.common.cancel}</Text>
-                 </TouchableOpacity>
-               </>
+              <>
+                <TouchableOpacity style={[styles.saveButton, { backgroundColor: isVintage ? colors.leather : '#000', borderRadius: isVintage ? 4 : 12 }]} onPress={handleSave}>
+                  <Text style={[styles.saveButtonText, { color: colors.buttonText, fontFamily: isVintage ? 'Courier' : undefined }]}>{t.addEntry.saveEntry}</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={[styles.cancelButton, { borderColor: colors.line, borderRadius: isVintage ? 4 : 12 }]} onPress={() => {
+                  setAnalysisResult(null);
+                  setImageUri(null);
+                }}>
+                  <Text style={[styles.cancelButtonText, { color: colors.subText, fontFamily: isVintage ? 'Courier' : undefined }]}>{t.common.cancel}</Text>
+                </TouchableOpacity>
+              </>
             )}
           </View>
         </View>
       )}
-      
+
       <PaywallModal visible={showPaywall} onClose={() => setShowPaywall(false)} />
     </ScrollView>
   );
@@ -454,178 +461,234 @@ export const AddEntry = () => {
 
 const styles = StyleSheet.create({
   container: {
-    padding: 20,
+    padding: 24,
     paddingBottom: 100,
     flexGrow: 1,
   },
   header: {
-    marginBottom: 20,
-    marginTop: 40,
+    marginBottom: 32,
+    marginTop: 20,
   },
   title: {
-    fontSize: 28,
-    fontWeight: 'bold',
+    fontSize: 32,
+    fontWeight: '800',
     marginBottom: 8,
+    letterSpacing: -0.5,
   },
   subtitle: {
     fontSize: 16,
+    fontWeight: '500',
   },
   actionContainer: {
     alignItems: 'center',
-    marginBottom: 24,
-    gap: 12,
+    marginBottom: 32,
+    paddingVertical: 40,
+    backgroundColor: '#fff',
+    borderRadius: 24,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.05,
+    shadowRadius: 16,
+    elevation: 3,
   },
   captureButton: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
+    width: 88,
+    height: 88,
+    borderRadius: 44,
     justifyContent: 'center',
     alignItems: 'center',
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 4,
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.15,
+    shadowRadius: 8,
     elevation: 5,
+    marginBottom: 16,
   },
   vintageButton: {
-      shadowColor: '#2C241B',
-      shadowOffset: { width: 4, height: 4 },
-      shadowOpacity: 1,
-      shadowRadius: 0,
+    shadowColor: '#2d2a26',
+    shadowOffset: { width: 4, height: 4 },
+    shadowOpacity: 1,
+    shadowRadius: 0,
+    borderRadius: 0, // Square vintage button
   },
   captureText: {
-    marginTop: 4,
-    fontSize: 14,
-    fontWeight: 'bold',
+    fontSize: 16,
+    fontWeight: '700',
   },
   secondaryActions: {
     alignItems: 'center',
-    gap: 8,
-    marginTop: 10
+    gap: 12,
+    marginTop: 24
   },
   secondaryButton: {
-    padding: 10,
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderRadius: 20,
+    backgroundColor: '#F3F4F6',
   },
   secondaryButtonText: {
-    fontSize: 16,
-    fontWeight: '500',
+    fontSize: 14,
+    fontWeight: '600',
   },
   manualButtonContent: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
+    gap: 6,
   },
   orText: {
     fontSize: 12,
+    marginVertical: 4,
+    opacity: 0.5,
   },
   proHintContainer: {
-      marginTop: 8,
-      padding: 8,
-      borderRadius: 8,  },
+    marginTop: 24,
+    padding: 12,
+    borderRadius: 12,
+    width: '90%',
+  },
   proHintText: {
-      fontSize: 12,
-      fontWeight: '600',
-      textAlign: 'center'
+    fontSize: 13,
+    fontWeight: '600',
+    textAlign: 'center'
   },
   loadingContainer: {
     alignItems: 'center',
-    padding: 20,
+    padding: 40,
+    backgroundColor: '#fff',
+    borderRadius: 24,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.05,
+    shadowRadius: 16,
+    elevation: 3,
   },
   status: {
     textAlign: 'center',
-    marginTop: 10,
-    fontSize: 18,
-    fontWeight: '600',
+    marginTop: 16,
+    fontSize: 20,
+    fontWeight: '700',
   },
   subStatus: {
     textAlign: 'center',
-    marginTop: 4,
+    marginTop: 8,
+    fontSize: 15,
+    opacity: 0.7,
   },
   previewContainer: {
     alignItems: 'center',
-    marginBottom: 20,
+    marginBottom: 24,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.1,
+    shadowRadius: 12,
+    elevation: 4,
   },
   previewImage: {
     width: '100%',
-    height: 250,
-    borderRadius: 16,
+    height: 280,
+    borderRadius: 20,
     resizeMode: 'cover',
   },
   resultContainer: {
-    padding: 20,
-    borderRadius: 16,
+    padding: 24,
+    borderRadius: 24,
     borderWidth: 1,
     marginBottom: 40,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.03,
+    shadowRadius: 8,
+    elevation: 2,
   },
   resultHeader: {
-    fontSize: 20,
-    fontWeight: 'bold',    marginBottom: 16,
+    fontSize: 22,
+    fontWeight: '800',
+    marginBottom: 20,
+    letterSpacing: -0.5,
   },
   inputGroup: {
-    marginBottom: 12,
+    marginBottom: 16,
   },
   label: {
-    fontSize: 14,
-    fontWeight: '600',
-    marginBottom: 4,
+    fontSize: 13,
+    fontWeight: '700',
+    marginBottom: 8,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+    opacity: 0.8,
   },
   input: {
     borderWidth: 1,
-    padding: 10,
+    paddingVertical: 14,
+    paddingHorizontal: 16,
     fontSize: 16,
+    fontWeight: '500',
   },
   dietContainer: {
-      marginBottom: 12,
+    marginBottom: 16,
   },
   modeToggle: {
-      flexDirection: 'row',
-      marginBottom: 16,
-      overflow: 'hidden',
+    flexDirection: 'row',
+    marginBottom: 20,
+    overflow: 'hidden',
   },
   modeButton: {
-      flex: 1,
-      padding: 10,
-      alignItems: 'center',
-      justifyContent: 'center',
+    flex: 1,
+    paddingVertical: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   modeText: {
-      fontSize: 12,
-      fontWeight: '600',
+    fontSize: 13,
+    fontWeight: '700',
   },
   macrosRow: {
-      flexDirection: 'row',
-      gap: 12,
+    flexDirection: 'row',
+    gap: 12,
+    marginTop: 8,
   },
   macroInput: {
-      flex: 1,
+    flex: 1,
   },
   infoRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginBottom: 8,
+    alignItems: 'center',
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F3F4F6',
   },
   infoLabel: {
-    fontSize: 14,
+    fontSize: 15,
+    fontWeight: '500',
   },
   infoValue: {
-    fontWeight: '500',
-    fontSize: 14,
+    fontWeight: '700',
+    fontSize: 15,
     textTransform: 'capitalize',
   },
   saveButton: {
-      padding: 16,
-      alignItems: 'center',
+    paddingVertical: 16,
+    alignItems: 'center',
+    marginTop: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 3,
   },
   saveButtonText: {
-      fontWeight: 'bold',
-      fontSize: 16,
+    fontWeight: '800',
+    fontSize: 16,
   },
   cancelButton: {
-      padding: 12,
-      alignItems: 'center',
-      borderWidth: 1,
+    paddingVertical: 14,
+    alignItems: 'center',
+    borderWidth: 1,
   },
   cancelButtonText: {
-      fontSize: 16,
+    fontSize: 16,
+    fontWeight: '600',
   }
 });

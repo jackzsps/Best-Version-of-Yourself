@@ -7,8 +7,8 @@ import {
   ScrollView,
   Alert,
   ActivityIndicator,
+  Linking,
 } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
 import functions from '@react-native-firebase/functions';
 import { useApp } from '../store/AppContext';
 import { Icon } from '../components/Icons';
@@ -17,7 +17,6 @@ import { AuthModal } from '../components/AuthModal';
 import { RecordMode } from '../types';
 
 export const Settings = () => {
-  const navigation = useNavigation();
   const {
     t,
     logout,
@@ -67,7 +66,7 @@ export const Settings = () => {
               setIsDeleting(true);
               const deleteAccountFn = functions().httpsCallable('deleteAccount');
               await deleteAccountFn();
-              
+
               // Logout locally after successful backend deletion
               await logout();
               Alert.alert('Success', 'Your account has been deleted.');
@@ -82,19 +81,19 @@ export const Settings = () => {
       ]
     );
   };
-  
+
   const getSubscriptionStatusText = () => {
-      if (!subscription) return "";
-      
-      if (!isPro) {
-          if (subscription.status === 'pro' || subscription.status === 'trial') return "Expired";
-          return "Free";
-      }
-      
-      if (subscription.status === 'trial') return "Pro (Trial)";
-      if (subscription.status === 'pro') return "Pro Active";
-      
-      return "";
+    if (!subscription) return "";
+
+    if (!isPro) {
+      if (subscription.status === 'pro' || subscription.status === 'trial') return "Expired";
+      return "Free";
+    }
+
+    if (subscription.status === 'trial') return "Pro (Trial)";
+    if (subscription.status === 'pro') return "Pro Active";
+
+    return "";
   };
 
   const SettingItem = ({
@@ -171,11 +170,11 @@ export const Settings = () => {
             <Text style={isVintage ? styles.vintageLabel : styles.label}>
               {t.settings.signIn}
             </Text>
-             <View style={styles.rightContainer}>
-                <Text style={isVintage ? styles.vintageValue : styles.value}>
-                   Guest
-                </Text>
-             </View>
+            <View style={styles.rightContainer}>
+              <Text style={isVintage ? styles.vintageValue : styles.value}>
+                Guest
+              </Text>
+            </View>
           </TouchableOpacity>
         )}
       </View>
@@ -210,12 +209,12 @@ export const Settings = () => {
         />
         {/* Subscription Test Button */}
         {user && (
-            <SettingItem
+          <SettingItem
             label={isPro ? "Manage Subscription" : "Upgrade to Pro (Test)"}
             value={getSubscriptionStatusText()}
             onPress={() => setShowPaywall(true)}
             isLast
-            />
+          />
         )}
       </View>
       <Text style={isVintage ? styles.vintageHint : styles.hint}>
@@ -227,7 +226,10 @@ export const Settings = () => {
       <View style={isVintage ? styles.vintageSection : styles.section}>
         <SettingItem
           label={t.settings.privacyPolicy}
-          onPress={() => navigation.navigate('PrivacyPolicy' as never)}
+          onPress={() => {
+            // Replaced stack navigation with an external link temporarily
+            Linking.openURL('https://gemini.google.com/privacy'); // Default to placeholder
+          }}
           isLast
         />
       </View>
@@ -235,28 +237,28 @@ export const Settings = () => {
       {/* Logout & Delete Account */}
       {user && (
         <>
-            <TouchableOpacity
-                style={isVintage ? styles.vintageLogoutBtn : styles.logoutBtn}
-                onPress={handleLogout}
-            >
-                <Text style={isVintage ? styles.vintageLogoutText : styles.logoutText}>
-                {t.settings.signOut}
-                </Text>
-            </TouchableOpacity>
+          <TouchableOpacity
+            style={isVintage ? styles.vintageLogoutBtn : styles.logoutBtn}
+            onPress={handleLogout}
+          >
+            <Text style={isVintage ? styles.vintageLogoutText : styles.logoutText}>
+              {t.settings.signOut}
+            </Text>
+          </TouchableOpacity>
 
-            <TouchableOpacity
-                style={isVintage ? styles.vintageDeleteBtn : styles.deleteBtn}
-                onPress={handleDeleteAccount}
-                disabled={isDeleting}
-            >
-                {isDeleting ? (
-                    <ActivityIndicator color="#FF3B30" />
-                ) : (
-                    <Text style={isVintage ? styles.vintageDeleteText : styles.deleteText}>
-                        {t.settings.deleteAccount}
-                    </Text>
-                )}
-            </TouchableOpacity>
+          <TouchableOpacity
+            style={isVintage ? styles.vintageDeleteBtn : styles.deleteBtn}
+            onPress={handleDeleteAccount}
+            disabled={isDeleting}
+          >
+            {isDeleting ? (
+              <ActivityIndicator color="#FF3B30" />
+            ) : (
+              <Text style={isVintage ? styles.vintageDeleteText : styles.deleteText}>
+                {t.settings.deleteAccount}
+              </Text>
+            )}
+          </TouchableOpacity>
         </>
       )}
 
@@ -271,32 +273,37 @@ export const Settings = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F2F2F7', // iOS grouped background color
+    backgroundColor: '#F9FAFB', // softer background matching Dashboard
   },
   vintageContainer: {
     flex: 1,
-    backgroundColor: '#fdfbf7',
+    backgroundColor: '#F5F0E6', // warmer vintage paper matching Dashboard
   },
   header: {
-    padding: 20,
+    paddingHorizontal: 20,
     paddingTop: 60,
+    paddingBottom: 20,
   },
   title: {
-    fontSize: 34,
-    fontWeight: 'bold',
-    color: '#000',
+    fontSize: 36,
+    fontWeight: '800',
+    color: '#111827',
+    letterSpacing: -0.5,
   },
   vintageTitle: {
-    fontSize: 34,
-    fontWeight: 'bold',
+    fontSize: 36,
+    fontWeight: '800',
     color: '#2d2a26',
     fontFamily: 'Courier',
+    letterSpacing: -0.5,
   },
   sectionHeader: {
     fontSize: 13,
     color: '#6B7280',
     textTransform: 'uppercase',
+    letterSpacing: 0.5,
     marginBottom: 8,
+    fontWeight: '700',
   },
   vintageSectionHeader: {
     fontSize: 13,
@@ -304,35 +311,45 @@ const styles = StyleSheet.create({
     textTransform: 'uppercase',
     marginBottom: 8,
     fontFamily: 'Courier',
-    fontWeight: 'bold',
+    fontWeight: '800',
   },
   section: {
     backgroundColor: '#fff',
-    borderRadius: 10,
+    borderRadius: 20,
     marginHorizontal: 16,
     overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.03,
+    shadowRadius: 8,
+    elevation: 2,
   },
   vintageSection: {
-    backgroundColor: 'transparent',
+    backgroundColor: '#fdfbf7',
     marginHorizontal: 16,
-    borderTopWidth: 2,
-    borderBottomWidth: 2,
+    borderWidth: 1,
     borderColor: '#d1d5db',
+    borderRadius: 4,
+    shadowColor: '#000',
+    shadowOffset: { width: 4, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 0,
+    elevation: 2,
   },
   item: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    padding: 16,
+    padding: 18,
     backgroundColor: '#fff',
-    borderBottomWidth: 0.5,
-    borderBottomColor: '#C6C6C8',
+    borderBottomWidth: 1,
+    borderBottomColor: '#F3F4F6',
   },
   vintageItem: {
     backgroundColor: '#fdfbf7',
     borderBottomColor: '#d1d5db',
     borderBottomWidth: 1,
-    borderStyle: 'dashed',
+    borderStyle: 'solid',
   },
   lastItem: {
     borderBottomWidth: 0,
@@ -341,25 +358,27 @@ const styles = StyleSheet.create({
     borderBottomWidth: 0,
   },
   label: {
-    fontSize: 17,
-    color: '#000',
+    fontSize: 16,
+    color: '#111827',
+    fontWeight: '500',
   },
   vintageLabel: {
-    fontSize: 17,
+    fontSize: 16,
     color: '#2d2a26',
     fontFamily: 'Courier',
+    fontWeight: '600',
   },
   rightContainer: {
     flexDirection: 'row',
     alignItems: 'center',
   },
   value: {
-    fontSize: 17,
-    color: '#8E8E93',
+    fontSize: 16,
+    color: '#6B7280',
     marginRight: 8,
   },
   vintageValue: {
-    fontSize: 17,
+    fontSize: 16,
     color: '#92400e',
     marginRight: 8,
     fontFamily: 'Courier',
@@ -368,40 +387,41 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: '#6B7280',
     marginHorizontal: 32,
-    marginTop: 8,
+    marginTop: 12,
+    lineHeight: 18,
   },
   vintageHint: {
     fontSize: 13,
     color: '#92400e',
     marginHorizontal: 32,
-    marginTop: 8,
+    marginTop: 12,
     fontStyle: 'italic',
   },
   logoutBtn: {
     marginTop: 40,
     marginHorizontal: 16,
-    backgroundColor: '#fff',
-    padding: 16,
-    borderRadius: 10,
+    backgroundColor: '#FEF2F2',
+    padding: 18,
+    borderRadius: 20,
     alignItems: 'center',
   },
   vintageLogoutBtn: {
     marginTop: 40,
     marginHorizontal: 16,
-    backgroundColor: '#fef2f2',
+    backgroundColor: 'transparent',
     borderWidth: 2,
     borderColor: '#ef4444',
-    padding: 14,
+    padding: 16,
     alignItems: 'center',
-    borderStyle: 'dashed',
+    borderStyle: 'solid',
   },
   logoutText: {
-    fontSize: 17,
-    color: '#FF3B30',
-    fontWeight: '600',
+    fontSize: 16,
+    color: '#EF4444',
+    fontWeight: '700',
   },
   vintageLogoutText: {
-    fontSize: 17,
+    fontSize: 16,
     color: '#b91c1c',
     fontWeight: 'bold',
     fontFamily: 'Courier',
@@ -411,7 +431,7 @@ const styles = StyleSheet.create({
     marginHorizontal: 16,
     backgroundColor: 'transparent',
     padding: 16,
-    borderRadius: 10,
+    borderRadius: 20,
     alignItems: 'center',
   },
   vintageDeleteBtn: {
@@ -422,21 +442,24 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   deleteText: {
-    fontSize: 15,
-    color: '#FF3B30',
-    fontWeight: '400',
+    fontSize: 14,
+    color: '#EF4444',
+    fontWeight: '600',
+    opacity: 0.8,
   },
   vintageDeleteText: {
     fontSize: 15,
     color: '#b91c1c',
-    fontWeight: '400',
+    fontWeight: '600',
     fontFamily: 'Courier',
     textDecorationLine: 'underline',
   },
   versionText: {
     textAlign: 'center',
-    marginTop: 24,
-    color: '#C7C7CC',
+    marginTop: 32,
+    color: '#9CA3AF',
     fontSize: 13,
+    fontWeight: '500',
+    letterSpacing: 0.5,
   },
 });

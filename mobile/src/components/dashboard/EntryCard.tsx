@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, StyleSheet, Image } from 'react-native';
+import { View, Text, StyleSheet, Image, TouchableOpacity } from 'react-native';
 import { Entry, UsageCategory, Theme } from '../../types';
 import { useApp } from '../../store/AppContext';
 
@@ -46,18 +46,27 @@ const getUsageStyles = (usage: UsageCategory, theme: Theme) => {
   }
 };
 
-export const EntryCard = ({ entry }: { entry: Entry }) => {
+interface EntryCardProps {
+  entry: Entry;
+  onPress?: (entry: Entry) => void;
+}
+
+export const EntryCard = ({ entry, onPress }: EntryCardProps) => {
   const { theme, t } = useApp();
   const isVintage = theme === 'vintage';
   const usageStyle = getUsageStyles(entry.usage, theme);
 
   return (
-    <View style={isVintage ? styles.vintageContainer : styles.container}>
+    <TouchableOpacity
+      activeOpacity={0.7}
+      onPress={() => onPress && onPress(entry)}
+      style={isVintage ? styles.vintageContainer : styles.container}
+    >
       {/* Image Section */}
       <View
         style={[
-          styles.imageContainer,
-          isVintage && styles.vintageImageContainer,
+          styles.avatarContainer,
+          isVintage && styles.vintageAvatarContainer,
         ]}
       >
         {entry.imageUrl ? (
@@ -123,61 +132,60 @@ export const EntryCard = ({ entry }: { entry: Entry }) => {
           </Text>
         )}
       </View>
-    </View>
+    </TouchableOpacity>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
     flexDirection: 'row',
-    padding: 18,
+    padding: 16, // Web p-4
     backgroundColor: '#ffffff',
-    borderRadius: 20, // Premium rounded look
+    borderRadius: 12, // Web rounded-xl
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.06,
-    shadowRadius: 12,
-    elevation: 4,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 6,
+    elevation: 2,
     alignItems: 'center',
+    marginBottom: 12,
   },
   vintageContainer: {
     flexDirection: 'row',
     padding: 16,
-    backgroundColor: '#fdfbf7',
-    borderWidth: 1,
-    borderColor: '#d1d5db', // vintage-line
-    borderRadius: 4,
-    shadowColor: '#000',
-    shadowOffset: { width: 4, height: 4 },
-    shadowOpacity: 0.15,
-    shadowRadius: 0,
-    elevation: 2,
+    backgroundColor: '#f9f5eb', // Web bg-vintage-card
+    borderBottomWidth: 1, // Web border-b
+    borderBottomColor: '#d4c5b0', // Web border-vintage-line
+    borderRadius: 12,
     alignItems: 'center',
+    marginBottom: 12,
+    // Note: Web vintage list items don't have heavy shadows, just a clean border-b look
   },
-  imageContainer: {
-    width: 48,
-    height: 48,
-    borderRadius: 24, // Circle
-    backgroundColor: '#F3F4F6',
+  avatarContainer: {
+    width: 48, // Web w-12
+    height: 48, // Web h-12
+    borderRadius: 24, // Web rounded-full
+    marginRight: 16, // Web mr-4
+    overflow: 'hidden',
     justifyContent: 'center',
     alignItems: 'center',
-    overflow: 'hidden',
-    marginRight: 16,
+    backgroundColor: '#F3F4F6', // Web bg-gray-100
   },
-  vintageImageContainer: {
-    borderRadius: 0, // Square for vintage? Or keep circle with border
+  vintageAvatarContainer: {
     backgroundColor: 'transparent',
     borderWidth: 1,
-    borderColor: '#2d2a26', // vintage-ink
+    borderColor: '#2c241b', // Web border-vintage-ink
+    borderStyle: 'solid',
   },
   image: {
     width: '100%',
     height: '100%',
+    resizeMode: 'cover',
   },
   placeholderText: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#9CA3AF',
+    fontSize: 20, // Web text-xl
+    fontWeight: '700', // Web font-bold
+    color: '#6B7280', // Web text-gray-500
   },
   contentContainer: {
     flex: 1,
@@ -222,29 +230,31 @@ const styles = StyleSheet.create({
     fontStyle: 'italic',
   },
   rightContainer: {
-    justifyContent: 'center',
     alignItems: 'flex-end',
+    justifyContent: 'center',
   },
   cost: {
     fontSize: 16,
-    fontWeight: '700',
-    color: '#111827',
+    fontWeight: '700', // Web font-bold
+    color: '#111827', // Web text-gray-900
   },
   vintageCost: {
     fontSize: 16,
-    fontWeight: '700',
-    color: '#2d2a26',
+    color: '#2c241b', // Web text-vintage-ink
     fontFamily: 'Courier',
+    fontWeight: 'bold',
   },
   calories: {
-    fontSize: 12,
-    fontWeight: '500',
-    color: '#6B7280',
+    fontSize: 12, // Web text-xs
+    fontWeight: '500', // Web font-medium
+    color: '#6B7280', // Web text-gray-500
     marginTop: 2,
   },
   vintageCalories: {
-    fontSize: 12,
-    color: '#92400e', // leather
+    fontSize: 12, // Web text-xs
+    fontWeight: '500', // Web font-medium
+    color: '#8b4513', // Web text-vintage-leather
+    fontFamily: 'Courier',
     marginTop: 2,
   },
 });

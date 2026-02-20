@@ -20,6 +20,7 @@ export const TRANSLATIONS = {
       home: 'Home',
       settings: 'Settings',
       add: 'Add',
+      stats: 'Stats',
     },
     dashboard: {
       title: 'Good Morning',
@@ -206,6 +207,7 @@ export const TRANSLATIONS = {
       home: '首頁',
       settings: '設定',
       add: '新增',
+      stats: '洞察',
     },
     dashboard: {
       title: '早安',

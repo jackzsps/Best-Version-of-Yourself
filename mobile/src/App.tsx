@@ -9,6 +9,7 @@ import { AppProvider, useApp } from './store/AppContext';
 import { ToastProvider } from './store/ToastContext';
 import { Dashboard } from './pages/Dashboard';
 import { AddEntry } from './pages/AddEntry';
+import { Stats } from './pages/Stats';
 import { Settings } from './pages/Settings';
 import { PrivacyPolicy } from './pages/PrivacyPolicy';
 import ErrorBoundary from './components/ErrorBoundary';
@@ -28,12 +29,14 @@ const CustomTabSystem = () => {
   const iconMapping: Record<keyof TabParamList, IconName> = {
     Home: 'home',
     Add: 'plusCircle',
+    Stats: 'barChart',
     Settings: 'settings',
   };
 
-  const tabs: { key: keyof TabParamList; label: string; component: React.FC }[] = [
+  const tabs: { key: keyof TabParamList; label: string; component: React.FC<any> }[] = [
     { key: 'Home', label: t.nav.home, component: Dashboard },
     { key: 'Add', label: t.nav.add, component: AddEntry },
+    { key: 'Stats', label: t.nav?.stats || 'Stats', component: Stats },
     { key: 'Settings', label: t.nav.settings, component: Settings },
   ];
 
@@ -42,7 +45,7 @@ const CustomTabSystem = () => {
   return (
     <View style={{ flex: 1, backgroundColor: 'white' }}>
       <View style={{ flex: 1 }}>
-        <ActiveComponent />
+        <ActiveComponent setActiveTab={setActiveTab} />
       </View>
       <View style={{ flexDirection: 'row', backgroundColor: 'white', paddingBottom: insets.bottom, borderTopWidth: 1, borderTopColor: '#eee' }}>
         {tabs.map((tab) => {
