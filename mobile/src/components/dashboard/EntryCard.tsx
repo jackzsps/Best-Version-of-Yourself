@@ -84,11 +84,11 @@ export const EntryCard = ({ entry }: { entry: Entry }) => {
               styles.badge,
               isVintage
                 ? {
-                    borderWidth: 1,
-                    borderColor: usageStyle.borderColor,
-                    backgroundColor: 'transparent',
-                    paddingVertical: 0,
-                  }
+                  borderWidth: 1,
+                  borderColor: usageStyle.borderColor,
+                  backgroundColor: 'transparent',
+                  paddingVertical: 0,
+                }
                 : { backgroundColor: usageStyle.backgroundColor },
             ]}
           >
@@ -130,22 +130,28 @@ export const EntryCard = ({ entry }: { entry: Entry }) => {
 const styles = StyleSheet.create({
   container: {
     flexDirection: 'row',
-    padding: 16,
-    backgroundColor: 'white',
-    borderRadius: 16, // More rounded for modern look
+    padding: 18,
+    backgroundColor: '#ffffff',
+    borderRadius: 20, // Premium rounded look
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 3,
-    elevation: 2,
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.06,
+    shadowRadius: 12,
+    elevation: 4,
     alignItems: 'center',
   },
   vintageContainer: {
     flexDirection: 'row',
     padding: 16,
     backgroundColor: '#fdfbf7',
-    borderBottomWidth: 1,
-    borderBottomColor: '#d1d5db', // vintage-line
+    borderWidth: 1,
+    borderColor: '#d1d5db', // vintage-line
+    borderRadius: 4,
+    shadowColor: '#000',
+    shadowOffset: { width: 4, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 0,
+    elevation: 2,
     alignItems: 'center',
   },
   imageContainer: {

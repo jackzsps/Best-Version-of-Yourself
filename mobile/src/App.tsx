@@ -4,6 +4,7 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { NavigationContainer, DefaultTheme } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
 import { SafeAreaProvider, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { enableScreens } from 'react-native-screens';
 import { AppProvider, useApp } from './store/AppContext';
 import { ToastProvider } from './store/ToastContext';
 import { Dashboard } from './pages/Dashboard';
@@ -11,6 +12,9 @@ import { AddEntry } from './pages/AddEntry';
 import { Settings } from './pages/Settings';
 import { PrivacyPolicy } from './pages/PrivacyPolicy';
 import ErrorBoundary from './components/ErrorBoundary';
+
+// 🛑 FORCE DISABLE SCREENS TO VERIFY IF REACT-NATIVE-SCREENS IS THE CULPRIT
+enableScreens(false);
 import { Icon, IconName } from './components/Icons';
 import { RootStackParamList, TabParamList } from './types';
 
@@ -61,11 +65,6 @@ const CustomTabSystem = () => {
   );
 };
 
-import { enableScreens } from 'react-native-screens';
-
-// 啟用 react-native-screens 原生優化 (New Architecture 建議顯式呼叫)
-// enableScreens(true);
-
 console.log('🚀 [App.tsx] Module Loaded');
 
 const App = () => {
@@ -75,22 +74,13 @@ const App = () => {
     insets: { top: 50, left: 0, right: 0, bottom: 30 },
   };
 
-  // Ensure the default theme has a background color so it's not transparent/black if layout collapses
-  const navTheme = {
-    ...DefaultTheme,
-    colors: {
-      ...DefaultTheme.colors,
-      background: 'yellow', // Debug yellow
-    },
-  };
-
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <SafeAreaProvider initialMetrics={initialMetrics} style={{ flex: 1 }}>
         <ErrorBoundary>
           <ToastProvider>
             <AppProvider>
-              <View style={{ flex: 1 }}>
+              <View style={{ flex: 1, backgroundColor: 'white' }}>
                 <CustomTabSystem />
               </View>
             </AppProvider>

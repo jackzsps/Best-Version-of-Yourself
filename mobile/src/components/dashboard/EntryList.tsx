@@ -5,16 +5,14 @@ import { EntryCard } from './EntryCard';
 import { useApp } from '../../store/AppContext';
 
 // ✅ React Native Optimized List
-export const EntryList = ({ entries }: { entries: Entry[] }) => {
+export const EntryList = ({ entries, ListHeaderComponent }: { entries: Entry[], ListHeaderComponent?: React.ReactElement }) => {
   const { t } = useApp();
 
-  if (entries.length === 0) {
-    return (
-      <View style={styles.emptyContainer}>
-        <Text style={styles.emptyText}>{t.dashboard.noEntries}</Text>
-      </View>
-    );
-  }
+  const renderEmpty = () => (
+    <View style={styles.emptyContainer}>
+      <Text style={styles.emptyText}>{t.dashboard.noEntries || "No entries yet. Start recording your journey!"}</Text>
+    </View>
+  );
 
   return (
     <FlatList
@@ -23,12 +21,14 @@ export const EntryList = ({ entries }: { entries: Entry[] }) => {
       initialNumToRender={10} // Only render 10 initially for fast startup
       windowSize={5} // Reduce memory usage
       removeClippedSubviews={true} // Unmount components off-screen
-      contentContainerStyle={styles.listContainer}
+      contentContainerStyle={[styles.listContainer, entries.length === 0 && { flexGrow: 1 }]}
+      ListHeaderComponent={ListHeaderComponent}
+      ListEmptyComponent={renderEmpty}
       renderItem={({ item }) => (
         <EntryCard
           entry={item}
-          // If you added isSyncing to your Entry type:
-          // status={item.isSyncing ? t.syncing : undefined}
+        // If you added isSyncing to your Entry type:
+        // status={item.isSyncing ? t.syncing : undefined}
         />
       )}
       // Optional: Add ItemSeparatorComponent for consistent spacing
