@@ -121,3 +121,9 @@ dist
 # Firebase
 .firebase/
 firebase-debug.log
+
+# Hide Firebase secret
+mobile/ios/**/*.plist
+!mobile/ios/**/Info.plist
+!mobile/ios/**/Entitlements.plist
+**/GoogleService-Info.plist

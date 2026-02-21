@@ -433,7 +433,7 @@
       "platforms": {
         "ios": {
           "podspecPath": "/Users/kuo/Documents/Best-Version-of-Yourself/mobile/node_modules/react-native-svg/RNSVG.podspec",
-          "version": "15.15.2",
+          "version": "15.15.3",
           "configurations": [],
           "scriptPhases": []
         },
