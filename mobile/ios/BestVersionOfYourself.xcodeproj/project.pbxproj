@@ -183,6 +183,7 @@
 				00EEFC60759A1932668264C0 /* [CP] Embed Pods Frameworks */,
 				E235C05ADACE081382539298 /* [CP] Copy Pods Resources */,
 				F3E0ED608B7F404E8B6E20AC /* [CP-User] [RNFB] Core Configuration */,
+				ACF432E15F286CA285028547 /* Copy Hermes dSYM */,
 			);
 			buildRules = (
 			);
@@ -288,6 +289,24 @@
 			shellPath = /bin/sh;
 			shellScript = "\"${PODS_ROOT}/Target Support Files/Pods-BestVersionOfYourself/Pods-BestVersionOfYourself-frameworks.sh\"\n";
 			showEnvVarsInLog = 0;
+		};
+		ACF432E15F286CA285028547 /* Copy Hermes dSYM */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+			);
+			name = "Copy Hermes dSYM";
+			outputFileListPaths = (
+			);
+			outputPaths = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "# Generate Hermes dSYM directly into the build products directory\nHERMES_FRAMEWORK=\"${PODS_ROOT}/hermes-engine/destroot/Library/Frameworks/universal/hermesvm.xcframework/ios-arm64/hermesvm.framework/hermesvm\"\nHERMES_DSYM_DEST=\"${DWARF_DSYM_FOLDER_PATH}/hermesvm.framework.dSYM\"\n\necho \"Ensuring Hermes dSYM exists at ${HERMES_DSYM_DEST}...\"\nif [ ! -d \"$HERMES_DSYM_DEST\" ]; then\n    echo \"Generating Hermes dSYM...\"\n    dsymutil \"$HERMES_FRAMEWORK\" -o \"$HERMES_DSYM_DEST\" || true\nelse\n    echo \"Hermes dSYM already exists.\"\nfi\n";
 		};
 		C38B50BA6285516D6DCD4F65 /* [CP] Check Pods Manifest.lock */ = {
 			isa = PBXShellScriptBuildPhase;
@@ -418,7 +437,7 @@
 					"-lc++",
 					"$(inherited)",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = "com.kuo.BestVersionOfYourself";
+				PRODUCT_BUNDLE_IDENTIFIER = com.kuo.BestVersionOfYourself;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/BestVersionOfYourself.app/BestVersionOfYourself";
 			};
@@ -442,7 +461,7 @@
 					"-lc++",
 					"$(inherited)",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = "com.kuo.BestVersionOfYourself";
+				PRODUCT_BUNDLE_IDENTIFIER = com.kuo.BestVersionOfYourself;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/BestVersionOfYourself.app/BestVersionOfYourself";
 			};
@@ -454,7 +473,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CLANG_ENABLE_MODULES = YES;
-				CURRENT_PROJECT_VERSION = 1;
+				CURRENT_PROJECT_VERSION = 6;
 				DEVELOPMENT_TEAM = 7NHKV6VHSP;
 				ENABLE_BITCODE = NO;
 				GCC_PREPROCESSOR_DEFINITIONS = (
@@ -486,7 +505,7 @@
 					"-ObjC",
 					"-lc++",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = "com.kuo.BestVersionOfYourself";
+				PRODUCT_BUNDLE_IDENTIFIER = com.kuo.BestVersionOfYourself;
 				PRODUCT_NAME = BestVersionOfYourself;
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
 				SWIFT_VERSION = 5.0;
@@ -500,7 +519,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CLANG_ENABLE_MODULES = YES;
-				CURRENT_PROJECT_VERSION = 1;
+				CURRENT_PROJECT_VERSION = 6;
 				DEVELOPMENT_TEAM = 7NHKV6VHSP;
 				GCC_PREPROCESSOR_DEFINITIONS = (
 					"$(inherited)",
@@ -531,7 +550,7 @@
 					"-ObjC",
 					"-lc++",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = "com.kuo.BestVersionOfYourself";
+				PRODUCT_BUNDLE_IDENTIFIER = com.kuo.BestVersionOfYourself;
 				PRODUCT_NAME = BestVersionOfYourself;
 				SWIFT_VERSION = 5.0;
 				VERSIONING_SYSTEM = "apple-generic";
