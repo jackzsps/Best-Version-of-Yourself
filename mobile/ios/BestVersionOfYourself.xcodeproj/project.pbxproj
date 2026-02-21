@@ -180,6 +180,7 @@
 				FD10A7F022414F080027D42C /* Start Packager */,
 				13B07F871A680F5B00A75B9A /* Sources */,
 				13B07F8C1A680F5B00A75B9A /* Frameworks */,
+				4DBAC6480EA249B77F44CBD2 /* Setup Firebase Credentials */,
 				13B07F8E1A680F5B00A75B9A /* Resources */,
 				00DD1BFF1BD5951E006B06BC /* Bundle React Native code and images */,
 				00EEFC60759A1932668264C0 /* [CP] Embed Pods Frameworks */,
@@ -287,6 +288,24 @@
 			shellPath = /bin/sh;
 			shellScript = "\"${PODS_ROOT}/Target Support Files/Pods-BestVersionOfYourself/Pods-BestVersionOfYourself-frameworks.sh\"\n";
 			showEnvVarsInLog = 0;
+		};
+		4DBAC6480EA249B77F44CBD2 /* Setup Firebase Credentials */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+			);
+			name = "Setup Firebase Credentials";
+			outputFileListPaths = (
+			);
+			outputPaths = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "bash \"${SRCROOT}/../../scripts/setup-ios-firebase.sh\"\n";
 		};
 		ACF432E15F286CA285028547 /* Copy Hermes dSYM */ = {
 			isa = PBXShellScriptBuildPhase;
