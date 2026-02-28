@@ -1,0 +1,23 @@
+SyntaxError: /Users/kuo/Documents/Best-Version-of-Yourself/e2e_tests/mobile_add_entry.spec.js: Identifier 'uiResult' has already been declared. (108:16)
+
+  106 |             // 8. Verify the entry was submitted
+  107 |             console.log("Verifying successful submission...");
+> 108 |             let uiResult = await mcp.client.callTool({
+      |                 ^
+  109 |                 name: "mobile_list_elements_on_screen",
+  110 |                 arguments: { device: iosDevice.id }
+  111 |             });
+
+   at mobile_add_entry.spec.js:108
+
+  106 |             // 8. Verify the entry was submitted
+  107 |             console.log("Verifying successful submission...");
+> 108 |             let uiResult = await mcp.client.callTool({
+      |                ^
+  109 |                 name: "mobile_list_elements_on_screen",
+  110 |                 arguments: { device: iosDevice.id }
+  111 |             });
+Error: No tests found.
+Make sure that arguments are regular expressions matching test files.
+You may need to escape symbols like "$" or "*" and quote the arguments.
+

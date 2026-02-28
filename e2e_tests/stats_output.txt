@@ -1,0 +1,50 @@
+
+Running 1 test using 1 worker
+Starting Mobile MCP Client...
+[Mobile MCP Client] Starting npx @mobilenext/mobile-mcp@latest...
+mobile-mcp server running on stdio
+[Mobile MCP Client] Connected successfully.
+Discovering Booted iOS Simulator...
+Invoking mobile_list_available_devices with args: {"noParams":{}}
+Could not execute adb command, maybe ANDROID_HOME is not set?
+go-ios is not installed, no physical iOS devices can be detected
+=> {"devices":[{"id":"13E269BF-60FB-4B1F-B9FE-7A1CDA4318F7","name":"iPhone 17 Pro","platform":"ios","type":"simulator","version":"26.2","state":"online"}]}
+Connected to iPhone 17 Pro
+Launching BestVersionOfYourself App...
+Extracting Initial UI Tree...
+Invoking mobile_list_elements_on_screen with args: {"device":"13E269BF-60FB-4B1F-B9FE-7A1CDA4318F7"}
+go-ios is not installed, no physical iOS devices can be detected
+Could not execute adb command, maybe ANDROID_HOME is not set?
+=> Found these elements on screen: [{"type":"Icon","label":"Fitness","name":"Fitness","identifier":"Fitness","coordinates":{"x":28,"y":88,"width":69,"height":91}},{"type":"Icon","label":"Watch","name":"Watch","identifier":"Watch","coordinates":{"x":120,"y":88,"width":69,"height":91}},{"type":"Icon","label":"Contacts","name":"Contacts","identifier":"Contacts","coordinates":{"x":211,"y":88,"width":73,"height":91}},{"type":"Icon","label":"Files","name":"Files","identifier":"Files","coordinates":{"x":306,"y":88,"width":68,"height":91}},{"type":"Icon","label":"Preview","name":"Preview","identifier":"Preview","coordinates":{"x":28,"y":188,"width":69,"height":92}},{"type":"Icon","label":"Utilities folder","name":"Utilities","value":"2 apps","identifier":"Utilities","coordinates":{"x":120,"y":188,"width":69,"height":92}},{"type":"Icon","label":"Mobile Next Kit","name":"Mobile Next Kit","identifier":"Mobile Next Kit","coordinates":{"x":195,"y":188,"width":106,"height":95}},{"type":"Image","label":"Search","name":"magnifyingglass","identifier":"magnifyingglass","coordinates":{"x":173,"y":713,"width":12,"height":11}},{"type":"StaticText","label":"Search","name":"Search","value":"Search","coordinates":{"x":188,"y":711,"width":41,"height":15}},{"type":"Icon","label":"Safari","name":"Safari","identifier":"Safari","coordinates":{"x":123,"y":771,"width":68,"height":69}},{"type":"Icon","label":"Messages","name":"Messages","identifier":"Messages","coordinates":{"x":211,"y":771,"width":68,"height":69}},{"type":"StaticText","label":"9:50 AM","name":"9:50 AM","value":"9:50 AM","coordinates":{"x":55,"y":22,"width":38,"height":21}}]
+Navigating to Stats Tab...
+Invoking mobile_click_on_screen_at_coordinates with args: {"device":"13E269BF-60FB-4B1F-B9FE-7A1CDA4318F7","x":280,"y":800}
+go-ios is not installed, no physical iOS devices can be detected
+Could not execute adb command, maybe ANDROID_HOME is not set?
+=> Clicked on screen at coordinates: 280, 800
+Extracting Stats UI Tree...
+Invoking mobile_list_elements_on_screen with args: {"device":"13E269BF-60FB-4B1F-B9FE-7A1CDA4318F7"}
+go-ios is not installed, no physical iOS devices can be detected
+Could not execute adb command, maybe ANDROID_HOME is not set?
+=> Found these elements on screen: [{"type":"Icon","label":"Fitness","name":"Fitness","identifier":"Fitness","coordinates":{"x":28,"y":88,"width":69,"height":91}},{"type":"Icon","label":"Watch","name":"Watch","identifier":"Watch","coordinates":{"x":120,"y":88,"width":69,"height":91}},{"type":"Icon","label":"Contacts","name":"Contacts","identifier":"Contacts","coordinates":{"x":211,"y":88,"width":73,"height":91}},{"type":"Icon","label":"Files","name":"Files","identifier":"Files","coordinates":{"x":306,"y":88,"width":68,"height":91}},{"type":"Icon","label":"Preview","name":"Preview","identifier":"Preview","coordinates":{"x":28,"y":188,"width":69,"height":92}},{"type":"Icon","label":"Utilities folder","name":"Utilities","value":"2 apps","identifier":"Utilities","coordinates":{"x":120,"y":188,"width":69,"height":92}},{"type":"Icon","label":"Mobile Next Kit","name":"Mobile Next Kit","identifier":"Mobile Next Kit","coordinates":{"x":195,"y":188,"width":106,"height":95}},{"type":"Image","label":"Search","name":"magnifyingglass","identifier":"magnifyingglass","coordinates":{"x":173,"y":713,"width":12,"height":11}},{"type":"StaticText","label":"Search","name":"Search","value":"Search","coordinates":{"x":188,"y":711,"width":41,"height":15}},{"type":"Icon","label":"Safari","name":"Safari","identifier":"Safari","coordinates":{"x":123,"y":771,"width":68,"height":69}},{"type":"Icon","label":"Messages","name":"Messages","identifier":"Messages","coordinates":{"x":211,"y":771,"width":68,"height":69}},{"type":"StaticText","label":"9:50 AM","name":"9:50 AM","value":"9:50 AM","coordinates":{"x":55,"y":22,"width":38,"height":21}}]
+Verifying Chart Properties...
+[Mobile MCP Client] Disconnected.
+F
+
+  1) mobile_stats_chart.spec.js:6:5 › Mobile Stats Chart E2E › iOS Simulator can render Stats charts natively 
+
+    Error: [2mexpect([22m[31mreceived[39m[2m).[22mtoContain[2m([22m[32mexpected[39m[2m) // indexOf[22m
+
+    Expected substring: [32m"Spent"[39m
+    Received string:    [31m"Found these elements on screen: [{\"type\":\"Icon\",\"label\":\"Fitness\",\"name\":\"Fitness\",\"identifier\":\"Fitness\",\"coordinates\":{\"x\":28,\"y\":88,\"width\":69,\"height\":91}},{\"type\":\"Icon\",\"label\":\"Watch\",\"name\":\"Watch\",\"identifier\":\"Watch\",\"coordinates\":{\"x\":120,\"y\":88,\"width\":69,\"height\":91}},{\"type\":\"Icon\",\"label\":\"Contacts\",\"name\":\"Contacts\",\"identifier\":\"Contacts\",\"coordinates\":{\"x\":211,\"y\":88,\"width\":73,\"height\":91}},{\"type\":\"Icon\",\"label\":\"Files\",\"name\":\"Files\",\"identifier\":\"Files\",\"coordinates\":{\"x\":306,\"y\":88,\"width\":68,\"height\":91}},{\"type\":\"Icon\",\"label\":\"Preview\",\"name\":\"Preview\",\"identifier\":\"Preview\",\"coordinates\":{\"x\":28,\"y\":188,\"width\":69,\"height\":92}},{\"type\":\"Icon\",\"label\":\"Utilities folder\",\"name\":\"Utilities\",\"value\":\"2 apps\",\"identifier\":\"Utilities\",\"coordinates\":{\"x\":120,\"y\":188,\"width\":69,\"height\":92}},{\"type\":\"Icon\",\"label\":\"Mobile Next Kit\",\"name\":\"Mobile Next Kit\",\"identifier\":\"Mobile Next Kit\",\"coordinates\":{\"x\":195,\"y\":188,\"width\":106,\"height\":95}},{\"type\":\"Image\",\"label\":\"Search\",\"name\":\"magnifyingglass\",\"identifier\":\"magnifyingglass\",\"coordinates\":{\"x\":173,\"y\":713,\"width\":12,\"height\":11}},{\"type\":\"StaticText\",\"label\":\"Search\",\"name\":\"Search\",\"value\":\"Search\",\"coordinates\":{\"x\":188,\"y\":711,\"width\":41,\"height\":15}},{\"type\":\"Icon\",\"label\":\"Safari\",\"name\":\"Safari\",\"identifier\":\"Safari\",\"coordinates\":{\"x\":123,\"y\":771,\"width\":68,\"height\":69}},{\"type\":\"Icon\",\"label\":\"Messages\",\"name\":\"Messages\",\"identifier\":\"Messages\",\"coordinates\":{\"x\":211,\"y\":771,\"width\":68,\"height\":69}},{\"type\":\"StaticText\",\"label\":\"9:50 AM\",\"name\":\"9:50 AM\",\"value\":\"9:50 AM\",\"coordinates\":{\"x\":55,\"y\":22,\"width\":38,\"height\":21}}]"[39m
+
+       98 |
+       99 |             // 5. Assertions based on Stats.tsx text structure
+    > 100 |             expect(uiContent).toContain("Spent"); // "Spent" text
+          |                               ^
+      101 |             expect(uiContent).toContain("Calories"); // "Calories" text
+      102 |             expect(uiContent).toContain("$"); // Currency symbol from chart
+      103 |
+        at /Users/kuo/Documents/Best-Version-of-Yourself/e2e_tests/mobile_stats_chart.spec.js:100:31
+
+  1 failed
+    mobile_stats_chart.spec.js:6:5 › Mobile Stats Chart E2E › iOS Simulator can render Stats charts natively 

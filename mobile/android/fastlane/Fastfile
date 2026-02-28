@@ -1,0 +1,21 @@
+default_platform(:android)
+
+platform :android do
+  desc "Build and deploy to Android Google Play Store (Internal Track)"
+  lane :beta do
+    # Ensure CI/CD has passed the variable $PLAY_STORE_JSON_KEY_FILE
+    
+    gradle(
+      task: "bundle",
+      build_type: "Release"
+    )
+
+    # Automatically upload to internal track (requires JSON key API access)
+    # Uncomment and configure when the JSON key is available
+    # supply(
+    #   track: "internal",
+    #   json_key: ENV["PLAY_STORE_JSON_KEY_FILE"],
+    #   package_name: "com.jack811123.bestversionOfYourself" # TODO: Confirm package name
+    # )
+  end
+end

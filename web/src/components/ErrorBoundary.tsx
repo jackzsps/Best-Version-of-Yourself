@@ -15,19 +15,19 @@ const ErrorFallback: React.FC<FallbackProps> = ({ error, resetErrorBoundary }) =
       <p className="text-gray-700 mb-6 max-w-lg">
         We've encountered an unexpected issue. Please try refreshing the page.
       </p>
-      
+
       {/* Displaying error details can be helpful in development */}
       <details className="w-full max-w-lg bg-gray-100 p-4 rounded-lg mb-6 text-left">
-          <summary className="font-medium text-gray-600 cursor-pointer">Error Details</summary>
-          <pre className="mt-4 text-xs text-gray-500 overflow-auto whitespace-pre-wrap">
-              {error.message}
-              {'\n\n'}
-              {error.stack}
-          </pre>
+        <summary className="font-medium text-gray-600 cursor-pointer">Error Details</summary>
+        <pre className="mt-4 text-xs text-gray-500 overflow-auto whitespace-pre-wrap">
+          {error instanceof Error ? error.message : String(error)}
+          {'\n\n'}
+          {error instanceof Error ? error.stack : ''}
+        </pre>
       </details>
 
-      <Button 
-        onClick={resetErrorBoundary} 
+      <Button
+        onClick={resetErrorBoundary}
         variant="primary"
       >
         Reload Page

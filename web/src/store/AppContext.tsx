@@ -5,22 +5,21 @@ import { TRANSLATIONS } from "@shared/translations";
 import { toast } from './ToastContext';
 
 // Firebase Imports
-import { 
-  signInWithPopup, 
-  signInWithEmailAndPassword, 
-  createUserWithEmailAndPassword, 
-  signOut, 
+import {
+  signInWithPopup,
+  signInWithEmailAndPassword,
+  createUserWithEmailAndPassword,
+  signOut,
   onAuthStateChanged,
   updateProfile,
   User
 } from 'firebase/auth';
 import { auth, googleProvider, appleProvider, db } from '../utils/firebase';
-import { 
-    uploadImageToCloud, 
-    syncEntryToCloud, 
-    deleteEntryFromCloud, 
-    listenToEntries, 
-    fetchAllFromCloud 
+import {
+  uploadImageToCloud,
+  syncEntryToCloud,
+  deleteEntryFromCloud,
+  listenToEntries
 } from '../services/cloudService';
 import { Unsubscribe, doc, onSnapshot, setDoc, Timestamp } from 'firebase/firestore';
 
@@ -69,12 +68,12 @@ export const AppProvider = ({ children }: React.PropsWithChildren<{}>) => {
   const isPro = (() => {
     if (subscription.status !== 'pro' && subscription.status !== 'trial') return false;
     if (!subscription.expiryDate) return false;
-    
+
     // Convert Firestore Timestamp to Date for comparison
     const now = new Date();
     // Handle both Firestore Timestamp (has seconds/nanoseconds) and generic object cases
     const expiry = new Date(subscription.expiryDate.seconds * 1000);
-    
+
     return expiry > now;
   })();
 
@@ -113,7 +112,7 @@ export const AppProvider = ({ children }: React.PropsWithChildren<{}>) => {
 
     const authUnsubscribe = onAuthStateChanged(auth, async (currentUser) => {
       setUser(currentUser);
-      
+
       // Stop listening to previous user's data
       if (unsubscribe) {
         (unsubscribe as Function)();
@@ -125,7 +124,7 @@ export const AppProvider = ({ children }: React.PropsWithChildren<{}>) => {
       }
 
       if (!currentUser) {
-          setSubscriptionState({ status: 'basic' }); // Reset subscription
+        setSubscriptionState({ status: 'basic' }); // Reset subscription
       }
 
       const storageKey = getStorageKey(currentUser ? currentUser.uid : null);
@@ -149,59 +148,59 @@ export const AppProvider = ({ children }: React.PropsWithChildren<{}>) => {
         // --- User is LOGGED IN ---
         console.log(`User ${currentUser.uid} logged in. Setting up real-time listener.`);
         toast.success(`Welcome back, ${currentUser.displayName || 'User'}!`);
-        
+
         // B. Start real-time listener to sync with Cloud
         unsubscribe = listenToEntries(currentUser.uid, (cloudEntries) => {
-            console.log("Received real-time update from Firestore.");
-            
-            // [FIX] 排序邏輯
-            const sortedEntries = cloudEntries.sort((a, b) => {
-                const dateDiff = (b.date?.seconds || 0) - (a.date?.seconds || 0);
-                if (dateDiff !== 0) return dateDiff;
-                return b.id.localeCompare(a.id);
-            });
-            
-            setEntries(sortedEntries);
-            localStorage.setItem(storageKey, JSON.stringify(sortedEntries));
+          console.log("Received real-time update from Firestore.");
+
+          // [FIX] 排序邏輯
+          const sortedEntries = cloudEntries.sort((a, b) => {
+            const dateDiff = (b.date?.seconds || 0) - (a.date?.seconds || 0);
+            if (dateDiff !== 0) return dateDiff;
+            return b.id.localeCompare(a.id);
+          });
+
+          setEntries(sortedEntries);
+          localStorage.setItem(storageKey, JSON.stringify(sortedEntries));
         });
 
         // C. Listen to User document for subscription status
         userUnsubscribe = onSnapshot(doc(db, "users", currentUser.uid), async (docSnapshot) => {
-            if (docSnapshot.exists()) {
-                const data = docSnapshot.data();
-                if (data?.subscription?.status) {
-                    setSubscriptionState(data.subscription as UserSubscription);
-                } else {
-                    // Initialize if missing
-                    const trialExpiry = new Date();
-                    trialExpiry.setDate(trialExpiry.getDate() + 14);
-                    const initialSub: UserSubscription = {
-                         status: 'trial',
-                         expiryDate: Timestamp.fromDate(trialExpiry)
-                    };
-                    // Write to DB
-                    try {
-                        await setDoc(doc(db, "users", currentUser.uid), { subscription: initialSub }, { merge: true });
-                        setSubscriptionState(initialSub);
-                    } catch (e) {
-                        console.error("Failed to init subscription", e);
-                    }
-                }
+          if (docSnapshot.exists()) {
+            const data = docSnapshot.data();
+            if (data?.subscription?.status) {
+              setSubscriptionState(data.subscription as UserSubscription);
             } else {
-                 // Document doesn't exist at all, create it with trial
-                 const trialExpiry = new Date();
-                 trialExpiry.setDate(trialExpiry.getDate() + 14);
-                 const initialSub: UserSubscription = {
-                      status: 'trial',
-                      expiryDate: Timestamp.fromDate(trialExpiry)
-                 };
-                 try {
-                     await setDoc(doc(db, "users", currentUser.uid), { subscription: initialSub }, { merge: true });
-                     setSubscriptionState(initialSub);
-                 } catch (e) {
-                     console.error("Failed to create user doc with subscription", e);
-                 }
+              // Initialize if missing
+              const trialExpiry = new Date();
+              trialExpiry.setDate(trialExpiry.getDate() + 14);
+              const initialSub: UserSubscription = {
+                status: 'trial',
+                expiryDate: Timestamp.fromDate(trialExpiry)
+              };
+              // Write to DB
+              try {
+                await setDoc(doc(db, "users", currentUser.uid), { subscription: initialSub }, { merge: true });
+                setSubscriptionState(initialSub);
+              } catch (e) {
+                console.error("Failed to init subscription", e);
+              }
             }
+          } else {
+            // Document doesn't exist at all, create it with trial
+            const trialExpiry = new Date();
+            trialExpiry.setDate(trialExpiry.getDate() + 14);
+            const initialSub: UserSubscription = {
+              status: 'trial',
+              expiryDate: Timestamp.fromDate(trialExpiry)
+            };
+            try {
+              await setDoc(doc(db, "users", currentUser.uid), { subscription: initialSub }, { merge: true });
+              setSubscriptionState(initialSub);
+            } catch (e) {
+              console.error("Failed to create user doc with subscription", e);
+            }
+          }
         });
 
       } else {
@@ -211,15 +210,15 @@ export const AppProvider = ({ children }: React.PropsWithChildren<{}>) => {
     });
 
     return () => {
-        authUnsubscribe();
-        if (unsubscribe) (unsubscribe as Function)();
-        if (userUnsubscribe) (userUnsubscribe as Function)();
+      authUnsubscribe();
+      if (unsubscribe) (unsubscribe as Function)();
+      if (userUnsubscribe) (userUnsubscribe as Function)();
     };
   }, []);
 
-  const loginGoogle = async () => { 
+  const loginGoogle = async () => {
     try {
-      await signInWithPopup(auth, googleProvider); 
+      await signInWithPopup(auth, googleProvider);
     } catch (error: any) {
       console.error("Login failed", error);
       toast.error(`Login failed: ${error.message}`);
@@ -233,21 +232,21 @@ export const AppProvider = ({ children }: React.PropsWithChildren<{}>) => {
       // Configure Apple provider scopes if needed, e.g. email, name
       appleProvider.addScope('email');
       appleProvider.addScope('name');
-      
+
       await signInWithPopup(auth, appleProvider);
     } catch (error: any) {
       console.error("Apple Login failed", error);
       // Detailed error logging
       if (error.code === 'auth/operation-not-allowed') {
-         console.error("Check: 1. Apple enabled in Console? 2. Services ID & Key configured in Console? 3. Domain added to Apple 'Return URLs'? 4. Domain added to Firebase 'Authorized Domains'?");
+        console.error("Check: 1. Apple enabled in Console? 2. Services ID & Key configured in Console? 3. Domain added to Apple 'Return URLs'? 4. Domain added to Firebase 'Authorized Domains'?");
       }
       toast.error(`Apple Login failed: ${error.message}`);
     }
   };
 
-  const loginEmail = async (email: string, pass: string) => { 
+  const loginEmail = async (email: string, pass: string) => {
     try {
-      await signInWithEmailAndPassword(auth, email, pass); 
+      await signInWithEmailAndPassword(auth, email, pass);
     } catch (error: any) {
       console.error("Login failed", error);
       toast.error(`Login failed: ${error.message}`);
@@ -260,13 +259,13 @@ export const AppProvider = ({ children }: React.PropsWithChildren<{}>) => {
       if (userCredential.user) {
         await updateProfile(userCredential.user, { displayName: name });
         setUser({ ...userCredential.user, displayName: name } as User);
-        
+
         // Initialize 14-day trial
         const trialExpiry = new Date();
         trialExpiry.setDate(trialExpiry.getDate() + 14);
         const initialSub: UserSubscription = {
-             status: 'trial',
-             expiryDate: Timestamp.fromDate(trialExpiry)
+          status: 'trial',
+          expiryDate: Timestamp.fromDate(trialExpiry)
         };
         await setDoc(doc(db, "users", userCredential.user.uid), { subscription: initialSub }, { merge: true });
 
@@ -296,9 +295,9 @@ export const AppProvider = ({ children }: React.PropsWithChildren<{}>) => {
   const addEntry = async (entry: Entry) => {
     // 1. 樂觀更新 (Optimistic Update)
     const newEntries = [entry, ...entries].sort((a, b) => {
-        const dateDiff = (b.date?.seconds || 0) - (a.date?.seconds || 0);
-        if (dateDiff !== 0) return dateDiff;
-        return b.id.localeCompare(a.id);
+      const dateDiff = (b.date?.seconds || 0) - (a.date?.seconds || 0);
+      if (dateDiff !== 0) return dateDiff;
+      return b.id.localeCompare(a.id);
     });
 
     setEntries(newEntries);
@@ -311,15 +310,15 @@ export const AppProvider = ({ children }: React.PropsWithChildren<{}>) => {
         let entryToSync = { ...entry };
         if (entry.imageUrl && entry.imageUrl.startsWith('data:')) {
           const cloudUrl = await uploadImageToCloud(entry.imageUrl, entry.id, user.uid);
-          entryToSync.imageUrl = cloudUrl; 
-          await syncEntryToCloud(entryToSync, user.uid); 
+          entryToSync.imageUrl = cloudUrl;
+          await syncEntryToCloud(entryToSync, user.uid);
         } else {
           await syncEntryToCloud(entryToSync, user.uid);
         }
       } catch (error) {
         console.error(`Failed to sync new entry ${entry.id} to cloud.`, error);
         // [關鍵修改] 拋出錯誤，讓 UI 層可以捕捉並顯示 Toast
-        throw error; 
+        throw error;
       }
     }
   };
@@ -353,25 +352,25 @@ export const AppProvider = ({ children }: React.PropsWithChildren<{}>) => {
     if (user && target) {
       console.log(`Deleting entry ${id} from the cloud.`);
       try {
-        await deleteEntryFromCloud(id, !!target.imageUrl, user.uid);
+        await deleteEntryFromCloud(id, target.imageUrl || null, user.uid);
       } catch (error) {
         console.error(`Failed to delete entry ${id} from cloud.`, error);
         throw error;
       }
     }
   };
-  
+
   const updateSubscription = async (sub: UserSubscription) => {
-      if (!user) return;
-      setSubscriptionState(sub); // Optimistic update
-      
-      try {
-        await setDoc(doc(db, "users", user.uid), { subscription: sub }, { merge: true });
-      } catch (error) {
-          console.error("Failed to update subscription", error);
-          // Rollback handled by real-time listener eventually, but could add manual rollback here
-          toast.error("Failed to sync subscription status.");
-      }
+    if (!user) return;
+    setSubscriptionState(sub); // Optimistic update
+
+    try {
+      await setDoc(doc(db, "users", user.uid), { subscription: sub }, { merge: true });
+    } catch (error) {
+      console.error("Failed to update subscription", error);
+      // Rollback handled by real-time listener eventually, but could add manual rollback here
+      toast.error("Failed to sync subscription status.");
+    }
   }
 
   const updateMode = (m: RecordMode) => { setMode(m); localStorage.setItem('bvoy_mode', m); };
@@ -381,9 +380,9 @@ export const AppProvider = ({ children }: React.PropsWithChildren<{}>) => {
   const t = TRANSLATIONS[language];
 
   return (
-    <AppContext.Provider value={{ 
-      entries, mode, language, theme, user, subscription, isPro, isWriting, t, 
-      addEntry, updateEntry, deleteEntry, 
+    <AppContext.Provider value={{
+      entries, mode, language, theme, user, subscription, isPro, isWriting, t,
+      addEntry, updateEntry, deleteEntry,
       setMode: updateMode, setLanguage: updateLang, setTheme: updateTheme, setIsWriting,
       loginGoogle, loginApple, loginEmail, registerEmail, logout,
       setSubscription: updateSubscription

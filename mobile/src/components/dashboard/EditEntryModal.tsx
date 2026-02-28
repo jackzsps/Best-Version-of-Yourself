@@ -241,7 +241,7 @@ const styles = StyleSheet.create({
         fontWeight: 'bold',
     },
     input: {
-        backgroundColor: '#F3F4F6', // gray-100
+        backgroundColor: '#F9FAFB', // matched with AddEntry Bento
         borderRadius: 16,
         padding: 16,
         fontSize: 16,
@@ -249,9 +249,10 @@ const styles = StyleSheet.create({
     },
     vintageInput: {
         backgroundColor: 'transparent',
+        borderWidth: 0,
+        borderBottomWidth: 2,
+        borderColor: '#8B7355', // vintage-line
         borderRadius: 0,
-        borderBottomWidth: 1,
-        borderBottomColor: '#2c241b',
         fontFamily: 'Courier',
         color: '#2c241b',
     },

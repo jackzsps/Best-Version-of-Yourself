@@ -1,0 +1,78 @@
+
+Running 1 test using 1 worker
+
+Starting Mobile MCP Client...
+[Mobile MCP Client] Starting npx @mobilenext/mobile-mcp@latest...
+mobile-mcp server running on stdio
+[Mobile MCP Client] Connected successfully.
+Discovering Booted iOS Simulator...
+Invoking mobile_list_available_devices with args: {"noParams":{}}
+Could not execute adb command, maybe ANDROID_HOME is not set?
+go-ios is not installed, no physical iOS devices can be detected
+=> {"devices":[{"id":"13E269BF-60FB-4B1F-B9FE-7A1CDA4318F7","name":"iPhone 17 Pro","platform":"ios","type":"simulator","version":"26.2","state":"online"}]}
+Connected to iPhone 17 Pro
+Launching BestVersionOfYourself App...
+Navigating to Add Tab...
+Invoking mobile_click_on_screen_at_coordinates with args: {"device":"13E269BF-60FB-4B1F-B9FE-7A1CDA4318F7","x":200,"y":800}
+go-ios is not installed, no physical iOS devices can be detected
+Could not execute adb command, maybe ANDROID_HOME is not set?
+=> Clicked on screen at coordinates: 200, 800
+Tapping Manual Entry...
+Invoking mobile_click_on_screen_at_coordinates with args: {"device":"13E269BF-60FB-4B1F-B9FE-7A1CDA4318F7","x":196,"y":420}
+go-ios is not installed, no physical iOS devices can be detected
+Could not execute adb command, maybe ANDROID_HOME is not set?
+=> Clicked on screen at coordinates: 196, 420
+Typing Cost...
+Invoking mobile_click_on_screen_at_coordinates with args: {"device":"13E269BF-60FB-4B1F-B9FE-7A1CDA4318F7","x":200,"y":340}
+go-ios is not installed, no physical iOS devices can be detected
+Could not execute adb command, maybe ANDROID_HOME is not set?
+=> Clicked on screen at coordinates: 200, 340
+Focusing Item Name field...
+Invoking mobile_click_on_screen_at_coordinates with args: {"device":"13E269BF-60FB-4B1F-B9FE-7A1CDA4318F7","x":200,"y":250}
+go-ios is not installed, no physical iOS devices can be detected
+Could not execute adb command, maybe ANDROID_HOME is not set?
+=> Clicked on screen at coordinates: 200, 250
+Invoking mobile_list_elements_on_screen with args: {"device":"13E269BF-60FB-4B1F-B9FE-7A1CDA4318F7"}
+go-ios is not installed, no physical iOS devices can be detected
+Could not execute adb command, maybe ANDROID_HOME is not set?
+=> Found these elements on screen: [{"type":"StaticText","label":"新增紀錄","name":"新增紀錄","value":"新增紀錄","coordinates":{"x":24,"y":44,"width":354,"height":32}},{"type":"StaticText","label":"新增紀錄","name":"新增紀錄","value":"新增紀錄","coordinates":{"x":24,"y":44,"width":354,"height":32}},{"type":"StaticText","label":"拍攝照片，立即開始追蹤。","name":"拍攝照片，立即開始追蹤。","value":"拍攝照片，立即開始追蹤。","coordinates":{"x":24,"y":84,"width":354,"height":20}},{"type":"StaticText","label":"拍攝照片，立即開始追蹤。","name":"拍攝照片，立即開始追蹤。","value":"拍攝照片，立即開始追蹤。","coordinates":{"x":24,"y":84,"width":354,"height":20}},{"type":"StaticText","label":"確認紀錄","name":"確認紀錄","value":"確認紀錄","coordinates":{"x":49,"y":160,"width":304,"height":23}},{"type":"StaticText","label":"確認紀錄","name":"確認紀錄","value":"確認紀錄","coordinates":{"x":49,"y":160,"width":304,"height":23}},{"type":"StaticText","label":"項目名稱","name":"項目名稱","value":"項目名稱","coordinates":{"x":49,"y":202,"width":304,"height":16}},{"type":"StaticText","label":"項目名稱","name":"項目名稱","value":"項目名稱","coordinates":{"x":49,"y":202,"width":304,"height":16}},{"type":"TextField","label":"","value":"    ","coordinates":{"x":50,"y":226,"width":302,"height":49}},{"type":"StaticText","label":"花費 ($)","name":"花費 ($)","value":"花費 ($)","coordinates":{"x":49,"y":291,"width":304,"height":16}},{"type":"StaticText","label":"花費 ($)","name":"花費 ($)","value":"花費 ($)","coordinates":{"x":49,"y":291,"width":304,"height":16}},{"type":"TextField","label":"","value":"0000","coordinates":{"x":50,"y":315,"width":302,"height":49}},{"type":"StaticText","label":"熱量 (大卡)","name":"熱量 (大卡)","value":"熱量 (大卡)","coordinates":{"x":49,"y":464,"width":304,"height":17}},{"type":"StaticText","label":"熱量 (大卡)","name":"熱量 (大卡)","value":"熱量 (大卡)","coordinates":{"x":49,"y":464,"width":304,"height":17}},{"type":"TextField","label":"","value":"0","coordinates":{"x":50,"y":489,"width":302,"height":49}},{"type":"StaticText","label":"蛋白質","name":"蛋白質","value":"蛋白質","coordinates":{"x":49,"y":562,"width":94,"height":15}},{"type":"StaticText","label":"蛋白質","name":"蛋白質","value":"蛋白質","coordinates":{"x":49,"y":562,"width":94,"height":15}},{"type":"StaticText","label":"碳水","name":"碳水","value":"碳水","coordinates":{"x":154,"y":562,"width":94,"height":15}},{"type":"StaticText","label":"碳水","name":"碳水","value":"碳水","coordinates":{"x":154,"y":562,"width":94,"height":15}},{"type":"StaticText","label":"脂肪","name":"脂肪","value":"脂肪","coordinates":{"x":259,"y":562,"width":95,"height":15}},{"type":"StaticText","label":"脂肪","name":"脂肪","value":"脂肪","coordinates":{"x":259,"y":562,"width":95,"height":15}},{"type":"Button","label":"shift","name":"shift","value":"1","identifier":"shift","coordinates":{"x":4,"y":698,"width":52,"height":54}},{"type":"Button","label":"Emoji","name":"emoji","identifier":"emoji","coordinates":{"x":53,"y":752,"width":51,"height":54}},{"type":"Button","label":"return","name":"Return","identifier":"Return","coordinates":{"x":300,"y":752,"width":100,"height":54}},{"type":"Button","label":"Next keyboard","name":"Next keyboard","value":"繁體注音","coordinates":{"x":8,"y":805,"width":69,"height":70}},{"type":"Button","label":"Dictate","name":"dictation","identifier":"dictation","coordinates":{"x":325,"y":805,"width":69,"height":70}},{"type":"Button","label":"Dictate","name":"dictation","identifier":"dictation","coordinates":{"x":325,"y":805,"width":69,"height":70}}]
+Keyboard is 繁體注音. Tapping Next Keyboard...
+Invoking mobile_click_on_screen_at_coordinates with args: {"device":"13E269BF-60FB-4B1F-B9FE-7A1CDA4318F7","x":42,"y":840}
+go-ios is not installed, no physical iOS devices can be detected
+Could not execute adb command, maybe ANDROID_HOME is not set?
+=> Clicked on screen at coordinates: 42, 840
+Invoking mobile_list_elements_on_screen with args: {"device":"13E269BF-60FB-4B1F-B9FE-7A1CDA4318F7"}
+go-ios is not installed, no physical iOS devices can be detected
+Could not execute adb command, maybe ANDROID_HOME is not set?
+=> Found these elements on screen: [{"type":"StaticText","label":"新增紀錄","name":"新增紀錄","value":"新增紀錄","coordinates":{"x":24,"y":44,"width":354,"height":32}},{"type":"StaticText","label":"新增紀錄","name":"新增紀錄","value":"新增紀錄","coordinates":{"x":24,"y":44,"width":354,"height":32}},{"type":"StaticText","label":"拍攝照片，立即開始追蹤。","name":"拍攝照片，立即開始追蹤。","value":"拍攝照片，立即開始追蹤。","coordinates":{"x":24,"y":84,"width":354,"height":20}},{"type":"StaticText","label":"拍攝照片，立即開始追蹤。","name":"拍攝照片，立即開始追蹤。","value":"拍攝照片，立即開始追蹤。","coordinates":{"x":24,"y":84,"width":354,"height":20}},{"type":"StaticText","label":"確認紀錄","name":"確認紀錄","value":"確認紀錄","coordinates":{"x":49,"y":160,"width":304,"height":23}},{"type":"StaticText","label":"確認紀錄","name":"確認紀錄","value":"確認紀錄","coordinates":{"x":49,"y":160,"width":304,"height":23}},{"type":"StaticText","label":"項目名稱","name":"項目名稱","value":"項目名稱","coordinates":{"x":49,"y":202,"width":304,"height":16}},{"type":"StaticText","label":"項目名稱","name":"項目名稱","value":"項目名稱","coordinates":{"x":49,"y":202,"width":304,"height":16}},{"type":"TextField","label":"","value":"    ","coordinates":{"x":50,"y":226,"width":302,"height":49}},{"type":"StaticText","label":"花費 ($)","name":"花費 ($)","value":"花費 ($)","coordinates":{"x":49,"y":291,"width":304,"height":16}},{"type":"StaticText","label":"花費 ($)","name":"花費 ($)","value":"花費 ($)","coordinates":{"x":49,"y":291,"width":304,"height":16}},{"type":"TextField","label":"","value":"0000","coordinates":{"x":50,"y":315,"width":302,"height":49}},{"type":"StaticText","label":"熱量 (大卡)","name":"熱量 (大卡)","value":"熱量 (大卡)","coordinates":{"x":49,"y":464,"width":304,"height":17}},{"type":"StaticText","label":"熱量 (大卡)","name":"熱量 (大卡)","value":"熱量 (大卡)","coordinates":{"x":49,"y":464,"width":304,"height":17}},{"type":"TextField","label":"","value":"0","coordinates":{"x":50,"y":489,"width":302,"height":49}},{"type":"StaticText","label":"Quickly Change Keyboards","name":"Quickly Change Keyboards","value":"Quickly Change Keyboards","coordinates":{"x":24,"y":620,"width":354,"height":21}},{"type":"Button","label":"Continue","name":"Continue","coordinates":{"x":24,"y":819,"width":354,"height":21}},{"type":"StaticText","label":"Continue","name":"Continue","value":"Continue","coordinates":{"x":164,"y":818,"width":74,"height":23}},{"type":"Button","label":"Next keyboard","name":"Next keyboard","value":"English (US)","coordinates":{"x":8,"y":805,"width":69,"height":70}},{"type":"Button","label":"Dictate","name":"dictation","identifier":"dictation","coordinates":{"x":325,"y":805,"width":69,"height":70}},{"type":"Button","label":"Dictate","name":"dictation","identifier":"dictation","coordinates":{"x":325,"y":805,"width":69,"height":70}}]
+Keyboard is English or Globe key not found.
+Typing Item Name: Item1772093973411...
+Directly tapping computed Save button location (x:200, y:780)...
+Invoking mobile_click_on_screen_at_coordinates with args: {"device":"13E269BF-60FB-4B1F-B9FE-7A1CDA4318F7","x":200,"y":780}
+go-ios is not installed, no physical iOS devices can be detected
+Could not execute adb command, maybe ANDROID_HOME is not set?
+=> Clicked on screen at coordinates: 200, 780
+Verifying successful submission...
+Invoking mobile_list_elements_on_screen with args: {"device":"13E269BF-60FB-4B1F-B9FE-7A1CDA4318F7"}
+go-ios is not installed, no physical iOS devices can be detected
+Could not execute adb command, maybe ANDROID_HOME is not set?
+=> Found these elements on screen: [{"type":"StaticText","label":"新增紀錄","name":"新增紀錄","value":"新增紀錄","coordinates":{"x":24,"y":44,"width":354,"height":32}},{"type":"StaticText","label":"新增紀錄","name":"新增紀錄","value":"新增紀錄","coordinates":{"x":24,"y":44,"width":354,"height":32}},{"type":"StaticText","label":"拍攝照片，立即開始追蹤。","name":"拍攝照片，立即開始追蹤。","value":"拍攝照片，立即開始追蹤。","coordinates":{"x":24,"y":84,"width":354,"height":20}},{"type":"StaticText","label":"拍攝照片，立即開始追蹤。","name":"拍攝照片，立即開始追蹤。","value":"拍攝照片，立即開始追蹤。","coordinates":{"x":24,"y":84,"width":354,"height":20}},{"type":"StaticText","label":"確認紀錄","name":"確認紀錄","value":"確認紀錄","coordinates":{"x":49,"y":160,"width":304,"height":23}},{"type":"StaticText","label":"確認紀錄","name":"確認紀錄","value":"確認紀錄","coordinates":{"x":49,"y":160,"width":304,"height":23}},{"type":"StaticText","label":"項目名稱","name":"項目名稱","value":"項目名稱","coordinates":{"x":49,"y":202,"width":304,"height":16}},{"type":"StaticText","label":"項目名稱","name":"項目名稱","value":"項目名稱","coordinates":{"x":49,"y":202,"width":304,"height":16}},{"type":"TextField","label":"","value":"    ","coordinates":{"x":50,"y":226,"width":302,"height":49}},{"type":"StaticText","label":"花費 ($)","name":"花費 ($)","value":"花費 ($)","coordinates":{"x":49,"y":291,"width":304,"height":16}},{"type":"StaticText","label":"花費 ($)","name":"花費 ($)","value":"花費 ($)","coordinates":{"x":49,"y":291,"width":304,"height":16}},{"type":"TextField","label":"","value":"0000","coordinates":{"x":50,"y":315,"width":302,"height":49}},{"type":"StaticText","label":"熱量 (大卡)","name":"熱量 (大卡)","value":"熱量 (大卡)","coordinates":{"x":49,"y":464,"width":304,"height":17}},{"type":"StaticText","label":"熱量 (大卡)","name":"熱量 (大卡)","value":"熱量 (大卡)","coordinates":{"x":49,"y":464,"width":304,"height":17}},{"type":"TextField","label":"","value":"0","coordinates":{"x":50,"y":489,"width":302,"height":49}},{"type":"StaticText","label":"Quickly Change Keyboards","name":"Quickly Change Keyboards","value":"Quickly Change Keyboards","coordinates":{"x":24,"y":620,"width":354,"height":21}},{"type":"Button","label":"Continue","name":"Continue","coordinates":{"x":24,"y":819,"width":354,"height":21}},{"type":"StaticText","label":"Continue","name":"Continue","value":"Continue","coordinates":{"x":164,"y":818,"width":74,"height":23}},{"type":"Button","label":"Next keyboard","name":"Next keyboard","value":"English (US)","coordinates":{"x":8,"y":805,"width":69,"height":70}},{"type":"Button","label":"Dictate","name":"dictation","identifier":"dictation","coordinates":{"x":325,"y":805,"width":69,"height":70}},{"type":"Button","label":"Dictate","name":"dictation","identifier":"dictation","coordinates":{"x":325,"y":805,"width":69,"height":70}}]
+[Mobile MCP Client] Disconnected.
+  ✘  1 mobile_add_entry.spec.js:6:5 › Mobile Add Entry E2E › iOS Simulator can add an entry natively (52.0s)
+
+
+  1) mobile_add_entry.spec.js:6:5 › Mobile Add Entry E2E › iOS Simulator can add an entry natively ─
+
+    ReferenceError: uiResult is not defined
+
+      116 |             // 8. Verify the entry was submitted
+      117 |             console.log("Verifying successful submission...");
+    > 118 |             uiResult = await mcp.client.callTool({
+          |                     ^
+      119 |                 name: "mobile_list_elements_on_screen",
+      120 |                 arguments: { device: iosDevice.id }
+      121 |             });
+        at /Users/kuo/Documents/Best-Version-of-Yourself/e2e_tests/mobile_add_entry.spec.js:118:21
+
+  1 failed
+    mobile_add_entry.spec.js:6:5 › Mobile Add Entry E2E › iOS Simulator can add an entry natively ──

@@ -1,0 +1,15 @@
+{
+    "files.exclude": {
+        "mobile/ios/Pods": true,
+        "**/node_modules": true
+    },
+    "C_Cpp.files.exclude": {
+        "**/.vscode": true,
+        "**/.vs": true,
+        "mobile/ios/Pods": true
+    },
+    "C_Cpp.default.browse.path": [
+        "${workspaceFolder}",
+        "!${workspaceFolder}/mobile/ios/Pods"
+    ]
+}

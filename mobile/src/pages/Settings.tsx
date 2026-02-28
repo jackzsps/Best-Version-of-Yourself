@@ -164,6 +164,7 @@ export const Settings = () => {
           </View>
         ) : (
           <TouchableOpacity
+            testID="settings-signin-button"
             style={[styles.item, isVintage && styles.vintageItem, styles.lastItem]}
             onPress={() => setShowAuthModal(true)}
           >

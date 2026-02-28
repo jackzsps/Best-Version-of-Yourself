@@ -13,10 +13,10 @@ import EditEntryModal from '../components/dashboard/EditEntryModal';
 const Dashboard = () => {
   const { entries, updateEntry, deleteEntry, t, theme, language } = useApp();
   const [editingEntry, setEditingEntry] = useState<Entry | null>(null);
-  const [selectedDay, setSelectedDay] = useState<{name: string, cost: number, kcal: number} | null>(null);
-  
+  const [selectedDay, setSelectedDay] = useState<{ name: string, cost: number, kcal: number, fullDate?: string } | null>(null);
+
   const [reportTab, setReportTab] = useState<'trends' | 'spending' | 'nutrition'>('trends');
-  
+
   // 1. 修改 TimeRange 型別與預設值
   const [timeRange, setTimeRange] = useState<'today' | 'week' | 'month' | 'quarter' | 'year'>('week');
 
@@ -33,32 +33,36 @@ const Dashboard = () => {
   const todayCost = todayEntries.reduce((sum, e) => sum + (e.cost || 0), 0);
   const todayCalories = todayEntries.reduce((sum, e) => sum + (e.calories || 0), 0);
 
+  const todayMustCost = todayEntries.reduce((sum, e) => e.usage === 'must' ? sum + (e.cost || 0) : sum, 0);
+  const todayNeedCost = todayEntries.reduce((sum, e) => e.usage === 'need' ? sum + (e.cost || 0) : sum, 0);
+  const todayWantCost = todayEntries.reduce((sum, e) => e.usage === 'want' ? sum + (e.cost || 0) : sum, 0);
+
   // 2. 過濾資料 (圓餅圖數據來源)
   const filteredEntries = useMemo(() => {
-     const past = new Date();
-     past.setHours(0, 0, 0, 0);
-     
-     // 根據區間設定起始時間
-     switch (timeRange) {
-        case 'today': 
-           // 保持是今天 00:00
-           break;
-        case 'week': 
-           past.setDate(past.getDate() - 6); 
-           break;
-        case 'month': 
-           past.setDate(past.getDate() - 29); 
-           break;
-        case 'quarter': 
-           past.setDate(past.getDate() - 89); 
-           break;
-        case 'year': 
-           past.setMonth(0, 1); // 今年的 1月1日
-           break;
-     }
+    const past = new Date();
+    past.setHours(0, 0, 0, 0);
 
-     const pastStartSeconds = Math.floor(past.getTime() / 1000);
-     return entries.filter(e => e.date && e.date.seconds >= pastStartSeconds);
+    // 根據區間設定起始時間
+    switch (timeRange) {
+      case 'today':
+        // 保持是今天 00:00
+        break;
+      case 'week':
+        past.setDate(past.getDate() - 6);
+        break;
+      case 'month':
+        past.setDate(past.getDate() - 29);
+        break;
+      case 'quarter':
+        past.setDate(past.getDate() - 89);
+        break;
+      case 'year':
+        past.setMonth(0, 1); // 今年的 1月1日
+        break;
+    }
+
+    const pastStartSeconds = Math.floor(past.getTime() / 1000);
+    return entries.filter(e => e.date && e.date.seconds >= pastStartSeconds);
   }, [entries, timeRange]);
 
   // 3. 圖表數據 (含 Year 的特殊邏輯)
@@ -67,36 +71,36 @@ const Dashboard = () => {
 
     // === A. 年度檢視 (Year) - 按月聚合 ===
     if (timeRange === 'year') {
-        const currentYear = new Date().getFullYear();
-        const monthMap = new Map<number, { cost: number; kcal: number }>();
+      const currentYear = new Date().getFullYear();
+      const monthMap = new Map<number, { cost: number; kcal: number }>();
 
-        entries.forEach(e => {
-            if (!e.date || !e.date.seconds) return;
-            const d = new Date(e.date.seconds * 1000);
-            // 只統計今年的數據
-            if (d.getFullYear() === currentYear) {
-                const m = d.getMonth();
-                const current = monthMap.get(m) || { cost: 0, kcal: 0 };
-                monthMap.set(m, {
-                    cost: current.cost + (e.cost || 0),
-                    kcal: current.kcal + (e.calories || 0)
-                });
-            }
-        });
-
-        const data = [];
-        // 顯示 1月 到 12月
-        for (let m = 0; m < 12; m++) {
-            const d = new Date(currentYear, m, 1);
-            // 如果不想顯示未來的月份，可以在這裡加判斷 break
-            const stats = monthMap.get(m) || { cost: 0, kcal: 0 };
-            data.push({
-                name: d.toLocaleDateString(dateLocale, { month: 'short' }), // 顯示 '1月', 'Jan'
-                cost: stats.cost,
-                kcal: stats.kcal
-            });
+      entries.forEach(e => {
+        if (!e.date || !e.date.seconds) return;
+        const d = new Date(e.date.seconds * 1000);
+        // 只統計今年的數據
+        if (d.getFullYear() === currentYear) {
+          const m = d.getMonth();
+          const current = monthMap.get(m) || { cost: 0, kcal: 0 };
+          monthMap.set(m, {
+            cost: current.cost + (e.cost || 0),
+            kcal: current.kcal + (e.calories || 0)
+          });
         }
-        return data;
+      });
+
+      const data = [];
+      // 顯示 1月 到 12月
+      for (let m = 0; m < 12; m++) {
+        const d = new Date(currentYear, m, 1);
+        // 如果不想顯示未來的月份，可以在這裡加判斷 break
+        const stats = monthMap.get(m) || { cost: 0, kcal: 0 };
+        data.push({
+          name: d.toLocaleDateString(dateLocale, { month: 'short' }), // 顯示 '1月', 'Jan'
+          cost: stats.cost,
+          kcal: stats.kcal
+        });
+      }
+      return data;
     }
 
     // === B. 日檢視 (Today, Week, Month, Quarter) - 按日聚合 ===
@@ -109,14 +113,14 @@ const Dashboard = () => {
     const statsMap = new Map<string, { cost: number; kcal: number }>();
 
     entries.forEach(e => {
-        if (!e.date || !e.date.seconds) return;
-        const dateObj = new Date(e.date.seconds * 1000);
-        const key = dateObj.toDateString(); 
-        const current = statsMap.get(key) || { cost: 0, kcal: 0 };
-        statsMap.set(key, {
-            cost: current.cost + (e.cost || 0),
-            kcal: current.kcal + (e.calories || 0)
-        });
+      if (!e.date || !e.date.seconds) return;
+      const dateObj = new Date(e.date.seconds * 1000);
+      const key = dateObj.toDateString();
+      const current = statsMap.get(key) || { cost: 0, kcal: 0 };
+      statsMap.set(key, {
+        cost: current.cost + (e.cost || 0),
+        kcal: current.kcal + (e.calories || 0)
+      });
     });
 
     const data = [];
@@ -128,21 +132,21 @@ const Dashboard = () => {
 
       // 決定 X 軸顯示名稱
       let displayName = d.toLocaleDateString(dateLocale, { weekday: 'short' });
-      
+
       // 如果是「本日」，顯示 '本日' (需確認翻譯檔有此key) 或直接顯示日期
       if (timeRange === 'today') {
-          // t.dashboard.timeRange?.today 
-          displayName = d.toLocaleDateString(dateLocale, { month: 'numeric', day: 'numeric' });
+        // t.dashboard.timeRange?.today 
+        displayName = d.toLocaleDateString(dateLocale, { month: 'numeric', day: 'numeric' });
       }
       // 如果是「本季」，顯示日期 (如 10/27) 避免全是 '週X'
       else if (timeRange === 'quarter') {
-          displayName = d.toLocaleDateString(dateLocale, { month: 'numeric', day: 'numeric' });
+        displayName = d.toLocaleDateString(dateLocale, { month: 'numeric', day: 'numeric' });
       }
 
       data.push({
         name: displayName,
         // 如果是季檢視，可以多傳一個 fullDate 供 Tooltip 使用
-        fullDate: d.toLocaleDateString(dateLocale), 
+        fullDate: d.toLocaleDateString(dateLocale),
         cost: stats.cost,
         kcal: stats.kcal
       });
@@ -154,9 +158,9 @@ const Dashboard = () => {
   const spendingData = useMemo(() => {
     const map = new Map<string, number>();
     filteredEntries.forEach(e => e.cost > 0 && map.set(e.category, (map.get(e.category) || 0) + e.cost));
-    return Array.from(map.entries()).map(([key, value]) => ({ 
-      name: t.categories[key as keyof typeof t.categories] || key, 
-      value 
+    return Array.from(map.entries()).map(([key, value]) => ({
+      name: t.categories[key as keyof typeof t.categories] || key,
+      value
     }));
   }, [filteredEntries, t]);
 
@@ -170,24 +174,83 @@ const Dashboard = () => {
     return res;
   }, [filteredEntries, t]);
 
+  // 4. Calculate Usage Breakdown for StatsOverview
+  const usageBreakdown = useMemo(() => {
+    let mustCost = 0, needCost = 0, wantCost = 0;
+
+    if (selectedDay) {
+      // Find entries for selected day. This is an approximation based on the name.
+      // For exact matching, we would need to pass fullDate or timestamp from the chart.
+      let dayEntries = [];
+      if (selectedDay.fullDate) {
+        const targetDateStr = new Date(selectedDay.fullDate).toDateString();
+        dayEntries = entries.filter(e => {
+          if (!e.date || !e.date.seconds) return false;
+          return new Date(e.date.seconds * 1000).toDateString() === targetDateStr;
+        });
+      } else if (timeRange === 'year') {
+        // Selected day is a month like 'Jan'
+        const currentYear = new Date().getFullYear();
+        const dateLocale = language === 'zh-TW' ? 'zh-TW' : 'en-US';
+        dayEntries = entries.filter(e => {
+          if (!e.date || !e.date.seconds) return false;
+          const d = new Date(e.date.seconds * 1000);
+          return d.getFullYear() === currentYear && d.toLocaleDateString(dateLocale, { month: 'short' }) === selectedDay.name;
+        });
+      } else {
+        // Fallback using the name (like Mon or 10/27)
+        const dateLocale = language === 'zh-TW' ? 'zh-TW' : 'en-US';
+        dayEntries = entries.filter(e => {
+          if (!e.date || !e.date.seconds) return false;
+          const d = new Date(e.date.seconds * 1000);
+          let dName = d.toLocaleDateString(dateLocale, { weekday: 'short' });
+          if (timeRange === 'today' || timeRange === 'quarter') {
+            dName = d.toLocaleDateString(dateLocale, { month: 'numeric', day: 'numeric' });
+          }
+          return dName === selectedDay.name;
+        });
+      }
+
+      mustCost = dayEntries.reduce((sum, e) => e.usage === 'must' ? sum + (e.cost || 0) : sum, 0);
+      needCost = dayEntries.reduce((sum, e) => e.usage === 'need' ? sum + (e.cost || 0) : sum, 0);
+      wantCost = dayEntries.reduce((sum, e) => e.usage === 'want' ? sum + (e.cost || 0) : sum, 0);
+    } else {
+      mustCost = todayMustCost;
+      needCost = todayNeedCost;
+      wantCost = todayWantCost;
+    }
+
+    return { mustCost, needCost, wantCost };
+  }, [selectedDay, entries, timeRange, language, todayMustCost, todayNeedCost, todayWantCost]);
+
   return (
     <div className={`flex-1 pb-24 overflow-y-auto no-scrollbar ${isVintage ? 'bg-vintage-bg' : 'bg-gray-50'}`}>
       <header className={`p-6 ${isVintage ? 'border-b-2 border-vintage-line pb-4' : 'bg-white shadow-sm'}`}>
         <div className='flex justify-between items-center'>
-           <div>
-             <h1 className={`text-3xl font-extrabold ${isVintage ? 'text-vintage-ink font-typewriter' : 'text-gray-900'}`}>{t.dashboard.title}</h1>
-             <p className={`${isVintage ? 'text-vintage-leather font-handwriting text-xl' : 'text-gray-400'}`}>{t.dashboard.subtitle}</p>
-           </div>
-           {selectedDay && (
-              <button onClick={() => setSelectedDay(null)} className='px-3 py-1 bg-gray-900 text-white text-xs rounded-full flex items-center gap-1'>
-                 <Icon name='x' className='w-3 h-3' /> {t.common.reset}
-              </button>
-           )}
+          <div>
+            <h1 className={`text-3xl font-extrabold ${isVintage ? 'text-vintage-ink font-typewriter' : 'text-gray-900'}`}>{t.dashboard.title}</h1>
+            <p className={`${isVintage ? 'text-vintage-leather font-handwriting text-xl' : 'text-gray-400'}`}>{t.dashboard.subtitle}</p>
+          </div>
+          {selectedDay && (
+            <button onClick={() => setSelectedDay(null)} className='px-3 py-1 bg-gray-900 text-white text-xs rounded-full flex items-center gap-1'>
+              <Icon name='x' className='w-3 h-3' /> {t.common.reset}
+            </button>
+          )}
         </div>
       </header>
 
       <div className='p-6 space-y-6'>
-        <StatsOverview t={t} theme={theme} displayCost={selectedDay ? selectedDay.cost : todayCost} displayCalories={selectedDay ? selectedDay.kcal : todayCalories} showDateIndicator={!!selectedDay} selectedDayName={selectedDay?.name} />
+        <StatsOverview
+          t={t}
+          theme={theme}
+          displayCost={selectedDay ? selectedDay.cost : todayCost}
+          displayCalories={selectedDay ? selectedDay.kcal : todayCalories}
+          showDateIndicator={!!selectedDay}
+          selectedDayName={selectedDay?.name}
+          mustCost={usageBreakdown.mustCost}
+          needCost={usageBreakdown.needCost}
+          wantCost={usageBreakdown.wantCost}
+        />
         <ChartSection t={t} theme={theme} reportTab={reportTab} setReportTab={setReportTab} timeRange={timeRange} setTimeRange={setTimeRange} chartData={chartData} spendingData={spendingData} macroData={macroData} setSelectedDay={setSelectedDay} />
         <InsightCard t={t} theme={theme} insightText={t.dashboard.insights.generalTip} />
         <EntryList entries={entries} onSelectEntry={setEditingEntry} t={t} theme={theme} />

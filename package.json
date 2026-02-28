@@ -11,6 +11,7 @@
     "react-native-toast-message": "^2.3.3"
   },
   "devDependencies": {
+    "@modelcontextprotocol/sdk": "^1.27.1",
     "patch-package": "^8.0.1",
     "postinstall-postinstall": "^2.1.0"
   }

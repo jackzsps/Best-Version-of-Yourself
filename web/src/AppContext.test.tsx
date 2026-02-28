@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, waitFor, act } from '@testing-library/react';
 import { AppProvider, useApp } from './store/AppContext';
-import { Entry } from "@shared/types';
+import { Entry } from '@shared/types';
 import { Timestamp } from 'firebase/firestore';
 import React, { ReactNode } from 'react';
 
@@ -52,6 +52,8 @@ vi.mock('./src/services/cloudService', () => ({
 
 // --- Test Utilities ---
 
+import { RecordMode } from '@shared/types';
+
 /**
  * Factory function to create mock Entry objects for clean and readable tests.
  * @param overrides - A partial Entry object to override default mock values.
@@ -59,7 +61,6 @@ vi.mock('./src/services/cloudService', () => ({
  */
 const createMockEntry = (overrides: Partial<Entry> = {}): Entry => ({
     id: `test-id-${Date.now()}`,
-    timestamp: Date.now(),
     date: Timestamp.now(),
     itemName: 'Test Item',
     type: 'combined',
@@ -71,7 +72,7 @@ const createMockEntry = (overrides: Partial<Entry> = {}): Entry => ({
     protein: 10,
     carbs: 10,
     fat: 1,
-    modeUsed: 'CONSERVATIVE',
+    modeUsed: RecordMode.CONSERVATIVE,
     ...overrides,
 });
 
@@ -143,10 +144,15 @@ describe('AppContext', () => {
         // To simulate the state update triggered by the Firestore listener,
         // we can directly call the callback function passed to our mock listener.
         await act(async () => {
-            const listenerCallback = mockListenToEntries.mock.calls[0][1];
-            listenerCallback([newEntry]);
+            const calls = mockListenToEntries.mock.calls;
+            if (calls.length > 0 && Array.isArray(calls[0])) {
+                const listenerArgs = calls[0] as any[];
+                if (listenerArgs.length > 1 && typeof listenerArgs[1] === 'function') {
+                    listenerArgs[1]([newEntry]);
+                }
+            }
         });
-        
+
         const context = getContext();
         expect(context.entries).toHaveLength(1);
         expect(context.entries[0]).toEqual(expect.objectContaining({

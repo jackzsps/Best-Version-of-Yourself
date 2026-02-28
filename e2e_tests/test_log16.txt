@@ -1,0 +1,23 @@
+SyntaxError: /Users/kuo/Documents/Best-Version-of-Yourself/e2e_tests/mobile_add_entry.spec.js: Unexpected token (147:10)
+
+  145 |             console.log(`✅ Successfully added and verified entry: ${uniqueName}`);
+  146 |
+> 147 |         } finally {
+      |           ^
+  148 |             await mcp.disconnect();
+  149 |         }
+  150 |     });
+
+   at mobile_add_entry.spec.js:147
+
+  145 |             console.log(`✅ Successfully added and verified entry: ${uniqueName}`);
+  146 |
+> 147 |         } finally {
+      |          ^
+  148 |             await mcp.disconnect();
+  149 |         }
+  150 |     });
+Error: No tests found.
+Make sure that arguments are regular expressions matching test files.
+You may need to escape symbols like "$" or "*" and quote the arguments.
+

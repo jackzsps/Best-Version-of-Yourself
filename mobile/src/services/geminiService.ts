@@ -1,6 +1,6 @@
 // Placeholder for Gemini Service
 // This mimics the web service but adapted for RN if necessary
-import functions from '@react-native-firebase/functions';
+import { firebase } from '@react-native-firebase/functions';
 import { AnalysisResult, Language } from '../types';
 import NetInfo from '@react-native-community/netinfo';
 
@@ -21,23 +21,23 @@ export const analyzeImage = async (
   }
 
   try {
-    const analyzeImageFunction = functions().httpsCallable('analyzeImage');
+    const analyzeImageFunction = firebase.app().functions('asia-east1').httpsCallable('analyzeImage');
     const result = await analyzeImageFunction({ base64Image, language });
     return result.data as AnalysisResult;
   } catch (error: any) {
     console.error('ANALYSIS CALL ERROR:', error);
-    
+
     // 2. 錯誤分類 (Parity with Web)
-    const isNetworkError = 
-        error.code === 'functions/unavailable' || 
-        error.code === 'unavailable' ||
-        error.message?.toLowerCase().includes('network') ||
-        error.message?.toLowerCase().includes('offline');
+    const isNetworkError =
+      error.code === 'functions/unavailable' ||
+      error.code === 'unavailable' ||
+      error.message?.toLowerCase().includes('network') ||
+      error.message?.toLowerCase().includes('offline');
 
     if (isNetworkError) {
-       const handledError: any = new Error('Network unavailable. Image will be saved locally.');
-       handledError.isNetworkError = true;
-       throw handledError;
+      const handledError: any = new Error('Network unavailable. Image will be saved locally.');
+      handledError.isNetworkError = true;
+      throw handledError;
     }
 
     throw new Error(error.message || 'Unknown analysis error');

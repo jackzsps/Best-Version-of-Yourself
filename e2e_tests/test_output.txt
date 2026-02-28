@@ -1,0 +1,25 @@
+
+Running 1 test using 1 worker
+Navigating to Web App...
+T
+
+  1) web_add_entry.spec.js:5:9 › Web Add Entry E2E › User can manually add a new financial entry ───
+
+    [31mTest timeout of 30000ms exceeded.[39m
+
+    Error: page.goto: net::ERR_ABORTED; maybe frame was detached?
+    Call log:
+    [2m  - navigating to "http://localhost:9002/", waiting until "load"[22m
+
+
+       6 |         // Playwright tests the React Web App
+       7 |         console.log("Navigating to Web App...");
+    >  8 |         await page.goto('http://localhost:9002');
+         |                    ^
+       9 |
+      10 |         // Check if we need to login
+      11 |         const emailInput = page.locator('input[type="email"]');
+        at /Users/kuo/Documents/Best-Version-of-Yourself/e2e_tests/web_add_entry.spec.js:8:20
+
+  1 failed
+    web_add_entry.spec.js:5:9 › Web Add Entry E2E › User can manually add a new financial entry ────

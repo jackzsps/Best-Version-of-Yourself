@@ -1,0 +1,4 @@
+Error: Project(s) "chromium" not found. Available projects: ""
+    at filterProjects (/Users/kuo/.npm/_npx/e41f203b7505f1fb/node_modules/playwright/lib/runner/projectUtils.js:80:11)
+    at runTests (/Users/kuo/.npm/_npx/e41f203b7505f1fb/node_modules/playwright/lib/program.js:208:42)
+    at async i.<anonymous> (/Users/kuo/.npm/_npx/e41f203b7505f1fb/node_modules/playwright/lib/program.js:70:7)

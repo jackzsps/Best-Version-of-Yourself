@@ -2,7 +2,7 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 import { Entry, RecordMode, Language, Theme, UserSubscription } from '@shared/types';
 import { DEFAULT_MODE, DEFAULT_LANGUAGE } from '@shared/constants';
 import { TRANSLATIONS } from '@shared/translations';
-import firestore from '@react-native-firebase/firestore';
+import firestore, { firebase } from '@react-native-firebase/firestore';
 import auth, { FirebaseAuthTypes } from '@react-native-firebase/auth';
 import { GoogleSignin } from '@react-native-google-signin/google-signin';
 import { appleAuth } from '@invertase/react-native-apple-authentication';
@@ -11,6 +11,10 @@ import storage from '@react-native-firebase/storage';
 
 // Note: This file is a React Native specific implementation of AppContext.
 // It uses @react-native-firebase which provides native bindings and better offline support (SQLite).
+
+GoogleSignin.configure({
+  webClientId: '1044238167774-2m1dppih8vkm646h4reak9e0nfts77b7.apps.googleusercontent.com',
+});
 
 interface AppState {
   entries: Entry[];
@@ -101,7 +105,7 @@ export const AppProvider = ({ children }: React.PropsWithChildren<{}>) => {
     // Use specific database instance 'bvoy'
     // In React Native Firebase, you might not be able to name instances like in web if not configured.
     // Usually firestore() is enough if using default app. If using named app, firestore(app)
-    const db = firestore();
+    const db = firebase.app().firestore('bvoy');
 
     const unsubscribe = db
       .collection('users')
@@ -217,7 +221,7 @@ export const AppProvider = ({ children }: React.PropsWithChildren<{}>) => {
         expiryDate: firestore.Timestamp.fromDate(trialExpiry) as any
       };
 
-      const db = firestore();
+      const db = firebase.app().firestore('bvoy');
       await db.collection('users').doc(userCredential.user.uid).set({ subscription: initialSub }, { merge: true });
       setSubscriptionState(initialSub);
     }
@@ -236,7 +240,7 @@ export const AppProvider = ({ children }: React.PropsWithChildren<{}>) => {
     // The SDK handles local cache immediately (Optimistic UI) and syncs later.
     // No need for manual setEntries or local storage manipulation.
 
-    const db = firestore();
+    const db = firebase.app().firestore('bvoy');
 
     db.collection('users').doc(user.uid).collection('entries').add(entry);
   };
@@ -247,7 +251,7 @@ export const AppProvider = ({ children }: React.PropsWithChildren<{}>) => {
     }
     const { id, ...data } = updatedEntry;
 
-    const db = firestore();
+    const db = firebase.app().firestore('bvoy');
 
     db.collection('users')
       .doc(user.uid)
@@ -260,7 +264,7 @@ export const AppProvider = ({ children }: React.PropsWithChildren<{}>) => {
     if (!user || !entry?.id) {
       return;
     }
-    const db = firestore();
+    const db = firebase.app().firestore('bvoy');
 
     try {
       // 1. Delete associated image from Storage if it exists
@@ -291,7 +295,7 @@ export const AppProvider = ({ children }: React.PropsWithChildren<{}>) => {
     if (!user) return;
     setSubscriptionState(sub); // Optimistic update
 
-    const db = firestore();
+    const db = firebase.app().firestore('bvoy');
     // Merge: true ensures we don't overwrite other user fields (like email, name if stored there)
     db.collection('users').doc(user.uid).set({ subscription: sub }, { merge: true });
   }

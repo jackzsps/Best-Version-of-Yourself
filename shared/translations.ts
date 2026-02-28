@@ -109,6 +109,12 @@ export const TRANSLATIONS = {
       subscriptionExpired: 'Account Expired',
       subscriptionExpiredDesc: 'Your trial or subscription has ended. Please upgrade to Pro to continue using AI features.',
       upgrade: 'Upgrade to Pro',
+      loadingMessages: [
+        'Analyzing image content...',
+        'Detecting items & receipts...',
+        'Reading prices & text...',
+        'Calculating cost & macros...',
+      ],
     },
     entryTypes: {
       combined: 'Both',
@@ -292,6 +298,12 @@ export const TRANSLATIONS = {
       subscriptionExpired: '帳號已過期',
       subscriptionExpiredDesc: '您的試用或訂閱已結束。請升級 Pro 版以繼續使用 AI 功能。',
       upgrade: '升級 Pro',
+      loadingMessages: [
+        '正在分析圖片內容...',
+        '正在識別物品與收據...',
+        '正在擷取價格與文字...',
+        '正在計算花費與營養素...',
+      ],
     },
     entryTypes: {
       combined: '完整紀錄',

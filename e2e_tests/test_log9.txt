@@ -1,0 +1,40 @@
+
+Running 1 test using 1 worker
+
+Starting Mobile MCP Client...
+[Mobile MCP Client] Starting npx @mobilenext/mobile-mcp@latest...
+mobile-mcp server running on stdio
+[Mobile MCP Client] Connected successfully.
+Discovering Booted iOS Simulator...
+Invoking mobile_list_available_devices with args: {"noParams":{}}
+Could not execute adb command, maybe ANDROID_HOME is not set?
+go-ios is not installed, no physical iOS devices can be detected
+=> {"devices":[{"id":"13E269BF-60FB-4B1F-B9FE-7A1CDA4318F7","name":"iPhone 17 Pro","platform":"ios","type":"simulator","version":"26.2","state":"online"}]}
+Connected to iPhone 17 Pro
+Launching BestVersionOfYourself App...
+Navigating to Add Tab...
+Invoking mobile_click_on_screen_at_coordinates with args: {"device":"13E269BF-60FB-4B1F-B9FE-7A1CDA4318F7","x":200,"y":800}
+go-ios is not installed, no physical iOS devices can be detected
+Could not execute adb command, maybe ANDROID_HOME is not set?
+=> Clicked on screen at coordinates: 200, 800
+Tapping Manual Entry...
+Invoking mobile_click_on_screen_at_coordinates with args: {"device":"13E269BF-60FB-4B1F-B9FE-7A1CDA4318F7","x":196,"y":420}
+go-ios is not installed, no physical iOS devices can be detected
+Could not execute adb command, maybe ANDROID_HOME is not set?
+=> Clicked on screen at coordinates: 196, 420
+Typing Cost...
+Invoking mobile_click_on_screen_at_coordinates with args: {"device":"13E269BF-60FB-4B1F-B9FE-7A1CDA4318F7","x":200,"y":340}
+go-ios is not installed, no physical iOS devices can be detected
+Could not execute adb command, maybe ANDROID_HOME is not set?
+=> Clicked on screen at coordinates: 200, 340
+Sending AppleScript keystrokes for Cost...
+77:91: execution error: System Events got an error: AppleEvent timed out. (-1712)
+  ✘  1 mobile_add_entry.spec.js:6:5 › Mobile Add Entry E2E › iOS Simulator can add an entry natively (2.4m)
+
+
+  1) mobile_add_entry.spec.js:6:5 › Mobile Add Entry E2E › iOS Simulator can add an entry natively ─
+
+    [31mTest timeout of 80000ms exceeded.[39m
+
+  1 failed
+    mobile_add_entry.spec.js:6:5 › Mobile Add Entry E2E › iOS Simulator can add an entry natively ──

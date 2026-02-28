@@ -181,6 +181,7 @@ export const AuthModal = ({ visible, onClose }: AuthModalProps) => {
               />
             )}
             <TextInput
+              testID="email-input"
               style={[styles.input, isVintage && styles.vintageInput]}
               placeholder={t.auth.emailPlaceholder}
               placeholderTextColor={isVintage ? 'rgba(45, 42, 38, 0.5)' : '#9CA3AF'}
@@ -190,6 +191,7 @@ export const AuthModal = ({ visible, onClose }: AuthModalProps) => {
               autoCapitalize="none"
             />
             <TextInput
+              testID="password-input"
               style={[styles.input, isVintage && styles.vintageInput]}
               placeholder={t.auth.passwordPlaceholder}
               placeholderTextColor={isVintage ? 'rgba(45, 42, 38, 0.5)' : '#9CA3AF'}
@@ -199,6 +201,7 @@ export const AuthModal = ({ visible, onClose }: AuthModalProps) => {
             />
 
             <TouchableOpacity
+              testID="auth-submit-button"
               style={[
                 styles.submitBtn,
                 isVintage && styles.vintageSubmitBtn,
@@ -359,18 +362,17 @@ const styles = StyleSheet.create({
   },
   input: {
     backgroundColor: '#F9FAFB',
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
-    borderRadius: 8,
-    padding: 12,
+    borderWidth: 0,
+    borderRadius: 16,
+    padding: 16,
     fontSize: 16,
     color: '#111827',
   },
   vintageInput: {
     backgroundColor: 'transparent',
     borderWidth: 0,
-    borderBottomWidth: 1,
-    borderColor: 'rgba(45, 42, 38, 0.5)',
+    borderBottomWidth: 2,
+    borderColor: '#8B7355',
     borderRadius: 0,
     fontFamily: 'Courier',
     color: '#2d2a26',
