@@ -8,6 +8,7 @@ import { GoogleSignin } from '@react-native-google-signin/google-signin';
 import { appleAuth } from '@invertase/react-native-apple-authentication';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import storage from '@react-native-firebase/storage';
+import { Alert } from 'react-native';
 
 // Note: This file is a React Native specific implementation of AppContext.
 // It uses @react-native-firebase which provides native bindings and better offline support (SQLite).
@@ -145,10 +146,11 @@ export const AppProvider = ({ children }: React.PropsWithChildren<{}>) => {
               setSubscriptionState(data.subscription as UserSubscription);
             } else {
               // Fallback/Default for existing users who don't have this field yet
-              // If no subscription data, consider it basic or check if we should init trial
-              // Here we keep it basic to avoid infinite loops or overwrites without user action
               setSubscriptionState({ status: 'basic' });
             }
+          } else {
+            // If doc doesn't exist at all, we could also initialize it, but login functions are a safer place
+            setSubscriptionState({ status: 'basic' });
           }
         },
         (error) => console.error('Firestore user snapshot error:', error)
@@ -159,6 +161,26 @@ export const AppProvider = ({ children }: React.PropsWithChildren<{}>) => {
       userUnsubscribe();
     };
   }, [user]);
+
+  // Helper to initialize trial for new users
+  const initializeTrialIfNeeded = async (targetUser: FirebaseAuthTypes.User) => {
+    const db = firebase.app().firestore('bvoy');
+    const docRef = db.collection('users').doc(targetUser.uid);
+    const doc = await docRef.get();
+
+    // If user doc doesn't exist or doesn't have a subscription field, initialize trial
+    if (!doc.exists || !doc.data()?.subscription) {
+      console.log(`🎁 [AppContext] Initializing 14-day trial for new user: ${targetUser.uid}`);
+      const trialExpiry = new Date();
+      trialExpiry.setDate(trialExpiry.getDate() + 14);
+      const initialSub: UserSubscription = {
+        status: 'trial',
+        expiryDate: firestore.Timestamp.fromDate(trialExpiry) as any
+      };
+      await docRef.set({ subscription: initialSub }, { merge: true });
+      setSubscriptionState(initialSub);
+    }
+  };
 
   const loginGoogle = async () => {
     // Check if your device supports Google Play
@@ -175,7 +197,11 @@ export const AppProvider = ({ children }: React.PropsWithChildren<{}>) => {
     // Create a Google credential with the token
     const googleCredential = auth.GoogleAuthProvider.credential(idToken);
     // Sign-in the user with the credential
-    await auth().signInWithCredential(googleCredential);
+    const userCredential = await auth().signInWithCredential(googleCredential);
+
+    if (userCredential.user) {
+      await initializeTrialIfNeeded(userCredential.user);
+    }
   };
 
   const loginApple = async () => {
@@ -195,7 +221,11 @@ export const AppProvider = ({ children }: React.PropsWithChildren<{}>) => {
     const appleCredential = auth.AppleAuthProvider.credential(identityToken, nonce);
 
     // Sign the user in with the credential
-    await auth().signInWithCredential(appleCredential);
+    const userCredential = await auth().signInWithCredential(appleCredential);
+
+    if (userCredential.user) {
+      await initializeTrialIfNeeded(userCredential.user);
+    }
   };
 
   const loginEmail = async (email: string, pass: string) => {
@@ -213,17 +243,7 @@ export const AppProvider = ({ children }: React.PropsWithChildren<{}>) => {
       await userCredential.user.updateProfile({ displayName: name });
       // setUser(auth().currentUser); // Force update state if needed, but onAuthStateChanged handles it
 
-      // Initialize 14-day trial
-      const trialExpiry = new Date();
-      trialExpiry.setDate(trialExpiry.getDate() + 14);
-      const initialSub: UserSubscription = {
-        status: 'trial',
-        expiryDate: firestore.Timestamp.fromDate(trialExpiry) as any
-      };
-
-      const db = firebase.app().firestore('bvoy');
-      await db.collection('users').doc(userCredential.user.uid).set({ subscription: initialSub }, { merge: true });
-      setSubscriptionState(initialSub);
+      await initializeTrialIfNeeded(userCredential.user);
     }
   };
 
@@ -249,7 +269,7 @@ export const AppProvider = ({ children }: React.PropsWithChildren<{}>) => {
     if (!user) {
       return;
     }
-    const { id, ...data } = updatedEntry;
+    const { id, isSyncing, ...data } = updatedEntry as any; // Escaping local field 'isSyncing' before push
 
     const db = firebase.app().firestore('bvoy');
 
@@ -257,7 +277,11 @@ export const AppProvider = ({ children }: React.PropsWithChildren<{}>) => {
       .doc(user.uid)
       .collection('entries')
       .doc(id)
-      .update(data);
+      .update(data)
+      .catch((error) => {
+        console.error('Update entry error:', error);
+        Alert.alert('Update Failed', error.message);
+      });
   };
 
   const deleteEntry = async (entry: Entry) => {
@@ -286,8 +310,9 @@ export const AppProvider = ({ children }: React.PropsWithChildren<{}>) => {
       // 2. Delete Firestore Document
       await db.collection('users').doc(user.uid).collection('entries').doc(entry.id).delete();
       console.log('🗑️ [AppContext] Entry deleted successfully:', entry.id);
-    } catch (error) {
+    } catch (error: any) {
       console.error('❌ [AppContext] Error deleting entry:', error);
+      Alert.alert('Delete Failed', error.message);
     }
   };
 

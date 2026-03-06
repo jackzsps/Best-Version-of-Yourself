@@ -8,9 +8,9 @@ import {
     StyleSheet,
     KeyboardAvoidingView,
     Platform,
-    TouchableWithoutFeedback,
     Keyboard,
     Alert,
+    Pressable,
 } from 'react-native';
 import { Entry, Theme } from '@shared/types';
 import { TRANSLATIONS } from '@shared/translations';
@@ -59,11 +59,17 @@ export const EditEntryModal: React.FC<EditEntryModalProps> = ({
             return;
         }
 
+        const parsedCost = parseFloat(cost as string);
+        const validCost = !isNaN(parsedCost) ? parsedCost : 0;
+
+        const parsedCal = parseInt(calories as string, 10);
+        const validCal = !isNaN(parsedCal) ? parsedCal : 0;
+
         const updatedEntry: Entry = {
             ...entry,
             itemName: name.trim(),
-            cost: cost ? parseFloat(cost) : 0,
-            calories: calories ? parseInt(calories, 10) : 0,
+            cost: cost ? validCost : 0,
+            calories: calories ? validCal : 0,
         };
         onSave(updatedEntry);
         onClose();
@@ -94,86 +100,88 @@ export const EditEntryModal: React.FC<EditEntryModalProps> = ({
             transparent={true}
             onRequestClose={onClose}
         >
-            <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-                <KeyboardAvoidingView
-                    behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-                    style={styles.modalOverlay}
-                >
-                    <View style={[styles.modalContent, isVintage && styles.vintageModalContent]}>
-                        <View style={styles.headerRow}>
-                            <Text style={[styles.title, isVintage && styles.vintageTitle]}>
-                                Edit Entry
-                            </Text>
-                            <TouchableOpacity onPress={onClose} style={styles.closeBtn}>
-                                <Icon name="x" size={24} color={isVintage ? '#2c241b' : '#6B7280'} />
-                            </TouchableOpacity>
-                        </View>
+            <KeyboardAvoidingView
+                behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+                style={styles.modalOverlay}
+            >
+                {/* Touch overlay to dismiss keyboard and close modal */}
+                <Pressable style={StyleSheet.absoluteFill} onPress={() => { Keyboard.dismiss(); onClose(); }} />
 
-                        {/* Inputs */}
+                {/* onStartShouldSetResponder intercepts inner touches from hitting the overlay */}
+                <View style={[styles.modalContent, isVintage && styles.vintageModalContent]} onStartShouldSetResponder={() => true}>
+                    <View style={styles.headerRow}>
+                        <Text style={[styles.title, isVintage && styles.vintageTitle]}>
+                            Edit Entry
+                        </Text>
+                        <TouchableOpacity onPress={onClose} style={styles.closeBtn} hitSlop={{ top: 20, bottom: 20, left: 20, right: 20 }} activeOpacity={0.7}>
+                            <Icon name="x" size={24} color={isVintage ? '#2c241b' : '#6B7280'} />
+                        </TouchableOpacity>
+                    </View>
+
+                    {/* Inputs */}
+                    <View style={styles.inputGroup}>
+                        <Text style={[styles.label, isVintage && styles.vintageLabel]}>Item Name</Text>
+                        <TextInput
+                            style={[styles.input, isVintage && styles.vintageInput]}
+                            value={name}
+                            onChangeText={setName}
+                            placeholder="e.g. Morning Coffee"
+                            placeholderTextColor={isVintage ? '#8b4513' : '#9CA3AF'}
+                        />
+                    </View>
+
+                    {(entry.type === 'expense' || entry.type === 'combined') && (
                         <View style={styles.inputGroup}>
-                            <Text style={[styles.label, isVintage && styles.vintageLabel]}>Item Name</Text>
+                            <Text style={[styles.label, isVintage && styles.vintageLabel]}>Cost ({t.dashboard.unitCurrency})</Text>
                             <TextInput
                                 style={[styles.input, isVintage && styles.vintageInput]}
-                                value={name}
-                                onChangeText={setName}
-                                placeholder="e.g. Morning Coffee"
+                                value={cost}
+                                onChangeText={setCost}
+                                placeholder="0.00"
+                                keyboardType="numeric"
                                 placeholderTextColor={isVintage ? '#8b4513' : '#9CA3AF'}
                             />
                         </View>
+                    )}
 
-                        {(entry.type === 'expense' || entry.type === 'combined') && (
-                            <View style={styles.inputGroup}>
-                                <Text style={[styles.label, isVintage && styles.vintageLabel]}>Cost ({t.dashboard.unitCurrency})</Text>
-                                <TextInput
-                                    style={[styles.input, isVintage && styles.vintageInput]}
-                                    value={cost}
-                                    onChangeText={setCost}
-                                    placeholder="0.00"
-                                    keyboardType="numeric"
-                                    placeholderTextColor={isVintage ? '#8b4513' : '#9CA3AF'}
-                                />
-                            </View>
-                        )}
-
-                        {(entry.type === 'diet' || entry.type === 'combined') && (
-                            <View style={styles.inputGroup}>
-                                <Text style={[styles.label, isVintage && styles.vintageLabel]}>Calories ({t.dashboard.unitCal})</Text>
-                                <TextInput
-                                    style={[styles.input, isVintage && styles.vintageInput]}
-                                    value={calories}
-                                    onChangeText={setCalories}
-                                    placeholder="0"
-                                    keyboardType="numeric"
-                                    placeholderTextColor={isVintage ? '#8b4513' : '#9CA3AF'}
-                                />
-                            </View>
-                        )}
-
-                        {/* Actions */}
-                        <View style={styles.actionsRow}>
-                            <TouchableOpacity
-                                style={[styles.deleteBtn, isVintage && styles.vintageDeleteBtn]}
-                                onPress={handleDelete}
-                            >
-                                <Icon name="trash-2" size={20} color={isVintage ? '#cd5c5c' : '#EF4444'} />
-                                <Text style={[styles.deleteBtnText, isVintage && styles.vintageDeleteBtnText]}>
-                                    Delete
-                                </Text>
-                            </TouchableOpacity>
-
-                            <TouchableOpacity
-                                style={[styles.saveBtn, isVintage && styles.vintageSaveBtn]}
-                                onPress={handleSave}
-                            >
-                                <Text style={[styles.saveBtnText, isVintage && styles.vintageSaveBtnText]}>
-                                    Save Changes
-                                </Text>
-                            </TouchableOpacity>
+                    {(entry.type === 'diet' || entry.type === 'combined') && (
+                        <View style={styles.inputGroup}>
+                            <Text style={[styles.label, isVintage && styles.vintageLabel]}>Calories ({t.dashboard.unitCal})</Text>
+                            <TextInput
+                                style={[styles.input, isVintage && styles.vintageInput]}
+                                value={calories}
+                                onChangeText={setCalories}
+                                placeholder="0"
+                                keyboardType="numeric"
+                                placeholderTextColor={isVintage ? '#8b4513' : '#9CA3AF'}
+                            />
                         </View>
+                    )}
 
+                    {/* Actions */}
+                    <View style={styles.actionsRow}>
+                        <TouchableOpacity
+                            style={[styles.deleteBtn, isVintage && styles.vintageDeleteBtn]}
+                            onPress={handleDelete}
+                        >
+                            <Icon name="trash-2" size={20} color={isVintage ? '#cd5c5c' : '#EF4444'} />
+                            <Text style={[styles.deleteBtnText, isVintage && styles.vintageDeleteBtnText]}>
+                                Delete
+                            </Text>
+                        </TouchableOpacity>
+
+                        <TouchableOpacity
+                            style={[styles.saveBtn, isVintage && styles.vintageSaveBtn]}
+                            onPress={handleSave}
+                        >
+                            <Text style={[styles.saveBtnText, isVintage && styles.vintageSaveBtnText]}>
+                                Save Changes
+                            </Text>
+                        </TouchableOpacity>
                     </View>
-                </KeyboardAvoidingView>
-            </TouchableWithoutFeedback>
+
+                </View>
+            </KeyboardAvoidingView>
         </Modal>
     );
 };
@@ -186,8 +194,8 @@ const styles = StyleSheet.create({
     },
     modalContent: {
         backgroundColor: '#ffffff',
-        borderTopLeftRadius: 24,
-        borderTopRightRadius: 24,
+        borderTopLeftRadius: 32,
+        borderTopRightRadius: 32,
         padding: 24,
         paddingBottom: Platform.OS === 'ios' ? 40 : 24,
         shadowColor: '#000',
@@ -197,13 +205,18 @@ const styles = StyleSheet.create({
         elevation: 10,
     },
     vintageModalContent: {
-        backgroundColor: '#f9f5eb', // vintage-card
+        backgroundColor: '#F5E6D3', // vintage-bg
         borderTopWidth: 2,
         borderLeftWidth: 2,
         borderRightWidth: 2,
         borderColor: '#2c241b', // vintage-ink
-        borderTopLeftRadius: 0,
-        borderTopRightRadius: 0,
+        borderTopLeftRadius: 2,
+        borderTopRightRadius: 2,
+        shadowColor: '#2c241b',
+        shadowOffset: { width: 4, height: -4 },
+        shadowOpacity: 1,
+        shadowRadius: 0,
+        elevation: 10,
     },
     headerRow: {
         flexDirection: 'row',
@@ -217,33 +230,42 @@ const styles = StyleSheet.create({
         color: '#111827',
     },
     vintageTitle: {
-        color: '#cd5c5c',
+        color: '#2c241b',
         fontFamily: 'Courier',
         fontWeight: 'bold',
-        textTransform: 'uppercase',
+        fontSize: 24,
     },
     closeBtn: {
         padding: 8,
         marginRight: -8,
+        zIndex: 10,
+        elevation: 10,
     },
     inputGroup: {
         marginBottom: 16,
     },
     label: {
         fontSize: 14,
-        fontWeight: '600',
-        color: '#4B5563',
-        marginBottom: 8,
+        fontWeight: '500',
+        color: '#374151',
+        marginBottom: 6,
     },
     vintageLabel: {
         fontFamily: 'Courier',
-        color: '#2c241b',
+        color: 'rgba(44, 36, 27, 0.7)',
         fontWeight: 'bold',
+        fontSize: 12,
+        textTransform: 'uppercase',
+        letterSpacing: 1,
+        marginBottom: 4,
     },
     input: {
-        backgroundColor: '#F9FAFB', // matched with AddEntry Bento
-        borderRadius: 16,
-        padding: 16,
+        backgroundColor: '#F9FAFB',
+        borderWidth: 1,
+        borderColor: '#E5E7EB',
+        borderRadius: 12,
+        paddingVertical: 12,
+        paddingHorizontal: 16,
         fontSize: 16,
         color: '#111827',
     },
@@ -251,10 +273,13 @@ const styles = StyleSheet.create({
         backgroundColor: 'transparent',
         borderWidth: 0,
         borderBottomWidth: 2,
-        borderColor: '#8B7355', // vintage-line
-        borderRadius: 0,
+        borderColor: 'rgba(44, 36, 27, 0.2)', // vintage-ink/20
+        paddingVertical: 8,
+        paddingHorizontal: 0,
+        fontSize: 18,
         fontFamily: 'Courier',
         color: '#2c241b',
+        borderRadius: 0,
     },
     actionsRow: {
         flexDirection: 'row',
@@ -262,6 +287,8 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         marginTop: 16,
         gap: 16,
+        zIndex: 10,
+        elevation: 10,
     },
     deleteBtn: {
         flexDirection: 'row',
@@ -275,9 +302,9 @@ const styles = StyleSheet.create({
     },
     vintageDeleteBtn: {
         backgroundColor: 'transparent',
-        borderWidth: 1,
-        borderColor: '#cd5c5c', // stamp red
-        borderRadius: 0,
+        borderWidth: 2,
+        borderColor: '#2c241b',
+        borderRadius: 2,
     },
     deleteBtnText: {
         color: '#EF4444',
@@ -285,7 +312,7 @@ const styles = StyleSheet.create({
         fontSize: 16,
     },
     vintageDeleteBtnText: {
-        color: '#cd5c5c',
+        color: '#2c241b',
         fontFamily: 'Courier',
         fontWeight: 'bold',
     },
@@ -298,7 +325,7 @@ const styles = StyleSheet.create({
     },
     vintageSaveBtn: {
         backgroundColor: '#2c241b',
-        borderRadius: 0,
+        borderRadius: 2,
     },
     saveBtnText: {
         color: '#ffffff',
@@ -306,7 +333,7 @@ const styles = StyleSheet.create({
         fontSize: 16,
     },
     vintageSaveBtnText: {
-        color: '#f9f5eb',
+        color: '#F5E6D3',
         fontFamily: 'Courier',
         fontWeight: 'bold',
     },

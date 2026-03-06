@@ -90,7 +90,8 @@ export const AuthModal = ({ visible, onClose }: AuthModalProps) => {
       await loginApple();
       onClose();
     } catch (err: any) {
-      updateState('error', getErrorMessage(err));
+      console.error('Apple Auth Error:', err.code, err.message);
+      updateState('error', getErrorMessage(err) + (err.code ? ` (${err.code})` : ''));
     } finally {
       updateState('isLoading', false);
     }
@@ -103,7 +104,8 @@ export const AuthModal = ({ visible, onClose }: AuthModalProps) => {
           <TouchableOpacity
             style={styles.closeBtn}
             onPress={onClose}
-            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+            hitSlop={{ top: 15, bottom: 15, left: 15, right: 15 }}
+            activeOpacity={0.7}
           >
             <Icon name="x" size={24} color={isVintage ? '#2d2a26' : '#9CA3AF'} />
           </TouchableOpacity>
@@ -271,7 +273,8 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: 16,
     right: 16,
-    zIndex: 1,
+    zIndex: 10,
+    elevation: 10,
   },
   title: {
     fontSize: 24,

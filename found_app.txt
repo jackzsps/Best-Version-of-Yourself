@@ -1,2 +1,0 @@
-/Users/kuo/Library/Developer/Xcode/DerivedData/BestVersionOfYourself-cgggwzapjbzyvydnnpoqjhbwcvjt/Index.noindex/Build/Products/Debug-iphonesimulator/BestVersionOfYourself.app
-/Users/kuo/Library/Developer/Xcode/DerivedData/BestVersionOfYourself-cgggwzapjbzyvydnnpoqjhbwcvjt/Build/Products/Debug-iphonesimulator/BestVersionOfYourself.app

@@ -15,7 +15,7 @@ platform :android do
     # supply(
     #   track: "internal",
     #   json_key: ENV["PLAY_STORE_JSON_KEY_FILE"],
-    #   package_name: "com.jack811123.bestversionOfYourself" # TODO: Confirm package name
+    #   package_name: "com.kuo.BestVersionOfYourself" # TODO: Confirm package name
     # )
   end
 end

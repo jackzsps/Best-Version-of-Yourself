@@ -12,6 +12,16 @@ interface InsightCardProps {
 export const InsightCard: React.FC<InsightCardProps> = ({ t, theme, insightText }) => {
     const isVintage = theme === 'vintage';
 
+    // Helper to format any number sequence in the string with thousands separators
+    const formatInsightText = (text: string) => {
+        if (!text) return '';
+        return text.replace(/\b\d+\b/g, (match) => {
+            return parseInt(match, 10).toLocaleString();
+        });
+    };
+
+    const formattedInsightText = formatInsightText(insightText);
+
     if (isVintage) {
         return (
             <View style={styles.vintageContainer}>
@@ -28,7 +38,7 @@ export const InsightCard: React.FC<InsightCardProps> = ({ t, theme, insightText 
                 </View>
 
                 <Text style={styles.vintageText}>
-                    {insightText}
+                    {formattedInsightText}
                 </Text>
 
                 <View style={styles.vintageDisclaimerLine}>
@@ -52,7 +62,7 @@ export const InsightCard: React.FC<InsightCardProps> = ({ t, theme, insightText 
                         {t.dashboard.insights?.title || 'Daily Insights'}
                     </Text>
                     <Text style={styles.modernText}>
-                        {insightText}
+                        {formattedInsightText}
                     </Text>
                 </View>
             </View>

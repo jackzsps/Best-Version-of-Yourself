@@ -8,6 +8,7 @@ import {
   Alert,
   ActivityIndicator,
   Linking,
+  Image,
 } from 'react-native';
 import functions from '@react-native-firebase/functions';
 import { useApp } from '../store/AppContext';
@@ -96,6 +97,24 @@ export const Settings = () => {
     return "";
   };
 
+  const getExpiryDisplay = () => {
+    if (!subscription?.expiryDate) return null;
+
+    try {
+      if (typeof (subscription.expiryDate as any).toDate === 'function') {
+        const date = (subscription.expiryDate as any).toDate();
+        return date.toLocaleDateString();
+      }
+      if ((subscription.expiryDate as any).seconds) {
+        const date = new Date((subscription.expiryDate as any).seconds * 1000);
+        return date.toLocaleDateString();
+      }
+      return null;
+    } catch {
+      return null;
+    }
+  }
+
   const SettingItem = ({
     label,
     value,
@@ -115,6 +134,7 @@ export const Settings = () => {
         isVintage && isLast && styles.vintageLastItem,
       ]}
       onPress={onPress}
+      activeOpacity={0.7}
     >
       <Text style={isVintage ? styles.vintageLabel : styles.label}>{label}</Text>
       <View style={styles.rightContainer}>
@@ -126,22 +146,16 @@ export const Settings = () => {
         <Icon
           name="arrowRight"
           size={16}
-          color={isVintage ? '#2d2a26' : '#9CA3AF'}
+          color={isVintage ? '#2c241b' : '#9CA3AF'}
         />
       </View>
     </TouchableOpacity>
   );
 
-  const SectionHeader = ({ title }: { title: string }) => (
-    <Text style={[isVintage ? styles.vintageSectionHeader : styles.sectionHeader, { marginTop: 24, marginLeft: 20 }]}>
-      {title}
-    </Text>
-  );
-
   return (
     <ScrollView
       style={isVintage ? styles.vintageContainer : styles.container}
-      contentContainerStyle={{ paddingBottom: 40 }}
+      contentContainerStyle={{ paddingBottom: 60 }}
     >
       {/* Header */}
       <View style={styles.header}>
@@ -150,120 +164,131 @@ export const Settings = () => {
         </Text>
       </View>
 
-      {/* Account Section */}
-      <SectionHeader title={t.settings.account} />
-      <View style={isVintage ? styles.vintageSection : styles.section}>
-        {user ? (
-          <View style={[styles.item, isVintage && styles.vintageItem, styles.lastItem]}>
-            <Text style={isVintage ? styles.vintageLabel : styles.label}>
-              Email
-            </Text>
-            <Text style={isVintage ? styles.vintageValue : styles.value}>
-              {user.email}
-            </Text>
-          </View>
-        ) : (
-          <TouchableOpacity
-            testID="settings-signin-button"
-            style={[styles.item, isVintage && styles.vintageItem, styles.lastItem]}
-            onPress={() => setShowAuthModal(true)}
-          >
-            <Text style={isVintage ? styles.vintageLabel : styles.label}>
-              {t.settings.signIn}
-            </Text>
-            <View style={styles.rightContainer}>
-              <Text style={isVintage ? styles.vintageValue : styles.value}>
-                Guest
-              </Text>
+      <View style={styles.content}>
+        {/* Account Section */}
+        <View style={isVintage ? styles.vintageSection : styles.section}>
+          <Text style={isVintage ? styles.vintageSectionHeader : styles.sectionHeader}>
+            {t.settings.account}
+          </Text>
+
+          {user ? (
+            <View>
+              {/* Profile Bar */}
+              <View style={styles.profileBox}>
+                <View style={[styles.avatar, isVintage ? styles.vintageAvatarBg : styles.avatarBg]}>
+                  {user.photoURL ? (
+                    <Image source={{ uri: user.photoURL }} style={[styles.avatarImage, isVintage && styles.vintageAvatarImage]} />
+                  ) : (
+                    <Text style={[styles.avatarText, isVintage ? styles.vintageAvatarText : {}]}>
+                      {user.displayName ? user.displayName[0].toUpperCase() : 'U'}
+                    </Text>
+                  )}
+                </View>
+                <View style={styles.profileInfo}>
+                  <Text style={[styles.profileName, isVintage && styles.vintageProfileName]} numberOfLines={1}>
+                    {user.displayName || 'User'}
+                  </Text>
+                  <Text style={[styles.profileEmail, isVintage && styles.vintageProfileEmail]} numberOfLines={1}>
+                    {user.email}
+                  </Text>
+                  <View style={[styles.proBadge, isPro ? (isVintage ? styles.vintageProBadgeActive : styles.proBadgeActive) : (isVintage ? styles.vintageProBadgeInactive : styles.proBadgeInactive)]}>
+                    <Text style={[styles.proBadgeText, isPro ? (isVintage ? styles.vintageProBadgeTextActive : styles.proBadgeTextActive) : (isVintage ? styles.vintageProBadgeTextInactive : styles.proBadgeTextInactive)]}>
+                      {getSubscriptionStatusText() || 'Basic'}
+                    </Text>
+                  </View>
+                </View>
+              </View>
+
+              <View style={styles.readOnlyItem}>
+                <Text style={isVintage ? styles.vintageLabel : styles.label}>Email</Text>
+                <Text style={isVintage ? styles.vintageValue : styles.value}>{user.email || 'Guest'}</Text>
+              </View>
+
+              {isPro && (
+                <View style={[styles.readOnlyItem, { borderBottomWidth: 0 }]}>
+                  <Text style={isVintage ? styles.vintageLabel : styles.label}>Expires</Text>
+                  <Text style={isVintage ? styles.vintageValue : styles.value}>{getExpiryDisplay() || 'Never'}</Text>
+                </View>
+              )}
+
+              <TouchableOpacity style={isVintage ? styles.vintageLogoutBtn : styles.logoutBtn} onPress={handleLogout}>
+                <Text style={isVintage ? styles.vintageLogoutBtnText : styles.logoutBtnText}>{t.settings.signOut}</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity style={isVintage ? styles.vintageDeleteBtn : styles.deleteBtn} onPress={handleDeleteAccount} disabled={isDeleting}>
+                {isDeleting ? (
+                  <ActivityIndicator color={isVintage ? '#2c241b' : '#DC2626'} />
+                ) : (
+                  <Text style={isVintage ? styles.vintageDeleteBtnText : styles.deleteBtnText}>{t.settings.deleteAccount}</Text>
+                )}
+              </TouchableOpacity>
             </View>
-          </TouchableOpacity>
-        )}
-      </View>
-
-      {/* Preferences Section */}
-      <SectionHeader title="Preferences" />
-      <View style={isVintage ? styles.vintageSection : styles.section}>
-        <SettingItem
-          label={t.settings.language}
-          value={language === 'zh-TW' ? t.settings.langZh : t.settings.langEn}
-          onPress={() =>
-            setLanguage(language === 'zh-TW' ? 'en' : 'zh-TW')
-          }
-        />
-        <SettingItem
-          label={t.settings.theme}
-          value={
-            theme === 'vintage'
-              ? t.settings.themeVintage
-              : t.settings.themeDefault
-          }
-          onPress={() => setTheme(theme === 'vintage' ? 'default' : 'vintage')}
-        />
-        <SettingItem
-          label={t.settings.standard}
-          value={
-            mode === RecordMode.STRICT
-              ? t.settings.strict
-              : t.settings.conservative
-          }
-          onPress={() => setMode(mode === RecordMode.STRICT ? RecordMode.CONSERVATIVE : RecordMode.STRICT)}
-        />
-        {/* Subscription Test Button */}
-        {user && (
-          <SettingItem
-            label={isPro ? "Manage Subscription" : "Upgrade to Pro (Test)"}
-            value={getSubscriptionStatusText()}
-            onPress={() => setShowPaywall(true)}
-            isLast
-          />
-        )}
-      </View>
-      <Text style={isVintage ? styles.vintageHint : styles.hint}>
-        {mode === RecordMode.STRICT ? t.settings.strictDesc : t.settings.conservativeDesc}
-      </Text>
-
-      {/* About Section */}
-      <SectionHeader title={t.settings.about} />
-      <View style={isVintage ? styles.vintageSection : styles.section}>
-        <SettingItem
-          label={t.settings.privacyPolicy}
-          onPress={() => {
-            // Replaced stack navigation with an external link temporarily
-            Linking.openURL('https://gemini.google.com/privacy'); // Default to placeholder
-          }}
-          isLast
-        />
-      </View>
-
-      {/* Logout & Delete Account */}
-      {user && (
-        <>
-          <TouchableOpacity
-            style={isVintage ? styles.vintageLogoutBtn : styles.logoutBtn}
-            onPress={handleLogout}
-          >
-            <Text style={isVintage ? styles.vintageLogoutText : styles.logoutText}>
-              {t.settings.signOut}
-            </Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={isVintage ? styles.vintageDeleteBtn : styles.deleteBtn}
-            onPress={handleDeleteAccount}
-            disabled={isDeleting}
-          >
-            {isDeleting ? (
-              <ActivityIndicator color="#FF3B30" />
-            ) : (
-              <Text style={isVintage ? styles.vintageDeleteText : styles.deleteText}>
-                {t.settings.deleteAccount}
+          ) : (
+            <View>
+              <Text style={isVintage ? styles.vintageAuthDesc : styles.authDesc}>
+                {t.settings.authDesc}
               </Text>
-            )}
-          </TouchableOpacity>
-        </>
-      )}
+              <TouchableOpacity style={isVintage ? styles.vintageSignInBtn : styles.signInBtn} onPress={() => setShowAuthModal(true)}>
+                <Text style={isVintage ? styles.vintageSignInBtnText : styles.signInBtnText}>{t.settings.signIn}</Text>
+              </TouchableOpacity>
+            </View>
+          )}
+        </View>
 
-      <Text style={styles.versionText}>Version 1.0.0</Text>
+        {/* Preferences Section */}
+        <View style={isVintage ? styles.vintageSection : styles.section}>
+          <Text style={isVintage ? styles.vintageSectionHeader : styles.sectionHeader}>
+            Preferences
+          </Text>
+          <View>
+            <SettingItem
+              label={t.settings.language}
+              value={language === 'zh-TW' ? t.settings.langZh : t.settings.langEn}
+              onPress={() => setLanguage(language === 'zh-TW' ? 'en' : 'zh-TW')}
+            />
+            <SettingItem
+              label={t.settings.theme}
+              value={theme === 'vintage' ? t.settings.themeVintage : t.settings.themeDefault}
+              onPress={() => setTheme(theme === 'vintage' ? 'default' : 'vintage')}
+            />
+            <SettingItem
+              label={t.settings.standard}
+              value={mode === RecordMode.STRICT ? t.settings.strict : t.settings.conservative}
+              onPress={() => setMode(mode === RecordMode.STRICT ? RecordMode.CONSERVATIVE : RecordMode.STRICT)}
+            />
+            {user && (
+              <SettingItem
+                label={isPro ? "Manage Subscription" : "Upgrade to Pro (Test)"}
+                value={getSubscriptionStatusText()}
+                onPress={() => setShowPaywall(true)}
+                isLast
+              />
+            )}
+          </View>
+          <Text style={isVintage ? styles.vintageHint : styles.hint}>
+            {mode === RecordMode.STRICT ? t.settings.strictDesc : t.settings.conservativeDesc}
+          </Text>
+        </View>
+
+        {/* About Section */}
+        <View style={isVintage ? styles.vintageSection : styles.section}>
+          <Text style={isVintage ? styles.vintageSectionHeader : styles.sectionHeader}>
+            {t.settings.about}
+          </Text>
+          <View>
+            <SettingItem
+              label={t.settings.privacyPolicy}
+              onPress={() => {
+                Linking.openURL('https://gemini.google.com/privacy'); // Default to placeholder
+              }}
+              isLast
+            />
+          </View>
+        </View>
+
+        <Text style={styles.versionText}>Version 1.0.0</Text>
+
+      </View>
 
       <PaywallModal visible={showPaywall} onClose={() => setShowPaywall(false)} />
       <AuthModal visible={showAuthModal} onClose={() => setShowAuthModal(false)} />
@@ -274,83 +299,303 @@ export const Settings = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F9FAFB', // softer background matching Dashboard
+    backgroundColor: '#F9FAFB', // softer background matching View
   },
   vintageContainer: {
     flex: 1,
-    backgroundColor: '#F5F0E6', // warmer vintage paper matching Dashboard
+    backgroundColor: '#F5E6D3', // warmer vintage paper matching Dashboard
   },
   header: {
-    paddingHorizontal: 20,
+    paddingHorizontal: 24,
     paddingTop: 60,
     paddingBottom: 20,
+    backgroundColor: '#ffffff',
+    borderBottomWidth: 1,
+    borderBottomColor: '#F3F4F6',
+  },
+  content: {
+    padding: 24,
+    gap: 24,
   },
   title: {
-    fontSize: 36,
-    fontWeight: '800',
+    fontSize: 24,
+    fontWeight: '700',
     color: '#111827',
-    letterSpacing: -0.5,
   },
   vintageTitle: {
-    fontSize: 36,
+    fontSize: 24,
     fontWeight: '800',
-    color: '#2d2a26',
+    color: '#2c241b',
     fontFamily: 'Courier',
-    letterSpacing: -0.5,
-  },
-  sectionHeader: {
-    fontSize: 13,
-    color: '#6B7280',
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-    marginBottom: 8,
-    fontWeight: '700',
-  },
-  vintageSectionHeader: {
-    fontSize: 13,
-    color: '#92400e',
-    textTransform: 'uppercase',
-    marginBottom: 8,
-    fontFamily: 'Courier',
-    fontWeight: '800',
   },
   section: {
-    backgroundColor: '#fff',
-    borderRadius: 20,
-    marginHorizontal: 16,
-    overflow: 'hidden',
+    backgroundColor: '#ffffff',
+    borderRadius: 16,
+    padding: 24,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.03,
-    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
     elevation: 2,
+    borderWidth: 1,
+    borderColor: '#F3F4F6',
+    marginBottom: 24,
   },
   vintageSection: {
-    backgroundColor: '#fdfbf7',
-    marginHorizontal: 16,
-    borderWidth: 1,
-    borderColor: '#d1d5db',
-    borderRadius: 4,
-    shadowColor: '#000',
+    backgroundColor: '#F5E6D3', // vintage-card is sometimes F5E6D3 or F9F5EB. Web is vintage-card. Using #E6D2B5 from AddEntry.tsx
+    padding: 24,
+    borderRadius: 2,
+    borderWidth: 2,
+    borderColor: '#2c241b',
+    shadowColor: '#2c241b',
     shadowOffset: { width: 4, height: 4 },
+    shadowOpacity: 1,
+    shadowRadius: 0,
+    elevation: 4,
+    marginBottom: 24,
+  },
+  sectionHeader: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#111827',
+    marginBottom: 16,
+  },
+  vintageSectionHeader: {
+    fontSize: 18,
+    color: '#2c241b',
+    fontFamily: 'Courier',
+    fontWeight: 'bold',
+    marginBottom: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#8B7355',
+    paddingBottom: 4,
+    alignSelf: 'flex-start',
+  },
+  profileBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 24,
+  },
+  avatar: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    justifyContent: 'center',
+    alignItems: 'center',
+    overflow: 'hidden',
+  },
+  avatarBg: {
+    backgroundColor: '#EEF2FF', // brand-100
+  },
+  vintageAvatarBg: {
+    backgroundColor: '#2c241b',
+    borderRadius: 28,
+  },
+  avatarText: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: '#4F46E5', // brand-600
+  },
+  vintageAvatarText: {
+    color: '#F5E6D3',
+    fontFamily: 'Courier',
+  },
+  avatarImage: {
+    width: '100%',
+    height: '100%',
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+  },
+  vintageAvatarImage: {
+    borderWidth: 2,
+    borderColor: '#2c241b',
+  },
+  profileInfo: {
+    marginLeft: 16,
+    flex: 1,
+  },
+  profileName: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#111827',
+  },
+  vintageProfileName: {
+    fontSize: 16,
+    fontFamily: 'Courier',
+    fontWeight: 'bold',
+    color: '#2c241b',
+  },
+  profileEmail: {
+    fontSize: 14,
+    color: '#6B7280',
+    marginTop: 2,
+  },
+  vintageProfileEmail: {
+    fontSize: 14,
+    color: '#8B4513',
+    fontFamily: 'Courier',
+    marginTop: 2,
+  },
+  proBadge: {
+    alignSelf: 'flex-start',
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 12,
+    marginTop: 6,
+  },
+  proBadgeActive: {
+    backgroundColor: '#FEF08A', // yellow-200
+  },
+  proBadgeInactive: {
+    backgroundColor: '#F3F4F6', // gray-100
+  },
+  vintageProBadgeActive: {
+    backgroundColor: '#2c241b',
+    borderRadius: 0,
+  },
+  vintageProBadgeInactive: {
+    backgroundColor: 'transparent',
+    borderWidth: 1,
+    borderColor: '#2c241b',
+    borderRadius: 0,
+  },
+  proBadgeText: {
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  proBadgeTextActive: {
+    color: '#854D0E', // yellow-800
+  },
+  proBadgeTextInactive: {
+    color: '#6B7280',
+  },
+  vintageProBadgeTextActive: {
+    color: '#F5E6D3',
+    fontFamily: 'Courier',
+  },
+  vintageProBadgeTextInactive: {
+    color: '#2c241b',
+    fontFamily: 'Courier',
+  },
+  readOnlyItem: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    paddingVertical: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F3F4F6',
+  },
+  authDesc: {
+    fontSize: 14,
+    color: '#6B7280',
+    marginBottom: 24,
+  },
+  vintageAuthDesc: {
+    fontSize: 16,
+    color: '#8B4513',
+    fontFamily: 'Courier',
+    marginBottom: 24,
+  },
+  signInBtn: {
+    backgroundColor: '#111827',
+    paddingVertical: 12,
+    borderRadius: 12,
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 3,
+  },
+  vintageSignInBtn: {
+    backgroundColor: '#2c241b',
+    paddingVertical: 12,
+    alignItems: 'center',
+    borderRadius: 2,
+    shadowColor: '#2c241b',
+    shadowOffset: { width: 2, height: 2 },
+    shadowOpacity: 1,
     shadowRadius: 0,
     elevation: 2,
+  },
+  signInBtnText: {
+    color: '#ffffff',
+    fontWeight: '700',
+    fontSize: 14,
+  },
+  vintageSignInBtnText: {
+    color: '#F5E6D3',
+    fontFamily: 'Courier',
+    fontWeight: 'bold',
+    fontSize: 14,
+  },
+  logoutBtn: {
+    backgroundColor: '#F3F4F6', // buttonSecondary
+    paddingVertical: 12,
+    borderRadius: 12,
+    alignItems: 'center',
+    marginTop: 16,
+  },
+  vintageLogoutBtn: {
+    backgroundColor: 'transparent',
+    borderWidth: 2,
+    borderColor: '#2c241b',
+    paddingVertical: 12,
+    alignItems: 'center',
+    marginTop: 16,
+    borderRadius: 2,
+  },
+  logoutBtnText: {
+    color: '#1F2937', // text-gray-800
+    fontWeight: '700',
+    fontSize: 14,
+  },
+  vintageLogoutBtnText: {
+    color: '#2c241b',
+    fontFamily: 'Courier',
+    fontWeight: 'bold',
+    fontSize: 14,
+  },
+  deleteBtn: {
+    backgroundColor: '#FEF2F2', // buttonDanger
+    paddingVertical: 12,
+    borderRadius: 12,
+    alignItems: 'center',
+    marginTop: 8,
+  },
+  vintageDeleteBtn: {
+    backgroundColor: 'transparent',
+    borderWidth: 2,
+    borderColor: '#2c241b',
+    paddingVertical: 12,
+    alignItems: 'center',
+    marginTop: 8,
+    borderRadius: 2,
+  },
+  deleteBtnText: {
+    color: '#DC2626', // text-red-600
+    fontWeight: '700',
+    fontSize: 14,
+  },
+  vintageDeleteBtnText: {
+    color: '#2c241b',
+    fontFamily: 'Courier',
+    fontWeight: 'bold',
+    fontSize: 14,
   },
   item: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    padding: 18,
-    backgroundColor: '#fff',
+    paddingVertical: 16,
+    paddingHorizontal: 8,
     borderBottomWidth: 1,
     borderBottomColor: '#F3F4F6',
   },
   vintageItem: {
-    backgroundColor: '#fdfbf7',
-    borderBottomColor: '#d1d5db',
     borderBottomWidth: 1,
-    borderStyle: 'solid',
+    borderBottomColor: 'rgba(139, 115, 85, 0.5)',
+    borderStyle: 'dashed',
+    borderRadius: 0,
   },
   lastItem: {
     borderBottomWidth: 0,
@@ -365,7 +610,7 @@ const styles = StyleSheet.create({
   },
   vintageLabel: {
     fontSize: 16,
-    color: '#2d2a26',
+    color: '#2c241b',
     fontFamily: 'Courier',
     fontWeight: '600',
   },
@@ -374,93 +619,34 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   value: {
-    fontSize: 16,
+    fontSize: 14,
     color: '#6B7280',
     marginRight: 8,
   },
   vintageValue: {
-    fontSize: 16,
-    color: '#92400e',
+    fontSize: 14,
+    color: '#8B4513',
     marginRight: 8,
     fontFamily: 'Courier',
   },
   hint: {
-    fontSize: 13,
+    fontSize: 12,
     color: '#6B7280',
-    marginHorizontal: 32,
-    marginTop: 12,
+    marginTop: 16,
     lineHeight: 18,
   },
   vintageHint: {
-    fontSize: 13,
-    color: '#92400e',
-    marginHorizontal: 32,
-    marginTop: 12,
-    fontStyle: 'italic',
-  },
-  logoutBtn: {
-    marginTop: 40,
-    marginHorizontal: 16,
-    backgroundColor: '#FEF2F2',
-    padding: 18,
-    borderRadius: 20,
-    alignItems: 'center',
-  },
-  vintageLogoutBtn: {
-    marginTop: 40,
-    marginHorizontal: 16,
-    backgroundColor: 'transparent',
-    borderWidth: 2,
-    borderColor: '#ef4444',
-    padding: 16,
-    alignItems: 'center',
-    borderStyle: 'solid',
-  },
-  logoutText: {
-    fontSize: 16,
-    color: '#EF4444',
-    fontWeight: '700',
-  },
-  vintageLogoutText: {
-    fontSize: 16,
-    color: '#b91c1c',
-    fontWeight: 'bold',
+    fontSize: 12,
+    color: '#8B4513',
+    marginTop: 16,
     fontFamily: 'Courier',
-  },
-  deleteBtn: {
-    marginTop: 12,
-    marginHorizontal: 16,
-    backgroundColor: 'transparent',
-    padding: 16,
-    borderRadius: 20,
-    alignItems: 'center',
-  },
-  vintageDeleteBtn: {
-    marginTop: 12,
-    marginHorizontal: 16,
-    backgroundColor: 'transparent',
-    padding: 14,
-    alignItems: 'center',
-  },
-  deleteText: {
-    fontSize: 14,
-    color: '#EF4444',
-    fontWeight: '600',
-    opacity: 0.8,
-  },
-  vintageDeleteText: {
-    fontSize: 15,
-    color: '#b91c1c',
-    fontWeight: '600',
-    fontFamily: 'Courier',
-    textDecorationLine: 'underline',
   },
   versionText: {
     textAlign: 'center',
-    marginTop: 32,
+    marginTop: 8,
     color: '#9CA3AF',
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: '500',
-    letterSpacing: 0.5,
   },
 });
+

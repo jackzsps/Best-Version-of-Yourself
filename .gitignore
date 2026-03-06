@@ -127,3 +127,5 @@ mobile/ios/**/*.plist
 !mobile/ios/**/Info.plist
 !mobile/ios/**/Entitlements.plist
 **/GoogleService-Info.plist
+mobile/ios/build/
+*.xcarchive

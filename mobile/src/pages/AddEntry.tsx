@@ -361,8 +361,7 @@ export const AddEntry = ({ setActiveTab }: { setActiveTab?: (tab: keyof TabParam
       // Date Logic Normalization (Parity with Web: Noon 12:00:00)
       const dateAtNoon = new Date(entryDate.getFullYear(), entryDate.getMonth(), entryDate.getDate(), 12, 0, 0);
 
-      const newEntry: Entry = {
-        id: Date.now().toString(),
+      const newEntry: Omit<Entry, 'id'> = {
         date: firestore.Timestamp.fromDate(dateAtNoon),
         imageUrl: finalImageUrl,
         itemName: editedName || t.common.untitled,
@@ -379,7 +378,7 @@ export const AddEntry = ({ setActiveTab }: { setActiveTab?: (tab: keyof TabParam
         note: note || null,
       };
 
-      await addEntry(newEntry);
+      await addEntry(newEntry as Entry);
 
       // Replaced Alert with Toast
       toast.success(t.common.save, t.addEntry.entrySaved);
@@ -419,10 +418,7 @@ export const AddEntry = ({ setActiveTab }: { setActiveTab?: (tab: keyof TabParam
 
   return (
     <ScrollView contentContainerStyle={[styles.container, { backgroundColor: colors.bg }]}>
-      <View style={styles.header}>
-        <Text style={[styles.title, { color: colors.text, fontFamily: isVintage ? 'Courier' : undefined }]}>{t.addEntry.title}</Text>
-        <Text style={[styles.subtitle, { color: colors.subText, fontFamily: isVintage ? 'Courier' : undefined }]}>{t.addEntry.subtitle}</Text>
-      </View>
+
 
       {/* Action Buttons: Show only when not analyzing and no result yet */}
       {!analyzing && !analysisResult && (
@@ -449,28 +445,31 @@ export const AddEntry = ({ setActiveTab }: { setActiveTab?: (tab: keyof TabParam
             </View>
           )}
 
-          <TouchableOpacity style={[styles.captureButton, isVintage && styles.vintageButton, { backgroundColor: isVintage ? colors.card : '#fff', borderColor: isVintage ? colors.line : undefined, borderWidth: isVintage ? 2 : 0, shadowColor: isVintage ? 'transparent' : '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.1, shadowRadius: 12, elevation: 4 }]} onPress={handleCamera}>
-            <Icon name="camera" size={32} color={isVintage ? colors.text : '#1F2937'} />
+          <TouchableOpacity style={[styles.captureButton, isVintage && styles.vintageButton, { backgroundColor: isVintage ? colors.card : '#fff', borderColor: isVintage ? colors.line : undefined, borderWidth: isVintage ? 4 : 0, shadowColor: isVintage ? 'transparent' : '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.1, shadowRadius: 12, elevation: 4 }]} onPress={handleCamera}>
+            <Icon name="camera" size={64} color={isVintage ? colors.text : '#1F2937'} style={{ opacity: 0.8, marginBottom: 8 }} />
+            <Text style={[styles.captureText, { color: colors.text, fontFamily: isVintage ? 'Courier' : undefined }]}>{t.addEntry.tapToCapture}</Text>
           </TouchableOpacity>
-          <Text style={[styles.captureText, { color: colors.text, fontFamily: isVintage ? 'Courier' : undefined }]}>{t.addEntry.tapToCapture}</Text>
+          <View style={{ marginBottom: 24 }}>
+            <Text style={[{ textAlign: 'center', fontSize: 16, opacity: 0.6, color: colors.subText }, isVintage && { fontFamily: 'Courier' }]}>
+              {t.addEntry.subtitle}
+            </Text>
+          </View>
 
           <View style={styles.secondaryActions}>
             <TouchableOpacity
-              style={styles.secondaryButton}
+              style={isVintage ? styles.vintageSecondaryButton : styles.secondaryButton}
               onPress={handleLibrary}
             >
-              <Text style={[styles.secondaryButtonText, { color: isVintage ? colors.text : colors.accent, fontFamily: isVintage ? 'Courier' : undefined, textDecorationLine: isVintage ? 'underline' : 'none' }]}>Select from Library</Text>
+              <Text style={[styles.secondaryButtonText, { color: isVintage ? colors.text : colors.subText, fontFamily: isVintage ? 'Courier' : undefined, textDecorationLine: isVintage ? 'none' : 'none' }]}>{t.addEntry.gallery}</Text>
             </TouchableOpacity>
 
-            <Text style={[styles.orText, { color: colors.subText, fontFamily: isVintage ? 'Courier' : undefined }]}>- {t.addEntry.or || 'or'} -</Text>
-
             <TouchableOpacity
-              style={styles.secondaryButton}
+              style={isVintage ? styles.vintageSecondaryButton : styles.secondaryButton}
               onPress={handleManualEntry}
             >
               <View style={styles.manualButtonContent}>
-                <Icon name="edit" size={16} color={isVintage ? colors.text : colors.accent} />
-                <Text style={[styles.secondaryButtonText, { color: isVintage ? colors.text : colors.accent, fontFamily: isVintage ? 'Courier' : undefined, textDecorationLine: isVintage ? 'underline' : 'none' }]}> {t.addEntry.manual}</Text>
+                <Icon name="edit" size={16} color={isVintage ? colors.text : colors.subText} />
+                <Text style={[styles.secondaryButtonText, { color: isVintage ? colors.text : colors.subText, fontFamily: isVintage ? 'Courier' : undefined, textDecorationLine: isVintage ? 'none' : 'none' }]}> {t.addEntry.manual}</Text>
               </View>
             </TouchableOpacity>
           </View>
@@ -516,32 +515,42 @@ export const AddEntry = ({ setActiveTab }: { setActiveTab?: (tab: keyof TabParam
         </View>
       )}
 
-      {!analyzing && imageUri && (
-        <View style={[styles.previewBannerContainer]}>
-          <View style={[styles.previewBanner, isVintage && { borderWidth: 4, borderColor: '#fff', borderRadius: 2, marginHorizontal: 20 }]}>
-            <Image source={{ uri: imageUri }} style={styles.bannerImage} />
-            <View style={StyleSheet.absoluteFillObject}>
-              <Svg height="100%" width="100%">
-                <Defs>
-                  <SvgLinearGradient id="grad" x1="0" y1="0" x2="0" y2="1">
-                    <Stop offset="0" stopColor="#000" stopOpacity="0" />
-                    <Stop offset="1" stopColor="#000" stopOpacity="0.7" />
-                  </SvgLinearGradient>
-                </Defs>
-                <Rect width="100%" height="100%" fill="url(#grad)" />
-              </Svg>
-            </View>
-            <View style={styles.bannerTextContainer}>
-              <Text style={[styles.bannerTitle, isVintage && { fontFamily: 'Courier' }]} numberOfLines={2}>
-                {editedName || t.common.untitled}
-              </Text>
-            </View>
-          </View>
-        </View>
-      )}
-
       {!analyzing && analysisResult && (
         <View style={styles.reviewLayout}>
+          {/* Review Header: Image Banner or Manual Header */}
+          {imageUri ? (
+            <View style={[styles.previewBannerContainer]}>
+              <View style={[styles.previewBanner, isVintage && { borderWidth: 4, borderColor: '#fff', borderRadius: 2, marginHorizontal: 20 }]}>
+                <Image source={{ uri: imageUri }} style={styles.bannerImage} />
+                <View style={StyleSheet.absoluteFillObject}>
+                  <Svg height="100%" width="100%">
+                    <Defs>
+                      <SvgLinearGradient id="grad" x1="0" y1="0" x2="0" y2="1">
+                        <Stop offset="0" stopColor="#000" stopOpacity="0" />
+                        <Stop offset="1" stopColor="#000" stopOpacity="0.7" />
+                      </SvgLinearGradient>
+                    </Defs>
+                    <Rect width="100%" height="100%" fill="url(#grad)" />
+                  </Svg>
+                </View>
+                <View style={styles.bannerTextContainer}>
+                  <Text style={[styles.bannerTitle, isVintage && { fontFamily: 'Courier' }]} numberOfLines={2}>
+                    {editedName || t.common.untitled}
+                  </Text>
+                </View>
+              </View>
+            </View>
+          ) : (
+            <View style={[styles.manualHeader, isVintage ? styles.vintageManualHeader : styles.bentoManualHeader]}>
+              <View style={[styles.manualHeaderIconWrap, isVintage ? styles.vintageManualHeaderIconWrap : styles.bentoManualHeaderIconWrap]}>
+                <Icon name="edit" size={20} color={isVintage ? colors.bg : colors.accent} />
+              </View>
+              <Text style={[styles.manualHeaderText, isVintage && { fontFamily: 'Courier' }, { color: isVintage ? colors.text : colors.subText }]}>
+                {t.addEntry.manual || '手動輸入'}
+              </Text>
+            </View>
+          )}
+
           {/* Entry Types Tabs */}
           <View style={[styles.entryTabs, isVintage && styles.vintageEntryTabs]}>
             {ALL_ENTRY_TYPES.map(type => (
@@ -851,9 +860,9 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
   captureButton: {
-    width: 88,
-    height: 88,
-    borderRadius: 44,
+    width: 256,
+    height: 256,
+    borderRadius: 128,
     justifyContent: 'center',
     alignItems: 'center',
     shadowColor: '#000',
@@ -861,33 +870,56 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.15,
     shadowRadius: 8,
     elevation: 5,
-    marginBottom: 16,
+    marginBottom: 24,
   },
   vintageButton: {
     shadowColor: '#2d2a26',
     shadowOffset: { width: 4, height: 4 },
     shadowOpacity: 1,
     shadowRadius: 0,
-    borderRadius: 0, // Square vintage button
+    borderRadius: 128, // Match rounded for vintage version too
   },
   captureText: {
-    fontSize: 16,
+    fontSize: 18,
     fontWeight: '700',
+    marginTop: 8,
+    textAlign: 'center',
+    letterSpacing: 0.5,
   },
   secondaryActions: {
+    flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
-    marginTop: 24
+    justifyContent: 'center',
+    gap: 16,
+    marginTop: 16,
   },
   secondaryButton: {
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    borderRadius: 24,
+    backgroundColor: 'rgba(255, 255, 255, 0.5)',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  vintageSecondaryButton: {
+    backgroundColor: 'transparent',
+    borderBottomWidth: 1,
+    borderStyle: 'dashed',
+    borderRadius: 0,
+    shadowOpacity: 0,
+    elevation: 0,
     paddingVertical: 8,
     paddingHorizontal: 16,
-    borderRadius: 20,
-    backgroundColor: '#F3F4F6',
   },
   secondaryButtonText: {
     fontSize: 14,
-    fontWeight: '600',
+    fontWeight: '700',
   },
   actionContainer: {
     flex: 1,
@@ -992,6 +1024,47 @@ const styles = StyleSheet.create({
     textShadowColor: 'rgba(0, 0, 0, 0.4)',
     textShadowOffset: { width: 0, height: 2 },
     textShadowRadius: 4,
+  },
+  manualHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 16,
+    marginBottom: 24,
+    borderRadius: 12,
+    gap: 12,
+  },
+  vintageManualHeader: {
+    backgroundColor: 'rgba(245, 230, 211, 0.5)', /* vintage paperish */
+    borderWidth: 2,
+    borderStyle: 'dashed',
+    borderColor: '#8B7355',
+    borderRadius: 0,
+  },
+  bentoManualHeader: {
+    backgroundColor: '#fff',
+    borderWidth: 1,
+    borderColor: '#F3F4F6',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  manualHeaderIconWrap: {
+    padding: 8,
+    borderRadius: 24,
+  },
+  vintageManualHeaderIconWrap: {
+    backgroundColor: '#2C241B',
+    borderRadius: 0,
+  },
+  bentoManualHeaderIconWrap: {
+    backgroundColor: '#E0F2FE',
+  },
+  manualHeaderText: {
+    fontSize: 16,
+    fontWeight: '700',
   },
   resultContainer: {
     padding: 24,

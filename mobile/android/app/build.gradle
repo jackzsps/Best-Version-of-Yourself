@@ -59,9 +59,9 @@ android {
     buildToolsVersion rootProject.ext.buildToolsVersion
     compileSdk rootProject.ext.compileSdkVersion
 
-    namespace "com.jack811123.bestversionOfYourself"
+    namespace "org.reactjs.native.example.BestVersionOfYourself"
     defaultConfig {
-        applicationId "com.jack811123.bestversionOfYourself"
+        applicationId "org.reactjs.native.example.BestVersionOfYourself"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
         versionCode 1
